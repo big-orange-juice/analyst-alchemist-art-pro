@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { MinusSquare, Send, Terminal, X, Move, Trash2 } from 'lucide-react';
+import { Send, Terminal, X, Move, Trash2 } from 'lucide-react';
 import type { ChatMessage } from '@/types';
 import { useLanguage } from '@/lib/useLanguage';
 

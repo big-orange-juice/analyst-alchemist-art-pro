@@ -66,8 +66,8 @@ export default function EquityChart({
 
   const seriesOrder = useMemo(() => {
     if (!data.length) return [] as string[];
-    const { time, ...rest } = data[data.length - 1];
-    return Object.keys(rest);
+    const lastPoint = data[data.length - 1];
+    return Object.keys(lastPoint).filter((key) => key !== 'time');
   }, [data]);
 
   const colorMap = useMemo(() => {

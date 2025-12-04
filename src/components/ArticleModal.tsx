@@ -10,8 +10,8 @@ interface ArticleModalProps {
 }
 
 export default function ArticleModal({ article, onClose }: ArticleModalProps) {
-  if (!article) return null;
   const { dictionary } = useLanguage();
+  if (!article) return null;
   const copy = dictionary.article_modal;
   const sectorText =
     article.tag === '行业' ? copy.sector_semiconductor : copy.sector_macro;

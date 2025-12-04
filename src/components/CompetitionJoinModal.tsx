@@ -15,8 +15,8 @@ export default function CompetitionJoinModal({
   onClose,
   onJoin
 }: CompetitionJoinModalProps) {
-  if (!isOpen) return null;
   const { dictionary } = useLanguage();
+  if (!isOpen) return null;
   const copy = dictionary.competition_join;
 
   return (

@@ -1,15 +1,7 @@
 'use client';
 
 import React, { useRef, useLayoutEffect } from 'react';
-import {
-  Trophy,
-  Brain,
-  Zap,
-  Shield,
-  Hexagon,
-  Activity,
-  User
-} from 'lucide-react';
+import { Brain, Zap, Shield, Hexagon, Activity, User } from 'lucide-react';
 import type { RankingItem } from '@/types';
 import gsap from 'gsap';
 import { useLanguage } from '@/lib/useLanguage';

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { X, Save, User, ChevronRight } from 'lucide-react';
+import { X, User, ChevronRight } from 'lucide-react';
 import type { AgentStats, AgentModule } from '@/types';
 import { useLanguage } from '@/lib/useLanguage';
 

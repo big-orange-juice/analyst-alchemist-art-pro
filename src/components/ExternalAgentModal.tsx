@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { X, Hexagon, Activity, ChevronRight } from 'lucide-react';
+import { X, Hexagon } from 'lucide-react';
 import { AgentCapability, AGENT_CAPABILITY_DETAILS } from '@/types';
 import { useLanguage } from '@/lib/useLanguage';
 

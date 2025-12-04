@@ -1,11 +1,11 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
+import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import {
   Hexagon,
   BarChart3,
-  Users,
   Bell,
   Sun,
   Moon,
@@ -29,8 +29,7 @@ import type {
   AgentStats,
   AgentModule,
   RankingItem,
-  ChartDataPoint,
-  AgentCapability
+  ChartDataPoint
 } from '@/types';
 
 // Components
@@ -167,7 +166,6 @@ export default function DashboardContent() {
     agentName,
     agentClass,
     agentStats,
-    agentModules,
     customPrompts,
     isJoinedCompetition,
     setAgentName,
@@ -488,7 +486,7 @@ export default function DashboardContent() {
       {/* Top Bar */}
       <header className='shrink-0 h-[60px] glass-header backdrop-blur-md flex items-center justify-between px-6 z-50'>
         <div className='flex items-center gap-4'>
-          <a href='/' className='flex items-center gap-3 group'>
+          <Link href='/' className='flex items-center gap-3 group'>
             <Hexagon
               className='text-cp-yellow group-hover:scale-110 transition-transform'
               size={28}
@@ -502,7 +500,7 @@ export default function DashboardContent() {
                 {t.app.subtitle}
               </p>
             </div>
-          </a>
+          </Link>
         </div>
 
         {/* Right Controls */}

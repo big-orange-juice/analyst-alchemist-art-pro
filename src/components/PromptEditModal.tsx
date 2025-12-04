@@ -30,7 +30,7 @@ export default function PromptEditModal({
           <div className='flex items-center gap-3 text-cp-yellow'>
             <Settings size={20} strokeWidth={1.5} />
             <span className='font-bold font-serif tracking-wide uppercase text-lg'>
-              {t('prompt_modal.title')} // {role}
+              {t('prompt_modal.title')} / {role}
             </span>
           </div>
           <button

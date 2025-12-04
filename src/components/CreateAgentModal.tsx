@@ -311,7 +311,7 @@ export default function CreateAgentModal({
                 {getStepTitle()}
               </h2>
               <p className='text-xs text-cp-text-muted font-sans uppercase tracking-widest mt-1'>
-                Step {getStepNumber()} // 05
+                Step {getStepNumber()} / 05
               </p>
             </div>
           </div>
