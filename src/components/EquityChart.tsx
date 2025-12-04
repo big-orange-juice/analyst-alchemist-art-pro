@@ -1,17 +1,40 @@
 'use client';
 
-import React, { useEffect, useMemo, useRef } from 'react';
-import { Chart } from '@antv/g2';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import * as echarts from 'echarts/core';
+import type { ComposeOption, ECharts } from 'echarts/core';
+import { LineChart, type LineSeriesOption } from 'echarts/charts';
+import {
+  GridComponent,
+  TooltipComponent,
+  DatasetComponent,
+  type GridComponentOption,
+  type TooltipComponentOption
+} from 'echarts/components';
+import { CanvasRenderer } from 'echarts/renderers';
 import type { ChartDataPoint } from '@/types';
+
+echarts.use([
+  LineChart,
+  GridComponent,
+  TooltipComponent,
+  DatasetComponent,
+  CanvasRenderer
+]);
+
+type ECOption = ComposeOption<
+  LineSeriesOption | GridComponentOption | TooltipComponentOption
+>;
 
 interface EquityChartProps {
   data: ChartDataPoint[];
   highlightedAgent?: string | null;
   onChartClick?: (agentName: string) => void;
+  onChartHover?: (agentName: string | null) => void;
   theme?: 'dark' | 'light';
 }
 
-const AGENT_COLORS = [
+const FALLBACK_AGENT_COLORS = [
   '#C5A059',
   '#E07A5F',
   '#8DA399',
@@ -22,33 +45,24 @@ const AGENT_COLORS = [
   '#5F6F65'
 ];
 
-type FlattenedPoint = {
-  time: string;
-  agent: string;
-  value: number;
-};
+const GILDED_RED_COLORS = ['#F25C54', '#FF8F70', '#FFC27A', '#F5A55C'];
+const GILDED_GREEN_COLORS = ['#3CBF88', '#5ED9A0', '#8BE5B1', '#BFF3C7'];
 
 export default function EquityChart({
   data,
   highlightedAgent,
   onChartClick,
+  onChartHover,
   theme = 'dark'
 }: EquityChartProps) {
-  const chartRef = useRef<HTMLDivElement>(null);
-  const chartInstance = useRef<Chart | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const chartInstance = useRef<ECharts | null>(null);
+  const [localHighlight, setLocalHighlight] = useState<string | null>(null);
+  const [hoverHighlight, setHoverHighlight] = useState<string | null>(null);
 
-  const flattenedData = useMemo<FlattenedPoint[]>(() => {
-    const rows: FlattenedPoint[] = [];
-    data.forEach((point) => {
-      const { time, ...series } = point;
-      Object.entries(series).forEach(([agent, value]) => {
-        const numeric = Number(value);
-        if (!Number.isFinite(numeric)) return;
-        rows.push({ time, agent, value: numeric });
-      });
-    });
-    return rows;
-  }, [data]);
+  useEffect(() => {
+    setLocalHighlight(highlightedAgent ?? null);
+  }, [highlightedAgent]);
 
   const seriesOrder = useMemo(() => {
     if (!data.length) return [] as string[];
@@ -57,153 +71,248 @@ export default function EquityChart({
   }, [data]);
 
   const colorMap = useMemo(() => {
+    const latestPoint = data[data.length - 1];
     const map: Record<string, string> = {};
     seriesOrder.forEach((agent, index) => {
-      map[agent] = AGENT_COLORS[index % AGENT_COLORS.length];
+      const rawValue =
+        latestPoint && typeof latestPoint[agent] === 'number'
+          ? (latestPoint[agent] as number)
+          : 100;
+      const delta = rawValue - 100;
+      const palette = delta >= 0 ? GILDED_RED_COLORS : GILDED_GREEN_COLORS;
+      const fallback =
+        FALLBACK_AGENT_COLORS[index % FALLBACK_AGENT_COLORS.length];
+      map[agent] = palette[index % palette.length] ?? fallback;
     });
     return map;
-  }, [seriesOrder]);
+  }, [seriesOrder, data]);
+
+  const times = useMemo(() => data.map(({ time }) => time), [data]);
+
+  const maxLabelLength = useMemo(
+    () => seriesOrder.reduce((max, name) => Math.max(max, name.length), 0),
+    [seriesOrder]
+  );
+
+  const rightPadding = useMemo(
+    () => Math.min(220, Math.max(110, maxLabelLength * 8 + 48)),
+    [maxLabelLength]
+  );
+
+  const reducedTicks = useMemo(() => {
+    const step = Math.max(1, Math.ceil(times.length / 5));
+    return new Set(
+      times.filter((_, idx) => idx % step === 0 || idx === times.length - 1)
+    );
+  }, [times]);
 
   useEffect(() => {
-    if (!chartRef.current) return;
-    chartInstance.current = new Chart({
-      container: chartRef.current,
-      autoFit: true,
-      height: chartRef.current.clientHeight || 320,
-      padding: [24, 90, 40, 55]
+    if (!containerRef.current) return;
+    const chart = echarts.init(containerRef.current, undefined, {
+      renderer: 'canvas'
     });
+    chartInstance.current = chart;
+
+    const resizeObserver = new ResizeObserver(() => {
+      if (chart.isDisposed()) return;
+      const dom = chart.getDom?.();
+      if (!dom) return;
+      chart.resize();
+    });
+    resizeObserver.observe(containerRef.current);
 
     return () => {
-      chartInstance.current?.destroy();
+      resizeObserver.disconnect();
+      chart.dispose();
       chartInstance.current = null;
     };
   }, []);
 
-  useEffect(() => {
-    if (!chartInstance.current) return;
-    const chart = chartInstance.current;
+  const activeHighlight =
+    hoverHighlight ?? highlightedAgent ?? localHighlight ?? null;
 
-    if (!flattenedData.length) {
-      chart.options({ type: 'view', children: [] });
-      chart.render();
-      return;
-    }
+  const option = useMemo<ECOption | null>(() => {
+    if (!times.length || !seriesOrder.length) return null;
 
     const isLight = theme === 'light';
-    const labelColor = isLight ? '#2C2C2C' : '#A7ADB8';
-    const gridColor = isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.08)';
+    const axisColor = isLight ? '#2C2C2C' : 'rgba(255,255,255,0.45)';
+    const gridColor = isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.08)';
+    const tooltipBg = isLight ? 'rgba(248,245,236,0.92)' : 'rgba(7,7,8,0.92)';
+    const tooltipText = isLight ? '#1f1e22' : '#f4f1ea';
 
-    const baseChildren: any[] = [
-      {
-        type: 'line',
-        data: flattenedData,
-        encode: {
-          x: 'time',
-          y: 'value',
-          color: 'agent',
-          series: 'agent'
-        },
-        scale: {
-          color: {
-            domain: seriesOrder,
-            range: seriesOrder.map((agent) => colorMap[agent])
-          }
-        },
-        style: {
-          lineWidth: (datum: FlattenedPoint) =>
-            highlightedAgent ? (datum.agent === highlightedAgent ? 3 : 1) : 2,
-          opacity: (datum: FlattenedPoint) =>
-            highlightedAgent
-              ? datum.agent === highlightedAgent
-                ? 1
-                : 0.25
-              : 0.95
-        },
-        tooltip: {
-          title: 'time',
-          items: [
-            { channel: 'color' },
-            {
-              channel: 'y',
-              valueFormatter: (value: number) =>
-                `${Number.isFinite(value) ? (value - 100).toFixed(2) : '0'}%`
-            }
-          ]
-        }
-      }
-    ];
-
-    if (highlightedAgent && colorMap[highlightedAgent]) {
-      baseChildren.push({
-        type: 'area',
-        data: flattenedData.filter((row) => row.agent === highlightedAgent),
-        encode: {
-          x: 'time',
-          y: 'value'
-        },
-        style: {
-          fill: colorMap[highlightedAgent],
-          fillOpacity: 0.12
-        }
+    const series = seriesOrder.map((agent) => {
+      const color = colorMap[agent];
+      const values = data.map((point) => {
+        const raw = Number(point[agent]);
+        if (!Number.isFinite(raw)) return null;
+        return Number((raw - 100).toFixed(2));
       });
-    }
+      const isHighlighted = activeHighlight ? agent === activeHighlight : false;
 
-    chart.options({
-      type: 'view',
-      data: flattenedData,
-      padding: [24, 90, 40, 55],
-      scale: {
-        value: {
-          nice: true
+      return {
+        name: agent,
+        type: 'line',
+        data: values,
+        connectNulls: true,
+        showSymbol: false,
+        smooth: false,
+        lineStyle: {
+          width: activeHighlight ? (isHighlighted ? 3 : 1) : 2,
+          color,
+          opacity: activeHighlight ? (isHighlighted ? 1 : 0.25) : 0.85
         },
-        color: {
-          domain: seriesOrder,
-          range: seriesOrder.map((agent) => colorMap[agent])
-        }
-      },
-      axis: {
-        x: {
-          tick: false,
-          title: null,
-          style: {
-            labelFill: labelColor,
-            labelFontSize: 11
+        itemStyle: {
+          color,
+          opacity: activeHighlight ? (isHighlighted ? 1 : 0.35) : 0.9
+        },
+        emphasis: {
+          focus: 'series',
+          lineStyle: {
+            width: 3
           }
         },
-        y: {
-          title: null,
-          style: {
-            labelFill: labelColor,
-            gridStroke: gridColor,
-            gridLineDash: [4, 4],
-            labelFontSize: 11
+        blur: {
+          lineStyle: {
+            opacity: activeHighlight ? 0.15 : 0.35
           },
-          labelFormatter: (value: number) => `${(value - 100).toFixed(0)}%`
+          itemStyle: {
+            opacity: activeHighlight ? 0.15 : 0.35
+          }
+        },
+        endLabel: {
+          show: true,
+          formatter: () => agent,
+          color,
+          fontSize: 11,
+          fontWeight: 600,
+          fontFamily: 'Space Grotesk, sans-serif',
+          offset: [12, 0]
+        },
+        labelLayout: {
+          moveOverlap: 'shiftY'
         }
+      } satisfies LineSeriesOption;
+    });
+
+    return {
+      color: seriesOrder.map((agent) => colorMap[agent]),
+      grid: {
+        left: 48,
+        right: rightPadding,
+        top: 24,
+        bottom: 36
       },
       tooltip: {
-        title: 'time'
+        trigger: 'axis',
+        backgroundColor: tooltipBg,
+        borderColor: 'rgba(255,255,255,0.08)',
+        borderWidth: 1,
+        padding: 12,
+        textStyle: {
+          color: tooltipText,
+          fontFamily: 'Space Grotesk, "JetBrains Mono", sans-serif',
+          fontSize: 12
+        },
+        valueFormatter: (value: unknown) => {
+          const normalized = Array.isArray(value) ? value[0] : value;
+          if (typeof normalized === 'number') {
+            return `${normalized >= 0 ? '+' : ''}${normalized.toFixed(2)}%`;
+          }
+          if (typeof normalized === 'string') {
+            return normalized;
+          }
+          return '';
+        },
+        axisPointer: {
+          lineStyle: {
+            color: isLight ? '#1f1e22' : 'rgba(255,255,255,0.35)'
+          }
+        }
       },
-      children: baseChildren
-    });
-
-    chart.render();
-
-    chart.off('element:click');
-    chart.on('element:click', (event) => {
-      const agent = event.data?.data?.agent;
-      if (agent && onChartClick) {
-        onChartClick(agent);
-      }
-    });
+      xAxis: {
+        type: 'category',
+        boundaryGap: false,
+        data: times,
+        axisLine: { show: false },
+        axisTick: { show: false },
+        axisLabel: {
+          color: axisColor,
+          fontSize: 11,
+          formatter: (value: string) => (reducedTicks.has(value) ? value : '')
+        }
+      },
+      yAxis: {
+        type: 'value',
+        axisLine: { show: false },
+        splitLine: {
+          show: true,
+          lineStyle: {
+            color: gridColor,
+            type: 'dashed'
+          }
+        },
+        axisTick: { show: false },
+        axisLabel: {
+          color: axisColor,
+          fontSize: 11,
+          formatter: (value: number) =>
+            `${value >= 0 ? '+' : ''}${value.toFixed(0)}%`
+        }
+      },
+      series
+    } satisfies ECOption;
   }, [
-    flattenedData,
-    highlightedAgent,
-    onChartClick,
-    theme,
+    times,
     seriesOrder,
-    colorMap
+    colorMap,
+    activeHighlight,
+    theme,
+    rightPadding,
+    reducedTicks,
+    data
   ]);
 
-  return <div ref={chartRef} className='w-full h-full min-h-[300px]' />;
+  useEffect(() => {
+    if (!chartInstance.current || !option) return;
+    chartInstance.current.setOption(option, true);
+
+    const chart = chartInstance.current;
+    const clearHover = () => {
+      setHoverHighlight(null);
+      if (onChartHover) {
+        onChartHover(null);
+      }
+    };
+
+    chart.off('click');
+    chart.off('mouseover');
+    chart.off('mouseout');
+    chart.off('globalout');
+
+    chart.on('click', (params) => {
+      if (params?.seriesName) {
+        setLocalHighlight(params.seriesName);
+        if (onChartClick) {
+          onChartClick(params.seriesName);
+        }
+      }
+    });
+
+    chart.on('mouseover', (params) => {
+      if (params?.seriesName) {
+        setHoverHighlight(params.seriesName);
+        if (onChartHover) {
+          onChartHover(params.seriesName);
+        }
+      }
+    });
+
+    chart.on('mouseout', () => {
+      clearHover();
+    });
+
+    chart.on('globalout', clearHover);
+  }, [option, onChartClick, onChartHover]);
+
+  return <div ref={containerRef} className='w-full h-full min-h-[300px]' />;
 }

@@ -46,11 +46,11 @@ export default function CapabilityModal({
 
   return (
     <div className='fixed inset-0 z-50 flex items-center justify-center backdrop-blur-md bg-black/80 p-4 modal-animate'>
-      <div className='w-full md:max-w-6xl h-[85vh] bg-cp-black border border-cp-border flex flex-col shadow-2xl'>
+      <div className='w-full md:max-w-6xl h-[85vh] glass-panel border border-white/[0.02] flex flex-col shadow-2xl'>
         {/* Header */}
-        <div className='flex items-center justify-between p-6 bg-cp-dark border-b border-cp-border shrink-0'>
+        <div className='flex items-center justify-between p-6 bg-white/[0.02] border-b border-white/[0.02] shrink-0'>
           <div className='flex items-center gap-4'>
-            <div className='w-10 h-10 border border-cp-border flex items-center justify-center text-cp-yellow bg-cp-black'>
+            <div className='w-10 h-10 border border-white/[0.02] flex items-center justify-center text-cp-yellow bg-white/[0.02]'>
               <Cpu size={20} strokeWidth={1.5} />
             </div>
             <div>
@@ -69,16 +69,16 @@ export default function CapabilityModal({
           </button>
         </div>
 
-        <div className='flex-1 flex flex-col md:flex-row overflow-hidden bg-cp-black'>
+        <div className='flex-1 flex flex-col md:flex-row overflow-hidden bg-transparent'>
           {/* Input */}
-          <div className='w-full md:w-1/3 border-b md:border-b-0 md:border-r border-cp-border p-6 flex flex-col bg-cp-dark/10 hover-card m-2'>
+          <div className='w-full md:w-1/3 border-b md:border-b-0 md:border-r border-white/[0.02] p-6 flex flex-col bg-white/[0.02] hover-card m-2'>
             <label className='text-cp-text-muted text-xs font-bold uppercase tracking-widest mb-4 block'>
               {t('capability_modal.input_label')}
             </label>
             <textarea
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              className='flex-1 bg-cp-black border border-cp-border p-4 text-cp-text font-mono text-sm focus:border-cp-yellow focus:outline-none resize-none mb-6 hover-card'
+              className='flex-1 bg-black/20 border border-white/[0.02] p-4 text-cp-text font-mono text-sm focus:border-cp-yellow focus:outline-none resize-none mb-6 hover-card'
               placeholder={t('capability_modal.input_placeholder')}
             />
             <button
@@ -95,7 +95,7 @@ export default function CapabilityModal({
           </div>
 
           {/* Output */}
-          <div className='flex-1 p-8 flex flex-col bg-cp-black gap-6'>
+          <div className='flex-1 p-8 flex flex-col bg-transparent gap-6'>
             <div className='flex-1 flex flex-col'>
               <label className='text-cp-text-muted text-xs font-bold uppercase tracking-widest mb-4 block'>
                 {t('capability_modal.output_label')}

@@ -21,11 +21,11 @@ export default function SeasonPassModal({
 
   return (
     <div className='fixed inset-0 z-[200] bg-black/95 backdrop-blur-xl flex items-center justify-center p-4 modal-animate'>
-      <div className='w-full max-w-6xl h-[85vh] bg-cp-black border border-cp-border flex flex-col shadow-2xl relative overflow-hidden'>
+      <div className='w-full max-w-6xl h-[85vh] glass-panel border border-white/[0.02] flex flex-col shadow-2xl relative overflow-hidden'>
         {/* Header */}
-        <div className='flex items-center justify-between p-8 border-b border-cp-border bg-cp-dark shrink-0 z-10'>
+        <div className='flex items-center justify-between p-8 border-b border-white/[0.02] bg-white/[0.02] shrink-0 z-10'>
           <div className='flex items-center gap-6'>
-            <div className='w-16 h-16 border-2 border-cp-yellow flex items-center justify-center bg-cp-black'>
+            <div className='w-16 h-16 border-2 border-cp-yellow flex items-center justify-center bg-white/[0.02]'>
               <Crown size={32} className='text-cp-yellow' strokeWidth={1} />
             </div>
             <div>
@@ -39,7 +39,7 @@ export default function SeasonPassModal({
           </div>
           <button
             onClick={onClose}
-            className='w-12 h-12 border border-cp-border flex items-center justify-center text-gray-500 hover:text-white transition-colors'>
+            className='w-12 h-12 border border-white/[0.02] flex items-center justify-center text-gray-500 hover:text-white transition-colors'>
             <X size={24} />
           </button>
         </div>
@@ -47,7 +47,7 @@ export default function SeasonPassModal({
         {/* Content */}
         <div className='flex-1 overflow-y-auto p-12 relative z-10 flex flex-col items-center'>
           {/* Progress Bar */}
-          <div className='w-full max-w-5xl mb-12 hover-card p-6 border border-transparent bg-cp-dark/10'>
+          <div className='w-full max-w-5xl mb-12 hover-card p-6 border border-transparent bg-white/[0.02]'>
             <div className='flex justify-between items-end mb-4'>
               <div className='text-5xl font-serif font-bold text-cp-yellow'>
                 {copy.level_prefix}
@@ -57,7 +57,7 @@ export default function SeasonPassModal({
                 {copy.progress}
               </div>
             </div>
-            <div className='w-full h-2 bg-cp-dark border border-cp-border'>
+            <div className='w-full h-2 bg-white/[0.05] border border-white/[0.02]'>
               <div className='h-full bg-cp-yellow w-1/3'></div>
             </div>
           </div>
@@ -69,11 +69,11 @@ export default function SeasonPassModal({
                 key={lvl}
                 className={`border season-pass-card flex flex-col transition-all hover-card h-full ${
                   lvl <= currentLevel
-                    ? 'season-pass-card--unlocked bg-cp-dark/20'
+                    ? 'season-pass-card--unlocked bg-white/[0.05]'
                     : 'bg-transparent opacity-60'
                 }`}>
                 {/* Level Header */}
-                <div className='p-4 border-b border-cp-border flex justify-between items-center bg-cp-black'>
+                <div className='p-4 border-b border-white/[0.02] flex justify-between items-center bg-white/[0.02]'>
                   <span className='text-sm font-bold font-sans uppercase tracking-widest text-cp-text-muted'>
                     {copy.level_label} {lvl}
                   </span>

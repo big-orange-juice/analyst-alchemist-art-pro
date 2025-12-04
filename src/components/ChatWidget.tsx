@@ -1,14 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import {
-  MinusSquare,
-  Send,
-  Terminal,
-  X,
-  Move,
-  Trash2
-} from 'lucide-react';
+import { MinusSquare, Send, Terminal, X, Move, Trash2 } from 'lucide-react';
 import type { ChatMessage } from '@/types';
 import { useLanguage } from '@/lib/useLanguage';
 
@@ -22,10 +15,16 @@ const STORAGE_KEY = 'analyst_alchemist_chat_history';
 export default function ChatWidget({ isOpen, onClose }: ChatWidgetProps) {
   const { dictionary } = useLanguage();
   const chatCopy = dictionary.chat;
-  
+
   const [messages, setMessages] = useState<ChatMessage[]>(() => {
     if (typeof window === 'undefined') {
-      return [{ role: 'model', content: chatCopy.initial_message, timestamp: Date.now() }];
+      return [
+        {
+          role: 'model',
+          content: chatCopy.initial_message,
+          timestamp: Date.now()
+        }
+      ];
     }
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
@@ -49,8 +48,14 @@ export default function ChatWidget({ isOpen, onClose }: ChatWidgetProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const [position, setPosition] = useState({
-    x: typeof window !== 'undefined' ? Math.max(0, window.innerWidth - 450 - 40) : 0,
-    y: typeof window !== 'undefined' ? Math.max(0, window.innerHeight - 600 - 40) : 0
+    x:
+      typeof window !== 'undefined'
+        ? Math.max(0, window.innerWidth - 450 - 40)
+        : 0,
+    y:
+      typeof window !== 'undefined'
+        ? Math.max(0, window.innerHeight - 600 - 40)
+        : 0
   });
 
   const isDraggingRef = useRef(false);
@@ -73,7 +78,11 @@ export default function ChatWidget({ isOpen, onClose }: ChatWidgetProps) {
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
-      if (!isDraggingRef.current || (typeof window !== 'undefined' && window.innerWidth < 768)) return;
+      if (
+        !isDraggingRef.current ||
+        (typeof window !== 'undefined' && window.innerWidth < 768)
+      )
+        return;
 
       let newX = e.clientX - dragOffsetRef.current.x;
       let newY = e.clientY - dragOffsetRef.current.y;
@@ -159,11 +168,11 @@ export default function ChatWidget({ isOpen, onClose }: ChatWidgetProps) {
         left: windowWidth >= 768 ? `${position.x}px` : '0',
         top: windowWidth >= 768 ? `${position.y}px` : '0'
       }}
-      className='fixed md:w-[450px] md:h-[600px] w-full h-full bg-cp-black border border-cp-border flex flex-col z-[999] shadow-[0_10px_40px_rgba(0,0,0,0.6)] animate-in fade-in duration-200'>
+      className='fixed md:w-[450px] md:h-[600px] w-full h-full glass-panel border border-white/[0.02] flex flex-col z-[999] shadow-[0_10px_40px_rgba(0,0,0,0.6)] animate-in fade-in duration-200'>
       {/* Header - Draggable Area */}
       <div
         onMouseDown={handleMouseDown}
-        className='bg-cp-dark border-b border-cp-border p-4 flex justify-between items-center cursor-move select-none active:bg-cp-dim transition-colors group shrink-0'>
+        className='bg-white/[0.02] border-b border-white/[0.02] p-4 flex justify-between items-center cursor-move select-none active:bg-white/[0.05] transition-colors group shrink-0'>
         <div className='flex items-center gap-2 text-cp-yellow'>
           <Terminal size={18} strokeWidth={2} />
           <span className='font-bold tracking-wider font-sans text-base'>
@@ -192,7 +201,7 @@ export default function ChatWidget({ isOpen, onClose }: ChatWidgetProps) {
       </div>
 
       {/* Messages */}
-      <div className='flex-1 overflow-y-auto p-4 space-y-4 font-mono text-base custom-scrollbar bg-cp-black'>
+      <div className='flex-1 overflow-y-auto p-4 space-y-4 font-mono text-base custom-scrollbar bg-transparent'>
         {messages.map((msg, idx) => (
           <div
             key={idx}
@@ -202,8 +211,8 @@ export default function ChatWidget({ isOpen, onClose }: ChatWidgetProps) {
             <div
               className={`max-w-[85%] p-3 relative ${
                 msg.role === 'user'
-                  ? 'bg-cp-dim text-cp-text border-l-2 border-cp-yellow'
-                  : 'bg-cp-dark text-cp-text-muted border-l-2 border-cp-cyan'
+                  ? 'bg-white/[0.05] text-cp-text border-l-2 border-cp-yellow'
+                  : 'bg-white/[0.02] text-cp-text-muted border-l-2 border-cp-cyan'
               }`}>
               <p className='whitespace-pre-wrap text-sm leading-relaxed'>
                 {msg.content}
@@ -220,7 +229,7 @@ export default function ChatWidget({ isOpen, onClose }: ChatWidgetProps) {
       </div>
 
       {/* Input */}
-      <div className='p-4 bg-cp-dark border-t border-cp-border shrink-0'>
+      <div className='p-4 bg-white/[0.02] border-t border-white/[0.02] shrink-0'>
         <div className='flex gap-2'>
           <input
             type='text'
@@ -228,7 +237,7 @@ export default function ChatWidget({ isOpen, onClose }: ChatWidgetProps) {
             onChange={(e) => setInputValue(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleSend()}
             placeholder={chatCopy.placeholder}
-            className='flex-1 bg-cp-black border border-cp-border text-cp-text p-3 text-sm focus:border-cp-yellow focus:outline-none placeholder-gray-600 font-mono rounded-none'
+            className='flex-1 bg-black/20 border border-white/[0.02] text-cp-text p-3 text-sm focus:border-cp-yellow focus:outline-none placeholder-gray-600 font-mono rounded-none'
           />
           <button
             onClick={handleSend}

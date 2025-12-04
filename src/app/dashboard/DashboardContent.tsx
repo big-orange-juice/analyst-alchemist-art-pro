@@ -227,6 +227,7 @@ export default function DashboardContent() {
   const [isEditAgentModalOpen, setIsEditAgentModalOpen] = useState(false);
   const [userRank, setUserRank] = useState<number | null>(null);
   const [userProfit, setUserProfit] = useState<string | null>(null);
+  const [hoveredAgent, setHoveredAgent] = useState<string | null>(null);
 
   const t = translations[language];
   const notify = useCallback(
@@ -485,7 +486,7 @@ export default function DashboardContent() {
       <MatrixRain theme={theme} />
 
       {/* Top Bar */}
-      <header className='shrink-0 h-[60px] bg-cp-black/80 backdrop-blur-sm border-b border-cp-border flex items-center justify-between px-6 z-50'>
+      <header className='shrink-0 h-[60px] glass-header backdrop-blur-md flex items-center justify-between px-6 z-50'>
         <div className='flex items-center gap-4'>
           <a href='/' className='flex items-center gap-3 group'>
             <Hexagon
@@ -569,9 +570,9 @@ export default function DashboardContent() {
       {/* Main Content */}
       <div className='flex-1 flex min-h-0 overflow-hidden'>
         {/* Left Sidebar */}
-        <aside className='w-[380px] shrink-0 border-r border-cp-border flex flex-col bg-cp-black/40 backdrop-blur-sm'>
+        <aside className='w-[380px] shrink-0 glass-panel border-r-0 flex flex-col z-40'>
           {/* Tab Headers */}
-          <div className='flex shrink-0 h-[40px] border-b border-cp-border'>
+          <div className='flex shrink-0 h-[40px] border-b border-white/[0.02]'>
             <button
               onClick={() => setActiveSideTab('MY_AGENT')}
               className={`flex-1 flex items-center justify-center gap-2 text-[11px] font-bold uppercase tracking-widest transition-colors ${
@@ -602,7 +603,6 @@ export default function DashboardContent() {
                     agentClass={agentClass}
                     agentLevel={1}
                     agentStats={agentStats}
-                    agentModules={agentModules}
                     isJoined={isJoinedCompetition}
                     rank={userRank ?? undefined}
                     profit={userProfit ?? undefined}
@@ -652,15 +652,17 @@ export default function DashboardContent() {
                   setHighlightedAgent(highlightedAgent === name ? null : name)
                 }
                 onInspectAgent={(name) => setInspectingAgent(name)}
+                onHoverAgent={setHoveredAgent}
+                activeAgent={highlightedAgent}
               />
             )}
           </div>
         </aside>
 
         {/* Center Panel */}
-        <main className='flex-1 flex flex-col min-h-0 bg-cp-black overflow-hidden'>
+        <main className='flex-1 flex flex-col min-h-0 bg-gradient-to-br from-cp-black to-cp-dim overflow-hidden relative'>
           {/* Chart Panel */}
-          <div className='flex-1 min-h-0 p-4 flex flex-col'>
+          <div className='flex-1 min-h-0 p-4 flex flex-col z-10'>
             <div className='flex items-center justify-between mb-4 shrink-0'>
               <div className='flex items-center gap-3'>
                 <h2 className='text-lg font-serif font-bold text-cp-text tracking-wide'>
@@ -669,20 +671,21 @@ export default function DashboardContent() {
                 <span className='w-2 h-2 rounded-full bg-cp-yellow animate-pulse' />
               </div>
             </div>
-            <div className='flex-1 min-h-0 border border-cp-border bg-cp-dark/20 rounded-lg overflow-hidden'>
+            <div className='flex-1 min-h-0 glass-panel rounded-lg overflow-hidden'>
               <EquityChart
                 data={chartData}
-                highlightedAgent={highlightedAgent}
+                highlightedAgent={hoveredAgent ?? highlightedAgent}
                 onChartClick={(name) =>
                   setHighlightedAgent(highlightedAgent === name ? null : name)
                 }
+                onChartHover={setHoveredAgent}
                 theme={theme}
               />
             </div>
           </div>
 
           {/* Bottom Panel */}
-          <div className='h-[280px] shrink-0 border-t border-cp-border'>
+          <div className='h-[280px] shrink-0 glass-panel border-t-0 border-l-0 border-r-0 z-20'>
             <SeasonInfoPanel
               agentName={agentName}
               isJoined={isJoinedCompetition}
@@ -692,6 +695,13 @@ export default function DashboardContent() {
         </main>
       </div>
 
+      <ConfirmModal
+        isOpen={confirmModal.isOpen}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        onConfirm={confirmModal.action}
+        onCancel={() => setConfirmModal({ ...confirmModal, isOpen: false })}
+      />
       {/* Notifications */}
       <NotificationSystem
         notifications={notifications}
@@ -741,14 +751,6 @@ export default function DashboardContent() {
           onJoin={() => setIsSeasonPassOpen(false)}
         />
       )}
-
-      <ConfirmModal
-        isOpen={confirmModal.isOpen}
-        title={confirmModal.title}
-        message={confirmModal.message}
-        onConfirm={confirmModal.action}
-        onCancel={() => setConfirmModal({ ...confirmModal, isOpen: false })}
-      />
 
       {isJoinCompetitionModalOpen && (
         <CompetitionJoinModal

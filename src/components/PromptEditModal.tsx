@@ -25,8 +25,8 @@ export default function PromptEditModal({
 
   return (
     <div className='fixed inset-0 z-[60] flex items-center justify-center backdrop-blur-md bg-black/80 p-4 modal-animate'>
-      <div className='w-full max-w-4xl bg-cp-black border border-cp-border flex flex-col shadow-2xl h-[70vh]'>
-        <div className='flex items-center justify-between p-6 bg-cp-dark border-b border-cp-border shrink-0'>
+      <div className='w-full max-w-4xl glass-panel border border-white/[0.02] flex flex-col shadow-2xl h-[70vh]'>
+        <div className='flex items-center justify-between p-6 bg-white/[0.02] border-b border-white/[0.02] shrink-0'>
           <div className='flex items-center gap-3 text-cp-yellow'>
             <Settings size={20} strokeWidth={1.5} />
             <span className='font-bold font-serif tracking-wide uppercase text-lg'>
@@ -40,8 +40,8 @@ export default function PromptEditModal({
           </button>
         </div>
 
-        <div className='flex-1 p-8 flex flex-col bg-cp-black overflow-hidden'>
-          <div className='flex-1 flex flex-col relative border border-cp-border bg-cp-dark/20 p-6 hover-card'>
+        <div className='flex-1 p-8 flex flex-col bg-transparent overflow-hidden'>
+          <div className='flex-1 flex flex-col relative border border-white/[0.02] bg-white/[0.02] p-6 hover-card'>
             <label className='block text-cp-text-muted text-xs font-bold mb-4 uppercase tracking-widest'>
               {t('prompt_modal.label')}
             </label>
@@ -53,7 +53,7 @@ export default function PromptEditModal({
             />
           </div>
 
-          <div className='flex justify-between items-center pt-6 mt-6 border-t border-cp-border shrink-0'>
+          <div className='flex justify-between items-center pt-6 mt-6 border-t border-white/[0.02] shrink-0'>
             <button
               onClick={() => setPrompt('')}
               className='flex items-center gap-2 text-xs text-gray-500 hover:text-cp-yellow transition-colors uppercase font-bold tracking-widest'>

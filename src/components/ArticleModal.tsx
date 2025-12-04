@@ -18,9 +18,9 @@ export default function ArticleModal({ article, onClose }: ArticleModalProps) {
 
   return (
     <div className='fixed inset-0 z-[100] flex items-center justify-center backdrop-blur-md bg-black/80 p-4 modal-animate'>
-      <div className='w-full max-w-3xl h-[80vh] bg-cp-black border border-cp-border flex flex-col shadow-2xl relative'>
+      <div className='w-full max-w-3xl h-[80vh] glass-panel border border-white/[0.02] flex flex-col shadow-2xl relative'>
         {/* Header */}
-        <div className='flex items-center justify-between p-6 border-b border-cp-border bg-cp-dark shrink-0'>
+        <div className='flex items-center justify-between p-6 border-b border-white/[0.02] bg-white/[0.02] shrink-0'>
           <div className='flex items-center gap-3'>
             <FileText className='text-cp-yellow' size={20} strokeWidth={1.5} />
             <span className='font-bold font-serif text-white uppercase tracking-wider'>
@@ -35,19 +35,17 @@ export default function ArticleModal({ article, onClose }: ArticleModalProps) {
         </div>
 
         {/* Content */}
-        <div className='p-8 md:p-12 overflow-y-auto custom-scrollbar bg-cp-black flex-1'>
+        <div className='p-8 md:p-12 overflow-y-auto custom-scrollbar bg-transparent flex-1'>
           <h1 className='text-3xl md:text-4xl font-serif font-bold text-white mb-6 leading-tight hover-card p-2 border border-transparent'>
             {article.title}
           </h1>
 
-          <div className='flex items-center gap-6 text-xs font-sans uppercase tracking-widest text-cp-text-muted mb-10 border-b border-cp-border pb-6 hover-card p-2 border border-transparent'>
+          <div className='flex items-center gap-6 text-xs font-sans uppercase tracking-widest text-cp-text-muted mb-10 border-b border-white/[0.02] pb-6 hover-card p-2 border border-transparent'>
             <span>{article.date}</span>
             <span>
               {copy.tag_label} {article.tag}
             </span>
-            <span>
-              {copy.author_value}
-            </span>
+            <span>{copy.author_value}</span>
           </div>
 
           <div className='prose prose-invert prose-sm max-w-none font-serif text-cp-text-muted leading-loose'>
@@ -63,7 +61,7 @@ export default function ArticleModal({ article, onClose }: ArticleModalProps) {
             <div className='hover-card p-4 border border-transparent'>
               <p>{copy.core_body}</p>
             </div>
-            <div className='my-8 p-6 border border-cp-border bg-cp-dark/30 text-center font-mono text-xs hover-card'>
+            <div className='my-8 p-6 border border-white/[0.02] bg-white/[0.02] text-center font-mono text-xs hover-card'>
               {copy.chart_label}
             </div>
             <h3 className='text-white font-bold mt-8 mb-4'>
@@ -77,7 +75,7 @@ export default function ArticleModal({ article, onClose }: ArticleModalProps) {
         </div>
 
         {/* Footer */}
-        <div className='p-4 border-t border-cp-border bg-cp-dark flex justify-end gap-4'>
+        <div className='p-4 border-t border-white/[0.02] bg-white/[0.02] flex justify-end gap-4'>
           <button className='px-6 py-2 btn-outline text-xs flex items-center gap-2'>
             <Printer size={14} /> {copy.print}
           </button>

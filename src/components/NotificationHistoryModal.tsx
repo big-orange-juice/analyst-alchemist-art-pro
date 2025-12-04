@@ -28,15 +28,15 @@ export default function NotificationHistoryModal({
   const copy = dictionary.notification_history;
   return (
     <div className='fixed inset-0 z-[100] flex items-center justify-center backdrop-blur-sm bg-black/80 p-4 modal-animate'>
-      <div className='w-full max-w-md bg-[#15171E] border border-[#3A404D] flex flex-col shadow-[0_0_40px_rgba(0,0,0,0.5)] h-[600px] relative'>
+      <div className='w-full max-w-md glass-panel border border-white/[0.02] flex flex-col shadow-[0_0_40px_rgba(0,0,0,0.5)] h-[600px] relative'>
         {/* Header */}
-        <div className='flex items-center justify-between p-4 border-b border-[#3A404D] bg-[#1B1E23] shrink-0'>
+        <div className='flex items-center justify-between p-4 border-b border-white/[0.02] bg-white/[0.02] shrink-0'>
           <div className='flex items-center gap-2'>
             <Bell className='text-[#D4AF37]' size={18} />
             <span className='font-bold font-oxanium text-[#EAEAEA] uppercase'>
               {copy.title}
             </span>
-            <span className='bg-[#3A404D] text-xs px-1.5 py-0.5 rounded text-white'>
+            <span className='bg-white/[0.05] text-xs px-1.5 py-0.5 rounded text-white'>
               {notifications.length}
             </span>
           </div>
@@ -56,7 +56,7 @@ export default function NotificationHistoryModal({
         </div>
 
         {/* List */}
-        <div className='flex-1 overflow-y-auto custom-scrollbar p-2 bg-[#121418]'>
+        <div className='flex-1 overflow-y-auto custom-scrollbar p-2 bg-transparent'>
           {notifications.length === 0 ? (
             <div className='h-full flex flex-col items-center justify-center text-gray-600 gap-3'>
               <Bell size={40} className='opacity-20' />
@@ -67,7 +67,7 @@ export default function NotificationHistoryModal({
               {notifications.map((note) => (
                 <div
                   key={note.id}
-                  className='bg-[#1B1E23] border border-[#2C313C] p-3 hover:border-[#3A404D] transition-colors flex gap-3 group hover-card'>
+                  className='bg-white/[0.02] border border-white/[0.02] p-3 hover:border-white/[0.1] transition-colors flex gap-3 group hover-card'>
                   <div className='mt-1 shrink-0'>
                     {note.type === 'success' && (
                       <CheckCircle size={16} className='text-[#D4AF37]' />

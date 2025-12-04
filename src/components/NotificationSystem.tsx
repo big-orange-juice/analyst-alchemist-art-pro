@@ -63,7 +63,7 @@ export default function NotificationSystem({
           <div
             key={note.id}
             onClick={() => onNotificationClick && onNotificationClick()}
-            className={`pointer-events-auto relative overflow-hidden backdrop-blur-md bg-cp-black/80 border ${borderClass} shadow-[0_10px_30px_rgba(0,0,0,0.5)] transition-all duration-500 animate-in slide-in-from-right-12 fade-in cursor-pointer group rounded-none`}>
+            className={`pointer-events-auto relative overflow-hidden glass-panel border ${borderClass} shadow-[0_10px_30px_rgba(0,0,0,0.5)] transition-all duration-500 animate-in slide-in-from-right-12 fade-in cursor-pointer group rounded-none`}>
             <div
               className='absolute inset-0 opacity-[0.03] pointer-events-none'
               style={{
@@ -95,7 +95,7 @@ export default function NotificationSystem({
                   {note.message}
                 </p>
 
-                <div className='mt-3 flex items-center justify-between border-t border-cp-border/30 pt-2'>
+                <div className='mt-3 flex items-center justify-between border-t border-white/[0.05] pt-2'>
                   <span className='text-[10px] font-mono text-cp-text-muted opacity-60'>
                     {new Date(note.timestamp).toLocaleTimeString([], {
                       hour: '2-digit',

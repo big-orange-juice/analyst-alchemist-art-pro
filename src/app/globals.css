@@ -99,6 +99,51 @@ h6 {
   background: var(--cp-yellow);
 }
 
+/* Glassmorphism Utilities */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.02);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  backdrop-filter: blur(12px);
+}
+
+.glass-header {
+  background: linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0.02),
+    transparent
+  );
+  border-bottom: 1px solid rgba(255, 255, 255, 0.02);
+}
+
+.glass-item {
+  background-color: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.02);
+  transition: all 0.3s ease;
+}
+
+.glass-item:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.glass-button {
+  background-color: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(8px);
+  transition: all 0.3s ease;
+}
+
+.glass-button:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.glass-button-active {
+  background-color: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.1);
+  color: var(--cp-text);
+}
+
 /* Text Utilities */
 .text-glow {
   text-shadow: 0 0 20px rgba(197, 160, 89, 0.2);

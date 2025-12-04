@@ -141,9 +141,9 @@ export default function SeasonInfoPanel({
     : [];
 
   return (
-    <div className='w-full h-full flex flex-col bg-cp-black text-xs'>
+    <div className='w-full h-full flex flex-col bg-transparent text-xs'>
       {/* Tab Header - Bottom Border Only */}
-      <div className='flex items-center px-4 h-[40px] gap-6 bg-cp-black border-b border-cp-border overflow-x-auto custom-scrollbar shrink-0'>
+      <div className='flex items-center px-4 h-[40px] gap-6 glass-header bg-transparent overflow-x-auto custom-scrollbar shrink-0'>
         <button
           onClick={() => setActiveTab('SEASON')}
           className={`h-full type-eyebrow tab-item shrink-0 flex items-center gap-2 transition-colors ${
@@ -202,17 +202,17 @@ export default function SeasonInfoPanel({
       </div>
 
       {/* Content Area */}
-      <div className='flex-1 min-h-0 relative overflow-hidden bg-cp-black p-0'>
+      <div className='flex-1 min-h-0 relative overflow-hidden bg-transparent p-0'>
         {activeTab === 'SEASON' && (
           <div className='w-full h-full flex flex-col'>
             <div className='flex flex-1 min-h-0'>
               {/* Stats - No vertical border unless needed */}
-              <div className='w-1/3 p-6 flex flex-col justify-center items-center gap-3 text-center bg-cp-black'>
+              <div className='w-1/3 p-6 flex flex-col justify-center items-center gap-3 text-center bg-transparent'>
                 <div className='type-eyebrow'>赛季奖池</div>
                 <div className='text-3xl font-bold text-cp-yellow type-figure'>
                   ¥1.0M
                 </div>
-                <div className='w-12 h-px bg-cp-border my-2'></div>
+                <div className='w-12 h-px bg-white/[0.1] my-2'></div>
                 <div className='type-eyebrow'>在线选手</div>
                 <div className='text-xl font-bold text-white type-figure'>
                   14,204
@@ -220,7 +220,7 @@ export default function SeasonInfoPanel({
               </div>
 
               {/* Pass Info - Clean separation */}
-              <div className='flex-1 p-6 flex flex-col justify-center bg-cp-black border-l border-cp-border'>
+              <div className='flex-1 p-6 flex flex-col justify-center bg-transparent border-l border-white/[0.02]'>
                 <div className='flex justify-between items-center mb-4'>
                   <span className='font-bold text-lg text-cp-text type-serif-title'>
                     下级奖励
@@ -230,7 +230,7 @@ export default function SeasonInfoPanel({
                   </span>
                 </div>
                 <div className='flex items-center gap-4 mb-6'>
-                  <div className='w-10 h-10 border border-cp-border flex items-center justify-center text-cp-cyan bg-cp-dark'>
+                  <div className='w-10 h-10 border border-white/[0.1] flex items-center justify-center text-cp-cyan bg-white/[0.02]'>
                     <TrendingUp size={20} />
                   </div>
                   <div className='text-xs text-cp-text-muted font-sans leading-relaxed'>
@@ -239,7 +239,7 @@ export default function SeasonInfoPanel({
                 </div>
                 <button
                   onClick={onOpenPass}
-                  className='w-full py-3 btn-outline flex items-center justify-center gap-2 text-xs font-bold'>
+                  className='w-full py-3 glass-button flex items-center justify-center gap-2 text-xs font-bold text-cp-text-muted hover:text-white'>
                   查看赛季通行证 <ChevronRight size={14} />
                 </button>
               </div>
@@ -248,10 +248,10 @@ export default function SeasonInfoPanel({
         )}
 
         {activeTab === 'LOGS' && (
-          <div className='flex h-full min-h-0 bg-cp-black'>
+          <div className='flex h-full min-h-0 bg-transparent'>
             {/* Left Column: Holdings */}
-            <div className='w-[35%] border-r border-cp-border flex flex-col bg-cp-dark/10'>
-              <div className='h-8 flex items-center px-3 border-b border-cp-border bg-cp-dark/30 shrink-0'>
+            <div className='w-[35%] border-r border-white/[0.02] flex flex-col bg-white/[0.01]'>
+              <div className='h-8 flex items-center px-3 border-b border-white/[0.02] bg-white/[0.02] shrink-0'>
                 <span className='type-eyebrow flex items-center gap-2'>
                   <Target size={10} /> 实时持仓
                 </span>
@@ -260,7 +260,7 @@ export default function SeasonInfoPanel({
                 {holdings.map((h) => (
                   <div
                     key={h.code}
-                    className='px-5 py-2 border-cp-border/30 hover:bg-cp-dim/30 transition-colors group'>
+                    className='px-5 py-2 border-white/[0.02] hover:bg-white/[0.05] transition-colors group'>
                     <div className='flex justify-between items-center mb-1'>
                       <span className='text-xs font-bold text-cp-text group-hover:text-white'>
                         {h.name}
@@ -289,12 +289,12 @@ export default function SeasonInfoPanel({
 
             {/* Right Column: Logs */}
             <div className='flex-1 flex flex-col min-h-0'>
-              <div className='h-8 flex items-center px-3 border-b border-cp-border bg-cp-dark/30 shrink-0'>
+              <div className='h-8 flex items-center px-3 border-b border-white/[0.02] bg-white/[0.02] shrink-0'>
                 <span className='type-eyebrow flex items-center gap-2'>
                   <Terminal size={10} /> 系统日志
                 </span>
               </div>
-              <div className='flex-1 overflow-y-auto custom-scrollbar p-3 type-mono text-[11px] flex flex-col-reverse bg-cp-black leading-relaxed'>
+              <div className='flex-1 overflow-y-auto custom-scrollbar p-3 type-mono text-[11px] flex flex-col-reverse bg-transparent leading-relaxed'>
                 {logs.map((log, idx) => (
                   <div
                     key={idx}
@@ -327,8 +327,8 @@ export default function SeasonInfoPanel({
         )}
 
         {activeFeedConfig && (
-          <div className='flex flex-col h-full min-h-0 bg-cp-black'>
-            <div className='flex flex-wrap items-start justify-between gap-3 p-6 border-b border-cp-border bg-cp-dark/20'>
+          <div className='flex flex-col h-full min-h-0 bg-transparent'>
+            <div className='flex flex-wrap items-start justify-between gap-3 p-6 border-b border-white/[0.02] bg-white/[0.02]'>
               <div>
                 <div className='type-eyebrow text-cp-text'>
                   {t(activeFeedConfig.labelKey)}
@@ -348,12 +348,12 @@ export default function SeasonInfoPanel({
                 )}
               </div>
             </div>
-            <div className='flex-1 overflow-y-auto custom-scrollbar p-6 space-y-3 bg-cp-black'>
+            <div className='flex-1 overflow-y-auto custom-scrollbar p-6 space-y-3 bg-transparent'>
               {activeFeedEntries.length ? (
                 activeFeedEntries.map((entry, idx) => (
                   <div
                     key={`${entry.time}-${entry.tag}-${idx}`}
-                    className='border border-cp-border/40 bg-cp-dark/40 p-4 hover:border-cp-yellow/60 transition-colors'>
+                    className='border border-white/[0.05] bg-white/[0.02] p-4 hover:border-cp-yellow/30 transition-colors'>
                     <div className='flex items-center justify-between type-mono text-[11px] text-cp-text-muted'>
                       <span>{entry.time}</span>
                       <span className='tracking-[0.35em]'>{entry.tag}</span>

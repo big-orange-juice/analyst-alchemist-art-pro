@@ -36,7 +36,8 @@ const translations = {
       season_live: 'S4 赛季: 贤者之石 进行中',
       hero_title_1: '铸造你的',
       hero_title_2: 'ALPHA AGENT',
-      hero_desc: '接入金融智能矩阵。部署自主 AI 代理，实时回测策略，在全网算法排位中争夺荣耀。',
+      hero_desc:
+        '接入金融智能矩阵。部署自主 AI 代理，实时回测策略，在全网算法排位中争夺荣耀。',
       init_system: '初始化系统',
       link_identity: '链接身份',
       continue_as: '继续身份',
@@ -47,13 +48,17 @@ const translations = {
       badge: { legend: '传说', whale: '巨鲸', bot: '智能体' },
       features: {
         strategy_title: '多因子策略矩阵',
-        strategy_desc: '内置经典的量化因子库（动量、价值、波动率），支持通过自然语言组合生成全新的阿尔法策略。',
+        strategy_desc:
+          '内置经典的量化因子库（动量、价值、波动率），支持通过自然语言组合生成全新的阿尔法策略。',
         backtest_title: '机构级回测引擎',
-        backtest_desc: '基于 Tick 级历史数据，毫秒级仿真撮合，提供夏普比率、最大回撤等专业的绩效归因分析。',
+        backtest_desc:
+          '基于 Tick 级历史数据，毫秒级仿真撮合，提供夏普比率、最大回撤等专业的绩效归因分析。',
         community_title: '去中心化智库',
-        community_desc: '加入全球排位赛，与顶尖的 Quant Agent 对抗。共享策略逻辑，获取赛季通证奖励。',
+        community_desc:
+          '加入全球排位赛，与顶尖的 Quant Agent 对抗。共享策略逻辑，获取赛季通证奖励。',
         security_title: '零信任安全架构',
-        security_desc: '所有策略代码均在沙箱环境中运行。用户的私有数据与核心算法享有最高级别的加密保护。'
+        security_desc:
+          '所有策略代码均在沙箱环境中运行。用户的私有数据与核心算法享有最高级别的加密保护。'
       },
       footer: {
         rights: '© 2024 Analyst Alchemist. All systems nominal.',
@@ -64,11 +69,13 @@ const translations = {
   }
 };
 
-export default function LandingPage({ initialTopPerformers }: LandingPageProps) {
+export default function LandingPage({
+  initialTopPerformers
+}: LandingPageProps) {
   const router = useRouter();
   const { currentUser } = useUserStore();
   const [isClient, setIsClient] = useState(false);
-  
+
   const t = translations.zh;
 
   useEffect(() => {
@@ -100,7 +107,7 @@ export default function LandingPage({ initialTopPerformers }: LandingPageProps) 
         }}></div>
 
       {/* Header */}
-      <header className='relative z-10 w-full px-8 py-6 flex justify-between items-center border-b border-cp-border bg-cp-black/70 backdrop-blur-md sticky top-0'>
+      <header className='relative z-10 w-full px-8 py-6 flex justify-between items-center border-b border-white/[0.02] bg-black/70 backdrop-blur-md sticky top-0'>
         <div className='flex items-center gap-3'>
           <div className='text-cp-yellow animate-pulse drop-shadow-[0_0_15px_rgba(209,180,106,0.4)]'>
             <Hexagon size={28} strokeWidth={1.5} />
@@ -163,15 +170,14 @@ export default function LandingPage({ initialTopPerformers }: LandingPageProps) 
             <button
               onClick={handleEnter}
               className='px-16 py-5 btn-gold text-lg font-semibold tracking-[0.45em] flex items-center gap-3 shadow-[0_0_30px_rgba(197,160,89,0.35)] hover:shadow-[0_0_55px_rgba(197,160,89,0.55)] transition-shadow'>
-              <Zap size={20} fill='black' /> {t.landing.continue_as}{' '}
-              {username}
+              <Zap size={20} fill='black' /> {t.landing.continue_as} {username}
             </button>
           )}
         </div>
       </section>
 
       {/* Feature Grid */}
-      <section className='relative z-10 py-20 px-6 bg-gradient-to-b from-cp-dark via-cp-black to-cp-black border-y border-cp-border'>
+      <section className='relative z-10 py-20 px-6 bg-gradient-to-b from-white/[0.02] via-black to-black border-y border-white/[0.02]'>
         <div className='max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8'>
           {[
             {
@@ -197,8 +203,8 @@ export default function LandingPage({ initialTopPerformers }: LandingPageProps) 
           ].map((feature, idx) => (
             <div
               key={idx}
-              className='group p-8 border border-cp-border/70 bg-gradient-to-br from-cp-black via-cp-dark to-cp-black hover:border-cp-yellow transition-colors hover:-translate-y-1 duration-200 rounded-xl'>
-              <div className='w-12 h-12 mb-6 border border-cp-border/60 group-hover:border-cp-yellow flex items-center justify-center bg-cp-dark text-cp-text-muted group-hover:text-cp-yellow transition-colors rounded-full'>
+              className='group p-8 border border-white/[0.02] bg-white/[0.02] hover:border-cp-yellow transition-colors hover:-translate-y-1 duration-200 rounded-xl'>
+              <div className='w-12 h-12 mb-6 border border-white/[0.05] group-hover:border-cp-yellow flex items-center justify-center bg-white/[0.02] text-cp-text-muted group-hover:text-cp-yellow transition-colors rounded-full'>
                 <feature.icon size={24} strokeWidth={1.5} />
               </div>
               <h3 className='text-lg font-serif font-semibold text-cp-text mb-3 group-hover:text-cp-yellow transition-colors tracking-wide'>
@@ -224,18 +230,18 @@ export default function LandingPage({ initialTopPerformers }: LandingPageProps) 
                 {t.landing.live_feed_tag}
               </p>
             </div>
-            <button 
+            <button
               onClick={handleEnter}
               className='text-cp-yellow text-[11px] font-semibold uppercase tracking-[0.45em] flex items-center gap-2 hover:text-white transition-colors'>
               {t.landing.enter} <ChevronRight size={14} />
             </button>
           </div>
 
-          <div className='border border-cp-border bg-cp-black/80 backdrop-blur-md rounded-2xl overflow-hidden'>
+          <div className='border border-white/[0.02] glass-panel rounded-2xl overflow-hidden'>
             {initialTopPerformers.map((item) => (
               <div
                 key={item.rank}
-                className='flex items-center p-6 border-b border-cp-border last:border-0 hover:bg-cp-yellow/5 transition-colors group cursor-default'>
+                className='flex items-center p-6 border-b border-white/[0.02] last:border-0 hover:bg-white/[0.05] transition-colors group cursor-default'>
                 <div className='w-16 font-serif font-semibold text-2xl text-cp-text-muted group-hover:text-cp-yellow transition-colors tracking-[0.2em]'>
                   0{item.rank}
                 </div>
@@ -244,8 +250,10 @@ export default function LandingPage({ initialTopPerformers }: LandingPageProps) 
                     <span className='font-semibold text-lg text-cp-text'>
                       {item.name}
                     </span>
-                    <span className='px-2 py-0.5 text-[11px] font-semibold border border-cp-border text-cp-text-muted uppercase rounded-full tracking-[0.35em]'>
-                      {t.landing.badge[item.badge.toLowerCase() as keyof typeof t.landing.badge] || item.badge}
+                    <span className='px-2 py-0.5 text-[11px] font-semibold border border-white/[0.1] text-cp-text-muted uppercase rounded-full tracking-[0.35em]'>
+                      {t.landing.badge[
+                        item.badge.toLowerCase() as keyof typeof t.landing.badge
+                      ] || item.badge}
                     </span>
                   </div>
                 </div>
@@ -264,7 +272,7 @@ export default function LandingPage({ initialTopPerformers }: LandingPageProps) 
       </section>
 
       {/* Footer */}
-      <footer className='relative z-10 border-t border-cp-border bg-cp-black/80 backdrop-blur py-12 px-6'>
+      <footer className='relative z-10 border-t border-white/[0.02] bg-black/80 backdrop-blur py-12 px-6'>
         <div className='max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6'>
           <div className='flex items-center gap-2 text-cp-text-muted'>
             <Hexagon size={16} />

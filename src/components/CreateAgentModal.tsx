@@ -299,11 +299,11 @@ export default function CreateAgentModal({
 
   return (
     <div className='fixed inset-0 z-[100] bg-black/90 backdrop-blur-md flex items-center justify-center p-4 modal-animate'>
-      <div className='w-full md:max-w-5xl h-[85vh] bg-cp-black border border-cp-border flex flex-col shadow-2xl relative'>
+      <div className='w-full md:max-w-5xl h-[85vh] glass-panel border border-white/[0.02] flex flex-col shadow-2xl relative'>
         {/* Header */}
-        <div className='flex justify-between items-center p-6 border-b border-cp-border bg-cp-dark shrink-0'>
+        <div className='flex justify-between items-center p-6 border-b border-white/[0.02] bg-white/[0.02] shrink-0'>
           <div className='flex items-center gap-4'>
-            <div className='w-10 h-10 border border-cp-border flex items-center justify-center text-cp-yellow bg-cp-black'>
+            <div className='w-10 h-10 border border-white/[0.02] flex items-center justify-center text-cp-yellow bg-white/[0.02]'>
               <Cpu size={20} strokeWidth={1.5} />
             </div>
             <div>
@@ -323,7 +323,7 @@ export default function CreateAgentModal({
         </div>
 
         {/* Content */}
-        <div className='flex-1 overflow-hidden bg-cp-black relative flex flex-col min-h-0'>
+        <div className='flex-1 overflow-hidden bg-transparent relative flex flex-col min-h-0'>
           {/* STEP 1: NAMING */}
           {step === 'naming' && (
             <div className='flex-1 flex flex-col justify-center items-center p-8 animate-in fade-in slide-in-from-bottom-4'>
@@ -556,7 +556,7 @@ export default function CreateAgentModal({
                 </div>
               </div>
 
-              <div className='mt-auto flex justify-center gap-6 pt-6 border-t border-cp-border bg-cp-black sticky bottom-0 z-10 p-4'>
+              <div className='mt-auto flex justify-center gap-6 pt-6 border-t border-white/[0.02] bg-white/[0.02] sticky bottom-0 z-10 p-4'>
                 <button
                   onClick={() => setStep('preset')}
                   className='px-8 py-3 btn-outline flex items-center gap-2'>
@@ -659,8 +659,8 @@ export default function CreateAgentModal({
 
           {/* STEP 5: SIMULATION */}
           {step === 'simulation' && (
-            <div className='flex-1 flex flex-col md:flex-row bg-cp-black animate-in fade-in slide-in-from-right-8'>
-              <div className='w-full md:w-1/3 border-r border-cp-border p-6 flex flex-col bg-cp-dark/5'>
+            <div className='flex-1 flex flex-col md:flex-row bg-transparent animate-in fade-in slide-in-from-right-8'>
+              <div className='w-full md:w-1/3 border-r border-white/[0.02] p-6 flex flex-col bg-white/[0.02]'>
                 <div className='mb-6'>
                   <h3 className='text-lg font-serif font-bold text-white mb-4 flex items-center gap-2'>
                     <Clock size={18} className='text-cp-yellow' /> 回测周期
@@ -676,7 +676,7 @@ export default function CreateAgentModal({
                                             ${
                                               simDurationMode === d
                                                 ? 'bg-cp-yellow text-black scale-105 border-transparent'
-                                                : 'bg-cp-black border border-cp-border text-cp-text-muted hover:border-cp-yellow hover:text-white'
+                                                : 'bg-black/20 border border-white/[0.02] text-cp-text-muted hover:border-cp-yellow hover:text-white'
                                             }
                                         `}>
                           {d}
@@ -687,7 +687,7 @@ export default function CreateAgentModal({
                 </div>
 
                 <div className='flex-1 relative'>
-                  <div className='absolute inset-0 border border-cp-border bg-black/50 p-4 font-mono text-xs text-cp-text-muted overflow-y-auto custom-scrollbar'>
+                  <div className='absolute inset-0 border border-white/[0.02] bg-black/50 p-4 font-mono text-xs text-cp-text-muted overflow-y-auto custom-scrollbar'>
                     {simLogs.map((log, i) => (
                       <div key={i} className='mb-1 leading-relaxed opacity-80'>
                         {log}
@@ -706,7 +706,7 @@ export default function CreateAgentModal({
                   {simStatus === 'finished' ? (
                     <button
                       onClick={startSimulation}
-                      className='w-full py-4 border border-cp-border text-cp-text-muted hover:text-white hover:border-cp-yellow transition-colors font-bold uppercase tracking-widest flex items-center justify-center gap-2'>
+                      className='w-full py-4 border border-white/[0.02] text-cp-text-muted hover:text-white hover:border-cp-yellow transition-colors font-bold uppercase tracking-widest flex items-center justify-center gap-2'>
                       <RotateCcw size={18} /> 重新回测
                     </button>
                   ) : null}
@@ -715,7 +715,7 @@ export default function CreateAgentModal({
 
               <div className='flex-1 relative flex flex-col'>
                 <div
-                  className='flex-1 relative bg-gradient-to-b from-cp-black to-cp-dark/20'
+                  className='flex-1 relative bg-gradient-to-b from-transparent to-white/[0.02]'
                   ref={chartRef}>
                   {simStatus === 'idle' && (
                     <div className='absolute inset-0 flex items-center justify-center bg-black/40 z-20 backdrop-blur-sm'>
@@ -734,7 +734,7 @@ export default function CreateAgentModal({
                   )}
                 </div>
 
-                <div className='h-24 border-t border-cp-border bg-cp-black flex items-center justify-around px-8'>
+                <div className='h-24 border-t border-white/[0.02] bg-white/[0.02] flex items-center justify-around px-8'>
                   {[
                     {
                       label: '总收益',
@@ -779,7 +779,7 @@ export default function CreateAgentModal({
           )}
 
           {step === 'simulation' && (
-            <div className='p-4 border-t border-cp-border bg-cp-dark flex justify-between items-center shrink-0'>
+            <div className='p-4 border-t border-white/[0.02] bg-white/[0.02] flex justify-between items-center shrink-0'>
               <button
                 onClick={() => setStep('knowledge')}
                 className='px-6 py-2 text-cp-text-muted hover:text-white flex items-center gap-2 text-sm font-bold'>

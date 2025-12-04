@@ -21,7 +21,7 @@ export default function CompetitionJoinModal({
 
   return (
     <div className='fixed inset-0 z-[150] flex items-center justify-center bg-black/95 backdrop-blur-md p-4 modal-animate'>
-      <div className='w-full max-w-3xl bg-cp-black border border-cp-border shadow-2xl flex flex-col relative'>
+      <div className='w-full max-w-3xl glass-panel border border-white/[0.02] shadow-2xl flex flex-col relative'>
         <button
           onClick={onClose}
           className='absolute top-6 right-6 text-gray-500 hover:text-white transition-colors z-10'>
@@ -29,7 +29,7 @@ export default function CompetitionJoinModal({
         </button>
 
         <div className='p-10 md:p-14 text-center'>
-          <div className='mb-6 inline-flex items-center justify-center w-16 h-16 border border-cp-yellow/50 bg-cp-dark hover-card'>
+          <div className='mb-6 inline-flex items-center justify-center w-16 h-16 border border-cp-yellow/50 bg-white/[0.02] hover-card'>
             <Trophy size={32} className='text-cp-yellow' strokeWidth={1} />
           </div>
 
@@ -40,7 +40,7 @@ export default function CompetitionJoinModal({
             {copy.description}
           </p>
 
-          <div className='grid grid-cols-3 gap-6 mb-12 border-t border-b border-cp-border py-8'>
+          <div className='grid grid-cols-3 gap-6 mb-12 border-t border-b border-white/[0.02] py-8'>
             <div className='flex flex-col items-center gap-2 hover-card p-2 border border-transparent'>
               <div className='text-xs font-bold uppercase tracking-widest text-gray-500'>
                 {copy.rank_label}
@@ -49,7 +49,7 @@ export default function CompetitionJoinModal({
                 {copy.rank_value}
               </div>
             </div>
-            <div className='flex flex-col items-center gap-2 border-l border-r border-cp-border hover-card p-2 border-y-transparent'>
+            <div className='flex flex-col items-center gap-2 border-l border-r border-white/[0.02] hover-card p-2 border-y-transparent'>
               <div className='text-xs font-bold uppercase tracking-widest text-gray-500'>
                 {copy.participants_label}
               </div>

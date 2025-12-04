@@ -1,12 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import {
-  X,
-  Hexagon,
-  Activity,
-  ChevronRight
-} from 'lucide-react';
+import { X, Hexagon, Activity, ChevronRight } from 'lucide-react';
 import { AgentCapability, AGENT_CAPABILITY_DETAILS } from '@/types';
 import { useLanguage } from '@/lib/useLanguage';
 
@@ -26,11 +21,11 @@ export default function ExternalAgentModal({
 
   return (
     <div className='fixed inset-0 z-[80] flex items-center justify-center backdrop-blur-md bg-black/80 p-4 modal-animate'>
-      <div className='w-full max-w-4xl h-[80vh] bg-cp-black border border-cp-border flex flex-col shadow-2xl relative'>
+      <div className='w-full max-w-4xl h-[80vh] glass-panel border border-white/[0.02] flex flex-col shadow-2xl relative'>
         {/* Header */}
-        <div className='flex items-center justify-between p-6 border-b border-cp-border bg-cp-dark shrink-0'>
+        <div className='flex items-center justify-between p-6 border-b border-white/[0.02] bg-white/[0.02] shrink-0'>
           <div className='flex items-center gap-6'>
-            <div className='w-12 h-12 border border-cp-border flex items-center justify-center text-cp-yellow bg-cp-black'>
+            <div className='w-12 h-12 border border-white/[0.02] flex items-center justify-center text-cp-yellow bg-white/[0.02]'>
               <Hexagon size={24} strokeWidth={1.5} />
             </div>
             <div>
@@ -59,7 +54,7 @@ export default function ExternalAgentModal({
         {/* Body */}
         <div className='flex flex-1 overflow-hidden'>
           {/* Sidebar Tabs - Clean List */}
-          <div className='w-64 bg-cp-black border-r border-cp-border flex flex-col py-4 shrink-0'>
+          <div className='w-64 bg-white/[0.02] border-r border-white/[0.02] flex flex-col py-4 shrink-0'>
             {Object.values(AgentCapability).map((cap) => {
               const details = AGENT_CAPABILITY_DETAILS[cap];
               const label = t(details.labelKey);
@@ -71,7 +66,7 @@ export default function ExternalAgentModal({
                   className={`px-6 py-4 text-left flex items-center gap-3 transition-all relative hover-card m-2 border-transparent
                                 ${
                                   isActive
-                                    ? 'text-cp-yellow border border-cp-yellow/30 bg-cp-dark/30'
+                                    ? 'text-cp-yellow border border-cp-yellow/30 bg-white/[0.05]'
                                     : 'text-gray-500 hover:text-gray-300'
                                 }
                             `}>
@@ -84,8 +79,8 @@ export default function ExternalAgentModal({
           </div>
 
           {/* Main Content - Gallery Text */}
-          <div className='flex-1 p-8 bg-cp-black overflow-y-auto custom-scrollbar'>
-            <div className='mb-6 pb-4 border-b border-cp-border'>
+          <div className='flex-1 p-8 bg-transparent overflow-y-auto custom-scrollbar'>
+            <div className='mb-6 pb-4 border-b border-white/[0.02]'>
               <h3 className='text-xl font-serif font-bold text-white mb-2'>
                 {t(AGENT_CAPABILITY_DETAILS[activeTab].labelKey)}
               </h3>
@@ -96,7 +91,7 @@ export default function ExternalAgentModal({
 
             <div className='font-mono text-sm text-cp-text-muted leading-loose'>
               {/* Placeholder Content for Aesthetic */}
-              <div className='p-4 border border-cp-border bg-cp-dark/20 mb-4 hover-card'>
+              <div className='p-4 border border-white/[0.02] bg-white/[0.02] mb-4 hover-card'>
                 <div className='flex justify-between mb-2 text-xs uppercase tracking-widest text-gray-500'>
                   <span>{t('external_agent.latest_signal')}</span>
                   <span>{t('external_agent.latest_signal_time')}</span>

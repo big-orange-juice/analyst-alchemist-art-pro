@@ -1,13 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import {
-  Hexagon,
-  Fingerprint,
-  Power,
-  Globe,
-  X
-} from 'lucide-react';
+import { Hexagon, Fingerprint, Power, Globe, X } from 'lucide-react';
 import { useLanguage } from '@/lib/useLanguage';
 
 interface LoginScreenProps {
@@ -36,7 +30,7 @@ export default function LoginScreen({ onLogin, onClose }: LoginScreenProps) {
 
   return (
     <div className='fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-md p-4 modal-animate'>
-      <div className='relative w-full max-w-4xl flex flex-col md:flex-row shadow-2xl bg-cp-black border border-cp-border'>
+      <div className='relative w-full max-w-4xl flex flex-col md:flex-row shadow-2xl glass-panel border border-white/[0.02]'>
         <button
           onClick={onClose}
           className='absolute top-4 right-4 text-gray-500 hover:text-cp-yellow z-50 transition-colors'>
@@ -44,7 +38,7 @@ export default function LoginScreen({ onLogin, onClose }: LoginScreenProps) {
         </button>
 
         {/* Left Side - Artistic Branding */}
-        <div className='w-full md:w-5/12 bg-cp-dark p-10 flex flex-col justify-between relative overflow-hidden border-b md:border-b-0 md:border-r border-cp-border hover-card m-1 border-transparent'>
+        <div className='w-full md:w-5/12 bg-white/[0.02] p-10 flex flex-col justify-between relative overflow-hidden border-b md:border-b-0 md:border-r border-white/[0.02] hover-card m-1 border-transparent'>
           <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-5"></div>
 
           <div className='relative z-10'>
@@ -63,7 +57,7 @@ export default function LoginScreen({ onLogin, onClose }: LoginScreenProps) {
           </div>
 
           <div className='relative z-10 hidden md:block'>
-            <div className='py-4 border-t border-cp-border'>
+            <div className='py-4 border-t border-white/[0.02]'>
               <div className='text-xs text-cp-yellow font-bold uppercase tracking-widest mb-2'>
                 {t('login.season_name')}
               </div>
@@ -75,9 +69,9 @@ export default function LoginScreen({ onLogin, onClose }: LoginScreenProps) {
         </div>
 
         {/* Right Side - Form */}
-        <div className='w-full md:w-7/12 p-10 md:p-14 bg-cp-black flex flex-col justify-center'>
+        <div className='w-full md:w-7/12 p-10 md:p-14 bg-transparent flex flex-col justify-center'>
           {/* Minimal Tabs */}
-          <div className='flex gap-8 mb-10 border-b border-cp-border'>
+          <div className='flex gap-8 mb-10 border-b border-white/[0.02]'>
             <button
               onClick={() => setMode('login')}
               className={`pb-4 text-sm font-bold uppercase tracking-widest transition-colors tab-item ${
