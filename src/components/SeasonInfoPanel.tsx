@@ -131,12 +131,12 @@ export default function SeasonInfoPanel({
     capabilityFeedTabs.includes(tab as CapabilityFeedTab);
   const capabilityHistory =
     (dictionary.capability_history as
-      | Record<AgentCapability, CapabilityHistoryEntry[]>
+      | Partial<Record<AgentCapability, CapabilityHistoryEntry[]>>
       | undefined) ?? {};
   const activeFeedConfig = isCapabilityFeedTab(activeTab)
     ? CAPABILITY_TAB_CONFIG[activeTab]
     : null;
-  const activeFeedEntries = activeFeedConfig
+  const activeFeedEntries: CapabilityHistoryEntry[] = activeFeedConfig
     ? capabilityHistory[activeFeedConfig.capability] ?? []
     : [];
 
