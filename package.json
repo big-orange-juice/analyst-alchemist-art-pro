@@ -2,25 +2,28 @@
   "name": "analyst-alchemist-art-pro",
   "private": true,
   "version": "0.0.0",
-  "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview"
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
   },
   "dependencies": {
-    "react": "^19.2.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "next": "^15.3.6",
     "lucide-react": "^0.554.0",
-    "@google/genai": "^1.30.0",
-    "react-dom": "^19.2.0",
     "echarts": "5.5.0",
-    "gsap": "3.12.5"
+    "gsap": "3.12.5",
+    "zustand": "^5.0.5"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",
-    "@vitejs/plugin-react": "^5.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
     "typescript": "~5.8.2",
-    "vite": "^6.2.0"
-  },
-  "packageManager": "pnpm@9.0.6+sha1.648f6014eb363abb36618f2ba59282a9eeb3e879"
+    "tailwindcss": "^3.4.17",
+    "postcss": "^8.5.1",
+    "autoprefixer": "^10.4.20"
+  }
 }
