@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
+import MarkdownIt from 'markdown-it';
 import { X, Cpu, Play, RotateCcw, Save } from 'lucide-react';
 import {
   AgentCapability,
@@ -9,6 +10,7 @@ import {
   CapabilityHistoryEntry
 } from '@/types';
 import { useLanguage } from '@/lib/useLanguage';
+import { useAgentStore, useUserStore } from '@/store';
 
 interface CapabilityModalProps {
   capability: AgentCapability;
@@ -23,21 +25,158 @@ interface CapabilityModalProps {
 
 export default function CapabilityModal({
   capability,
-  onClose
+  onClose,
+  onNotify
 }: CapabilityModalProps) {
   const { t, dictionary } = useLanguage();
+  const { agentId } = useAgentStore();
+  const { currentUser } = useUserStore();
   const details = AGENT_CAPABILITY_DETAILS[capability];
   const label = t(details.labelKey);
   const role = t(details.roleKey);
   const [input, setInput] = useState('');
   const [output, setOutput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [stockSymbol, setStockSymbol] = useState('000859.SZ');
+  const [tradingDate, setTradingDate] = useState(() => {
+    const now = new Date();
+    const month = `${now.getMonth() + 1}`.padStart(2, '0');
+    const day = `${now.getDate()}`.padStart(2, '0');
+    return `${now.getFullYear()}-${month}-${day}`;
+  });
+  const [newsSource, setNewsSource] = useState('');
   const historyEntries =
     (dictionary.capability_history?.[capability] as CapabilityHistoryEntry[]) ||
     [];
 
-  const handleExecute = () => {
+  const isStockAnalysis = useMemo(
+    () => capability === 'STOCK_ANALYSIS',
+    [capability]
+  );
+
+  const md = useMemo(() => new MarkdownIt({ breaks: true }), []);
+  const renderedOutput = useMemo(
+    () => (output ? md.render(output) : ''),
+    [md, output]
+  );
+
+  const formatStockAnalysisResponse = (data: Record<string, any>) => {
+    if (!data) return '';
+    const lines: string[] = [];
+    lines.push(`# ${data.symbol || '标的'} @ ${data.trading_date || ''}`);
+
+    if (data.comprehensive_rating) {
+      const comp = data.comprehensive_rating;
+      lines.push(
+        `**综合评级：${comp.rating || ''}**  分数：${
+          comp.overall_score ?? ''
+        }  置信度：${comp.confidence ?? ''}`
+      );
+      if (comp.reasoning) lines.push(`> ${comp.reasoning}`);
+    }
+
+    if (data.technical_analysis) {
+      const t = data.technical_analysis;
+      lines.push('## 技术分析');
+      lines.push(
+        `- 建议：${t.recommendation || ''}（信心 ${t.confidence ?? ''}）`
+      );
+      if (t.reasoning) lines.push(t.reasoning);
+    }
+
+    if (data.fundamental_analysis) {
+      const f = data.fundamental_analysis;
+      lines.push('## 基本面分析');
+      lines.push(
+        `- 建议：${f.recommendation || ''}（信心 ${f.confidence ?? ''}）`
+      );
+      if (f.reasoning) lines.push(f.reasoning);
+      if (Array.isArray(f.key_factors) && f.key_factors.length) {
+        lines.push('- 关键因素:');
+        f.key_factors.forEach((k: string) => lines.push(`  - ${k}`));
+      }
+    }
+
+    if (data.news_analysis) {
+      const n = data.news_analysis;
+      lines.push('## 新闻解读');
+      if (n.sentiment_summary) lines.push(n.sentiment_summary);
+      if (Array.isArray(n.recent_news)) {
+        n.recent_news.forEach((item: any) => {
+          lines.push(
+            `- **${item.title || ''}** (${item.date || ''}) — 情绪: ${
+              item.sentiment || ''
+            }`
+          );
+          if (item.summary) lines.push(`  - ${item.summary}`);
+          if (item.source) lines.push(`  - 来源: ${item.source}`);
+          if (item.url) lines.push(`  - [链接](${item.url})`);
+        });
+      }
+    }
+
+    if (data.financial_report) {
+      const fr = data.financial_report;
+      lines.push('## 财报摘要');
+      if (fr.summary) lines.push(fr.summary);
+      if (Array.isArray(fr.highlights)) {
+        fr.highlights.forEach((h: string) => lines.push(`- ${h}`));
+      }
+    }
+
+    return lines.join('\n\n');
+  };
+
+  const handleExecute = async () => {
     setIsLoading(true);
+
+    if (isStockAnalysis) {
+      if (!agentId || !currentUser?.id) {
+        onNotify?.(
+          t('capability_modal.missing_agent_title') || '缺少 Agent',
+          t('capability_modal.missing_agent_desc') || '请先创建或选择 Agent。',
+          'error'
+        );
+        setIsLoading(false);
+        return;
+      }
+
+      const payload = {
+        agent_id: agentId,
+        user_id: currentUser.id,
+        symbol: stockSymbol,
+        trading_date: tradingDate.replaceAll('-', ''),
+        include_sources: newsSource ? [newsSource] : []
+      };
+
+      try {
+        const res = await fetch(
+          'http://localhost:8000/api/v1/on-demand/stock-analysis-v2',
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          }
+        );
+
+        if (!res.ok) {
+          const text = await res.text();
+          throw new Error(text || '请求失败');
+        }
+
+        const data = await res.json().catch(() => ({}));
+        setOutput(formatStockAnalysisResponse(data) || JSON.stringify(data));
+      } catch (err) {
+        const message = err instanceof Error ? err.message : '执行出错';
+        onNotify?.('执行失败', message, 'error');
+        setOutput(message);
+      } finally {
+        setIsLoading(false);
+      }
+
+      return;
+    }
+
     setTimeout(() => {
       setOutput(t('capability_modal.mock_response'));
       setIsLoading(false);
@@ -69,22 +208,67 @@ export default function CapabilityModal({
           </button>
         </div>
 
-        <div className='flex-1 flex flex-col md:flex-row overflow-hidden bg-transparent'>
+        <div className='relative flex-1 flex flex-col md:flex-row overflow-hidden bg-transparent'>
           {/* Input */}
-          <div className='w-full md:w-1/3 border-b md:border-b-0 md:border-r border-white/[0.02] p-6 flex flex-col bg-white/[0.02] hover-card m-2'>
-            <label className='text-cp-text-muted text-xs font-bold uppercase tracking-widest mb-4 block'>
+          <div className='w-full md:w-1/3 border-b md:border-b-0 md:border-r border-white/[0.02] p-6 flex flex-col bg-white/[0.02] hover-card m-2 gap-4'>
+            <label className='text-cp-text-muted text-xs font-bold uppercase tracking-widest block'>
               {t('capability_modal.input_label')}
             </label>
-            <textarea
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              className='flex-1 bg-black/20 border border-white/[0.02] p-4 text-cp-text font-mono text-sm focus:border-cp-yellow focus:outline-none resize-none mb-6 hover-card'
-              placeholder={t('capability_modal.input_placeholder')}
-            />
+
+            {isStockAnalysis ? (
+              <div className='space-y-4'>
+                <div className='flex flex-col gap-2'>
+                  <span className='text-xs text-cp-text-muted tracking-widest uppercase'>
+                    {t('capability_modal.stock_symbol') || '分析标的'}
+                  </span>
+                  <select
+                    value={stockSymbol}
+                    onChange={(e) => setStockSymbol(e.target.value)}
+                    className='bg-black/40 border border-cp-border px-3 py-2 text-sm text-white focus:border-cp-yellow outline-none'>
+                    <option value='000859.SZ'>中信国安（000859.SZ）</option>
+                    <option value='600519.SH'>贵州茅台（600519.SH）</option>
+                    <option value='300750.SZ'>宁德时代（300750.SZ）</option>
+                  </select>
+                </div>
+
+                <div className='flex flex-col gap-2'>
+                  <span className='text-xs text-cp-text-muted tracking-widest uppercase'>
+                    {t('capability_modal.trading_date') || '交易日'}
+                  </span>
+                  <input
+                    type='date'
+                    value={tradingDate}
+                    onChange={(e) => setTradingDate(e.target.value)}
+                    className='bg-black/40 border border-cp-border px-3 py-2 text-sm text-white focus:border-cp-yellow outline-none'
+                  />
+                </div>
+
+                <div className='flex flex-col gap-2'>
+                  <span className='text-xs text-cp-text-muted tracking-widest uppercase'>
+                    {t('capability_modal.news_source') || '新闻源（可选）'}
+                  </span>
+                  <input
+                    type='text'
+                    value={newsSource}
+                    onChange={(e) => setNewsSource(e.target.value)}
+                    placeholder='Bloomberg / 同花顺 / 自定义'
+                    className='bg-black/40 border border-cp-border px-3 py-2 text-sm text-white focus:border-cp-yellow outline-none placeholder:text-cp-text-muted'
+                  />
+                </div>
+              </div>
+            ) : (
+              <textarea
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                className='flex-1 bg-black/20 border border-white/[0.02] p-4 text-cp-text font-mono text-sm focus:border-cp-yellow focus:outline-none resize-none hover-card'
+                placeholder={t('capability_modal.input_placeholder')}
+              />
+            )}
+
             <button
               onClick={handleExecute}
               disabled={isLoading}
-              className='w-full py-4 btn-gold flex items-center justify-center gap-2 disabled:opacity-50'>
+              className='w-full py-4 btn-gold flex items-center justify-center gap-2 disabled:opacity-50 mt-auto'>
               {isLoading ? (
                 <RotateCcw className='animate-spin' size={18} />
               ) : (
@@ -95,14 +279,31 @@ export default function CapabilityModal({
           </div>
 
           {/* Output */}
-          <div className='flex-1 p-8 flex flex-col bg-transparent gap-6'>
-            <div className='flex-1 flex flex-col'>
-              <label className='text-cp-text-muted text-xs font-bold uppercase tracking-widest mb-4 block'>
-                {t('capability_modal.output_label')}
-              </label>
-              <div className='flex-1 border border-cp-border bg-cp-dark/20 p-6 font-mono text-sm text-cp-text overflow-y-auto custom-scrollbar leading-relaxed hover-card'>
-                {output ? (
-                  output
+          <div className='flex-1 p-8 flex flex-col bg-transparent gap-6 min-h-0'>
+            <div className='flex-1 flex flex-col min-h-0'>
+              <div className='flex items-center justify-between mb-4'>
+                <label className='text-cp-text-muted text-xs font-bold uppercase tracking-widest block'>
+                  {t('capability_modal.output_label')}
+                </label>
+                {isLoading && (
+                  <span className='text-[11px] text-cp-yellow tracking-widest'>
+                    {t('capability_modal.loading') || '执行中...'}
+                  </span>
+                )}
+              </div>
+              <div className='relative flex-1 min-h-0 border border-cp-border bg-cp-dark/20 p-6 font-sans text-sm text-cp-text overflow-y-auto custom-scrollbar leading-relaxed hover-card'>
+                {isLoading ? (
+                  <div className='space-y-3 animate-pulse'>
+                    <div className='h-4 bg-white/10 rounded w-1/3' />
+                    <div className='h-4 bg-white/10 rounded w-2/3' />
+                    <div className='h-4 bg-white/10 rounded w-5/6' />
+                    <div className='h-4 bg-white/10 rounded w-4/5' />
+                  </div>
+                ) : output ? (
+                  <div
+                    className='prose prose-invert max-w-none prose-pre:bg-black/40 prose-pre:text-white prose-code:text-cp-yellow'
+                    dangerouslySetInnerHTML={{ __html: renderedOutput }}
+                  />
                 ) : (
                   <span className='text-gray-600 italic'>
                     {t('capability_modal.waiting')}
@@ -114,41 +315,6 @@ export default function CapabilityModal({
                   <Save size={16} /> {t('capability_modal.save')}
                 </button>
               </div>
-            </div>
-
-            <div className='border border-cp-border/60 bg-cp-dark/20 p-4'>
-              <div className='flex items-center justify-between mb-3'>
-                <span className='type-eyebrow text-cp-text'>
-                  {t('capability_modal.history_title')}
-                </span>
-                <span className='type-caption text-cp-yellow'>
-                  {t('capability_modal.history_latency')}
-                </span>
-              </div>
-              {historyEntries.length ? (
-                <div className='space-y-2 max-h-[220px] overflow-y-auto custom-scrollbar pr-1'>
-                  {historyEntries.map((entry, idx) => (
-                    <div
-                      key={`${entry.time}-${idx}`}
-                      className='border border-cp-border/40 bg-cp-black/40 p-3 transition-colors hover:border-cp-yellow/60'>
-                      <div className='flex items-center justify-between text-[11px] type-mono text-cp-text-muted'>
-                        <span>{entry.time}</span>
-                        <span className='tracking-[0.35em]'>{entry.tag}</span>
-                      </div>
-                      <p className='text-sm text-white mt-2 leading-relaxed'>
-                        {entry.summary}
-                      </p>
-                      <p className='text-xs text-cp-text-muted mt-1'>
-                        {entry.detail}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className='text-cp-text-muted text-sm font-mono'>
-                  {t('capability_modal.history_empty')}
-                </div>
-              )}
             </div>
           </div>
         </div>

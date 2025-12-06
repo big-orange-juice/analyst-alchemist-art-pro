@@ -18,11 +18,14 @@ import {
   Trash2,
   Clock
 } from 'lucide-react';
+// Removed antd; using native inputs for sliders and selects
 import * as echarts from 'echarts';
 import type { AgentStats, AgentModule, AppNotification } from '@/types';
+import { useUserStore } from '@/store';
 
 interface CreateAgentModalProps {
   onCreate: (
+    agentId: string | null,
     name: string,
     prompt: string,
     archetype: string,
@@ -75,6 +78,33 @@ type InvestorConfigState = {
   growth: GrowthInvestorConfig;
 };
 
+const randomInRange = (min: number, max: number, step = 1) => {
+  const range = Math.floor((max - min) / step);
+  const rand = Math.floor(Math.random() * (range + 1));
+  return Number((min + rand * step).toFixed(2));
+};
+
+const createRandomConfigs = (): InvestorConfigState => ({
+  value: {
+    roe: randomInRange(5, 25, 0.5),
+    netMargin: randomInRange(5, 30, 0.5),
+    stopLoss: randomInRange(-15, -3, 0.5),
+    note: ''
+  },
+  quant: {
+    techWeight: randomInRange(10, 90, 1),
+    maxPosition: randomInRange(5, 30, 1),
+    stopLoss: randomInRange(-15, -4, 0.5),
+    note: ''
+  },
+  growth: {
+    revenueGrowth: randomInRange(10, 60, 1),
+    industryGrowth: randomInRange(5, 40, 1),
+    roe: randomInRange(8, 25, 0.5),
+    note: ''
+  }
+});
+
 const STRATEGY_PRESETS: StrategyPreset[] = [
   {
     id: 'value',
@@ -115,21 +145,30 @@ type CreationStep =
   | 'knowledge'
   | 'simulation';
 
+const RISK_OPTIONS = [
+  { label: '保守型', value: 'conservative' },
+  { label: '均衡型', value: 'balanced' },
+  { label: '激进型', value: 'aggressive' }
+] as const;
+
 export default function CreateAgentModal({
   onCreate,
-  onClose
+  onClose,
+  onNotify
 }: CreateAgentModalProps) {
+  const { currentUser } = useUserStore();
   const [step, setStep] = useState<CreationStep>('naming');
   const [name, setName] = useState('');
   const [selectedPresetId, setSelectedPresetId] = useState<ArchetypeId | ''>(
     ''
   );
+  const [riskProfile, setRiskProfile] = useState<
+    'conservative' | 'balanced' | 'aggressive' | ''
+  >('');
   const [customPrompt, setCustomPrompt] = useState('');
-  const [investorConfigs, setInvestorConfigs] = useState<InvestorConfigState>({
-    value: { roe: 15, netMargin: 10, stopLoss: -5, note: '' },
-    quant: { techWeight: 60, maxPosition: 15, stopLoss: -4, note: '' },
-    growth: { revenueGrowth: 20, industryGrowth: 15, roe: 12, note: '' }
-  });
+  const [investorConfigs, setInvestorConfigs] = useState<InvestorConfigState>(
+    () => createRandomConfigs()
+  );
   const [uploadedFiles, setUploadedFiles] = useState<
     { name: string; size: string }[]
   >([]);
@@ -142,6 +181,16 @@ export default function CreateAgentModal({
     '> 请选择回测周期并启动。'
   ]);
   const [simResult, setSimResult] = useState<SimResultData | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [hasCreated, setHasCreated] = useState(false);
+  const [existingAgent, setExistingAgent] = useState<{
+    agent_id: string | null;
+    agent_name: string;
+    workflow_id: string;
+    risk_profile: string;
+  } | null>(null);
+  const fetchedUserIdRef = useRef<string | null>(null);
+  const appliedExistingRef = useRef(false);
 
   const chartRef = useRef<HTMLDivElement>(null);
   const chartInstance = useRef<echarts.ECharts | null>(null);
@@ -209,6 +258,88 @@ export default function CreateAgentModal({
   };
 
   useEffect(() => {
+    const resolvedUserId = (() => {
+      if (currentUser?.id) return currentUser.id;
+      if (typeof window === 'undefined') return null;
+      try {
+        const raw = localStorage.getItem('matrix_user_session');
+        if (!raw) return null;
+        const parsed = JSON.parse(raw);
+        return parsed?.state?.currentUser?.id ?? null;
+      } catch (_) {
+        return null;
+      }
+    })();
+
+    if (!resolvedUserId) return;
+    if (fetchedUserIdRef.current === resolvedUserId) return;
+    fetchedUserIdRef.current = resolvedUserId;
+
+    const controller = new AbortController();
+    const fetchAgent = async () => {
+      try {
+        const query = `http://localhost:8000/api/v1/agents?user_id=${encodeURIComponent(
+          resolvedUserId
+        )}&skip=0&limit=1`;
+        const res = await fetch(query, { signal: controller.signal });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data?.agents?.length) {
+          const agent = data.agents[0];
+          setExistingAgent({
+            agent_id: agent.agent_id || agent.id || null,
+            agent_name: agent.agent_name,
+            workflow_id: agent.workflow_id,
+            risk_profile: agent.risk_profile
+          });
+        }
+      } catch (err) {
+        if (err instanceof DOMException && err.name === 'AbortError') return;
+        // fail silently
+      }
+    };
+    fetchAgent();
+    return () => controller.abort();
+  }, [currentUser?.id]);
+
+  useEffect(() => {
+    if (!existingAgent || appliedExistingRef.current) return;
+
+    const presetId: ArchetypeId | '' = (() => {
+      switch (existingAgent.workflow_id) {
+        case 'track_thinking':
+          return 'value';
+        case 'quant_thinking':
+          return 'quant';
+        case 'news_thinking':
+          return 'growth';
+        default:
+          return '';
+      }
+    })();
+
+    if (!presetId) return;
+
+    appliedExistingRef.current = true;
+    setName(existingAgent.agent_name);
+    setSelectedPresetId(presetId);
+    setRiskProfile(existingAgent.risk_profile as typeof riskProfile);
+    setHasCreated(true);
+
+    const preset = STRATEGY_PRESETS.find((p) => p.id === presetId);
+    if (preset) {
+      onCreate(
+        existingAgent.agent_id ?? null,
+        existingAgent.agent_name,
+        '',
+        preset.name,
+        preset.stats,
+        []
+      );
+    }
+  }, [existingAgent, onCreate, riskProfile, setName]);
+
+  useEffect(() => {
     if (step === 'simulation' && simResult && chartRef.current) {
       if (!chartInstance.current)
         chartInstance.current = echarts.init(chartRef.current);
@@ -244,9 +375,71 @@ export default function CreateAgentModal({
     return () => window.removeEventListener('resize', handleResize);
   }, [simResult, step]);
 
-  const handleFinalDeploy = () => {
-    if (!selectedPreset) return;
-    onCreate(name, customPrompt, selectedPreset.name, selectedPreset.stats, []);
+  const submitAgentCreation = async (goToSimulation: boolean) => {
+    if (hasCreated || !selectedPreset || !riskProfile) {
+      if (goToSimulation) setStep('simulation');
+      return;
+    }
+
+    if (!currentUser?.id) {
+      onNotify?.('缺少用户信息', '请先登录以创建 Agent。', 'error');
+      return;
+    }
+
+    const workflowId = getWorkflowId();
+    if (!workflowId) {
+      onNotify?.('流程选择无效', '请返回上一步重新选择策略。', 'error');
+      return;
+    }
+
+    const payload = {
+      user_id: currentUser.id,
+      agent_name: name,
+      workflow_id: workflowId,
+      risk_profile: riskProfile,
+      custom_parameters: buildCustomParameters()
+    };
+
+    try {
+      setIsSubmitting(true);
+      const response = await fetch('http://localhost:8000/api/v1/agents', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || '创建 Agent 失败');
+      }
+
+      const result = await response
+        .json()
+        .catch(() => ({ agent_id: null, id: null }));
+      const createdId = result?.agent_id || result?.id || null;
+
+      onCreate(
+        createdId,
+        name,
+        customPrompt,
+        selectedPreset.name,
+        selectedPreset.stats,
+        []
+      );
+      setHasCreated(true);
+      onNotify?.('创建成功', 'Agent 已成功创建并部署。', 'success');
+      if (goToSimulation) setStep('simulation');
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : '创建 Agent 时出现错误';
+      onNotify?.('创建失败', message, 'error');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleFinalDeploy = async () => {
+    if (!hasCreated) return;
     onClose();
   };
 
@@ -284,7 +477,61 @@ export default function CreateAgentModal({
     }
   };
 
-  const isConfigValid = () => !!selectedPresetId;
+  const getWorkflowId = () => {
+    switch (selectedPresetId) {
+      case 'value':
+        return 'track_thinking';
+      case 'quant':
+        return 'quant_thinking';
+      case 'growth':
+        return 'news_thinking';
+      default:
+        return '';
+    }
+  };
+
+  const buildCustomParameters = () => {
+    switch (selectedPresetId) {
+      case 'value':
+        return {
+          profitability: {
+            roe: { excellent: investorConfigs.value.roe },
+            net_margin: { excellent: investorConfigs.value.netMargin }
+          },
+          risk: {
+            stop_loss: {
+              technical: { threshold: investorConfigs.value.stopLoss }
+            }
+          }
+        };
+      case 'quant':
+        return {
+          technical: { weight: investorConfigs.quant.techWeight },
+          position: {
+            single_stock: { max: investorConfigs.quant.maxPosition }
+          },
+          risk: {
+            stop_loss: {
+              technical: { threshold: investorConfigs.quant.stopLoss }
+            }
+          }
+        };
+      case 'growth':
+        return {
+          growth: {
+            revenue_growth_rate: {
+              excellent: investorConfigs.growth.revenueGrowth
+            },
+            industry_growth_rate: investorConfigs.growth.industryGrowth
+          },
+          profitability: { roe: { excellent: investorConfigs.growth.roe } }
+        };
+      default:
+        return {};
+    }
+  };
+
+  const isConfigValid = () => !!selectedPresetId && !!riskProfile;
 
   const SliderRow = ({
     label,
@@ -312,15 +559,17 @@ export default function CreateAgentModal({
         </span>
       </div>
       <div className='grid grid-cols-6 gap-3 items-center'>
-        <input
-          type='range'
-          min={min}
-          max={max}
-          step={step}
-          value={value}
-          onChange={(e) => onChange(Number(e.target.value))}
-          className='col-span-4 w-full cursor-pointer accent-cp-yellow'
-        />
+        <div className='col-span-4'>
+          <input
+            type='range'
+            min={min}
+            max={max}
+            step={step}
+            value={value}
+            onChange={(e) => onChange(Number(e.target.value))}
+            className='w-full accent-cp-yellow bg-transparent'
+          />
+        </div>
         <div className='col-span-2 flex items-center gap-2'>
           <input
             type='number'
@@ -363,6 +612,21 @@ export default function CreateAgentModal({
               <p className='text-xs text-cp-text-muted font-sans uppercase tracking-widest mt-1'>
                 Step {getStepNumber()} / 05
               </p>
+              {existingAgent && (
+                <div className='mt-2 text-xs text-cp-text-muted'>
+                  已有 Agent:{' '}
+                  <span className='text-white'>{existingAgent.agent_name}</span>{' '}
+                  · 流程{' '}
+                  <span className='text-cp-yellow font-mono'>
+                    {existingAgent.workflow_id}
+                  </span>{' '}
+                  · 风险
+                  <span className='text-cp-yellow font-mono'>
+                    {' '}
+                    {existingAgent.risk_profile}
+                  </span>
+                </div>
+              )}
             </div>
           </div>
           <button
@@ -508,6 +772,38 @@ export default function CreateAgentModal({
                       <p className='text-sm text-cp-text-muted'>
                         {selectedPreset?.desc}
                       </p>
+                    </div>
+
+                    <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
+                      <div className='md:col-span-1 col-span-full flex flex-col gap-2'>
+                        <label className='text-xs font-bold text-cp-text-muted uppercase tracking-widest'>
+                          风险偏好
+                        </label>
+                        <select
+                          value={riskProfile}
+                          onChange={(e) =>
+                            setRiskProfile(
+                              e.target.value as
+                                | 'conservative'
+                                | 'balanced'
+                                | 'aggressive'
+                                | ''
+                            )
+                          }
+                          className='w-full bg-black/40 border border-cp-border px-4 py-3 text-sm text-white focus:border-cp-yellow outline-none'>
+                          <option value='' disabled>
+                            选择风险偏好
+                          </option>
+                          {RISK_OPTIONS.map((opt) => (
+                            <option
+                              key={opt.value}
+                              value={opt.value}
+                              className='bg-cp-black text-cp-text'>
+                              {opt.label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
                     </div>
 
                     {selectedPresetId === 'value' && (
@@ -756,14 +1052,17 @@ export default function CreateAgentModal({
                 </button>
                 <div className='flex gap-4'>
                   <button
-                    onClick={() => setStep('simulation')}
-                    className='px-8 py-3 btn-outline text-cp-text-muted hover:text-white'>
-                    跳过
+                    onClick={() => submitAgentCreation(true)}
+                    disabled={isSubmitting}
+                    className='px-8 py-3 btn-outline text-cp-text-muted hover:text-white disabled:opacity-50 disabled:cursor-not-allowed'>
+                    {isSubmitting ? '创建中...' : '跳过'}
                   </button>
                   <button
-                    onClick={() => setStep('simulation')}
-                    className='px-12 py-3 btn-gold flex items-center gap-2'>
-                    完成上传 <ChevronRight size={16} />
+                    onClick={() => submitAgentCreation(true)}
+                    disabled={isSubmitting}
+                    className='px-12 py-3 btn-gold flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed'>
+                    {isSubmitting ? '创建中...' : '完成上传'}{' '}
+                    <ChevronRight size={16} />
                   </button>
                 </div>
               </div>
@@ -900,9 +1199,12 @@ export default function CreateAgentModal({
               </button>
               <button
                 onClick={handleFinalDeploy}
-                disabled={simStatus !== 'finished'}
+                disabled={
+                  !hasCreated || simStatus !== 'finished' || isSubmitting
+                }
                 className='px-10 py-3 btn-gold flex items-center gap-2 disabled:opacity-50 disabled:filter disabled:grayscale'>
-                确认部署 Agent <ChevronRight size={16} />
+                {isSubmitting ? '创建中...' : '完成部署'}{' '}
+                <ChevronRight size={16} />
               </button>
             </div>
           )}

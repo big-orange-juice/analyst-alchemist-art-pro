@@ -163,6 +163,7 @@ export default function DashboardContent() {
   // Stores
   const { currentUser, setCurrentUser, clearUser } = useUserStore();
   const {
+    agentId,
     agentName,
     agentClass,
     agentStats,
@@ -172,6 +173,7 @@ export default function DashboardContent() {
     setAgentClass,
     setAgentStats,
     setAgentModules,
+    setAgentId,
     updateCustomPrompt,
     setIsJoinedCompetition,
     clearAgent
@@ -330,6 +332,60 @@ export default function DashboardContent() {
     }
   }, [agentName, isJoinedCompetition, rankingList]);
 
+  useEffect(() => {
+    const resolvedUserId = (() => {
+      if (currentUser?.id) return currentUser.id;
+      if (typeof window === 'undefined') return null;
+      try {
+        const raw = localStorage.getItem('matrix_user_session');
+        if (!raw) return null;
+        const parsed = JSON.parse(raw);
+        return parsed?.state?.currentUser?.id ?? null;
+      } catch (_) {
+        return null;
+      }
+    })();
+
+    if (!resolvedUserId) return;
+
+    const controller = new AbortController();
+    const fetchAgent = async () => {
+      try {
+        const query = `http://localhost:8000/api/v1/agents?user_id=${encodeURIComponent(
+          resolvedUserId
+        )}&skip=0&limit=1`;
+        const res = await fetch(query, { signal: controller.signal });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data?.agents?.length) {
+          const agent = data.agents[0];
+          const resolvedAgentId = agent.agent_id || agent.id || null;
+          const workflowId:
+            | '价值投资者'
+            | '量化交易者'
+            | '成长股投资者'
+            | null =
+            agent.workflow_id === 'track_thinking'
+              ? '价值投资者'
+              : agent.workflow_id === 'quant_thinking'
+              ? '量化交易者'
+              : agent.workflow_id === 'news_thinking'
+              ? '成长股投资者'
+              : null;
+
+          setAgentId(resolvedAgentId);
+          setAgentName(agent.agent_name);
+          if (workflowId) setAgentClass(workflowId);
+        }
+      } catch (err) {
+        if (err instanceof DOMException && err.name === 'AbortError') return;
+        // silent fail
+      }
+    };
+    fetchAgent();
+    return () => controller.abort();
+  }, [currentUser?.id, setAgentClass, setAgentId, setAgentName]);
+
   // Actions
   const handleLogin = (username: string, email?: string) => {
     const newUser = {
@@ -365,12 +421,14 @@ export default function DashboardContent() {
   };
 
   const handleCreateAgent = (
+    newAgentId: string | null,
     name: string,
     _prompt: string,
     archetype: string,
     stats: AgentStats,
     modules: AgentModule[]
   ) => {
+    setAgentId(newAgentId);
     setAgentName(name);
     setAgentClass(archetype);
     setAgentStats(stats);
@@ -404,18 +462,40 @@ export default function DashboardContent() {
     setIsCreateModalOpen(false);
   };
 
-  const handleDeleteAgent = () => {
-    if (!agentName) return;
+  const handleDeleteAgent = async () => {
+    if (!agentId) {
+      notify('删除失败', '未找到当前 Agent 的 ID。', 'error');
+      return;
+    }
 
-    // Remove from ranking and chart
-    setRankingList(rankingList.filter((a) => !a.isUser));
-    setChartData(
-      chartData.map((p) => {
-        const newP = { ...p };
-        if (agentName) delete newP[agentName];
-        return newP;
-      })
-    );
+    try {
+      const res = await fetch(
+        `http://localhost:8000/api/v1/agents/${encodeURIComponent(agentId)}`,
+        { method: 'DELETE' }
+      );
+
+      if (!res.ok) {
+        const errorText = await res.text();
+        throw new Error(errorText || '删除 Agent 失败');
+      }
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : '删除 Agent 时出现错误';
+      notify('删除失败', message, 'error');
+      setConfirmModal({ ...confirmModal, isOpen: false });
+      return;
+    }
+
+    if (agentName) {
+      setRankingList(rankingList.filter((a) => !a.isUser));
+      setChartData(
+        chartData.map((p) => {
+          const newP = { ...p };
+          delete newP[agentName];
+          return newP;
+        })
+      );
+    }
 
     clearAgent();
     notify(

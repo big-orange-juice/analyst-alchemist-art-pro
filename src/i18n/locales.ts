@@ -82,7 +82,13 @@ export const translations = {
       mock_response: '分析完成。信号为强烈买入。',
       history_title: '执行历史',
       history_latency: '平均响应 1.3s',
-      history_empty: '暂无历史执行'
+      history_empty: '暂无历史执行',
+      stock_symbol: '分析标的',
+      trading_date: '交易日',
+      news_source: '新闻源（可选）',
+      loading: '执行中...',
+      missing_agent_title: '缺少 Agent',
+      missing_agent_desc: '请先创建或选择 Agent 后再执行。'
     },
     capability_history: {
       AUTO_TRADING: [
@@ -476,7 +482,13 @@ export const translations = {
       mock_response: 'Analysis complete. Signal: strong buy.',
       history_title: 'Execution History',
       history_latency: 'Avg latency 1.3s',
-      history_empty: 'No runs recorded yet'
+      history_empty: 'No runs recorded yet',
+      stock_symbol: 'Symbol',
+      trading_date: 'Trading Date',
+      news_source: 'News Source (optional)',
+      loading: 'Running...',
+      missing_agent_title: 'Agent required',
+      missing_agent_desc: 'Create or select an agent before executing.'
     },
     capability_history: {
       AUTO_TRADING: [

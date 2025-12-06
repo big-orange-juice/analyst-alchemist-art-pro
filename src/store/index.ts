@@ -1,9 +1,9 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { 
-  User, 
-  AgentStats, 
-  AgentModule, 
+import type {
+  User,
+  AgentStats,
+  AgentModule,
   AppNotification,
   RankingItem,
   ChartDataPoint,
@@ -13,8 +13,7 @@ import type {
 // Storage key constants for consistency
 const STORAGE_KEYS = {
   USER_SESSION: 'matrix_user_session',
-  AGENT_DATA: 'matrix_agent_data',
-  LANGUAGE: 'matrix_language',
+  LANGUAGE: 'matrix_language'
 } as const;
 
 // Utility function for generating unique IDs
@@ -23,7 +22,9 @@ function generateUniqueId(): string {
     return crypto.randomUUID();
   }
   // Fallback for environments without crypto.randomUUID
-  return `${Date.now().toString(36)}-${Math.random().toString(36).substr(2, 9)}`;
+  return `${Date.now().toString(36)}-${Math.random()
+    .toString(36)
+    .substr(2, 9)}`;
 }
 
 // User Store
@@ -38,16 +39,17 @@ export const useUserStore = create<UserState>()(
     (set) => ({
       currentUser: null,
       setCurrentUser: (user) => set({ currentUser: user }),
-      clearUser: () => set({ currentUser: null }),
+      clearUser: () => set({ currentUser: null })
     }),
     {
-      name: STORAGE_KEYS.USER_SESSION,
+      name: STORAGE_KEYS.USER_SESSION
     }
   )
 );
 
 // Agent Store
 interface SavedAgentData {
+  id: string | null;
   name: string;
   class: string;
   stats: AgentStats;
@@ -57,6 +59,7 @@ interface SavedAgentData {
 }
 
 interface AgentState {
+  agentId: string | null;
   agentName: string | null;
   agentClass: string;
   agentStats: AgentStats;
@@ -69,52 +72,52 @@ interface AgentState {
   setAgentModules: (modules: AgentModule[]) => void;
   setCustomPrompts: (prompts: Record<string, string>) => void;
   updateCustomPrompt: (capability: string, prompt: string) => void;
+  setAgentId: (id: string | null) => void;
   setIsJoinedCompetition: (joined: boolean) => void;
   clearAgent: () => void;
   loadAgent: (data: SavedAgentData) => void;
 }
 
-export const useAgentStore = create<AgentState>()(
-  persist(
-    (set) => ({
+export const useAgentStore = create<AgentState>()((set) => ({
+  agentId: null,
+  agentName: null,
+  agentClass: '智能型',
+  agentStats: { intelligence: 50, speed: 50, risk: 50 },
+  agentModules: [],
+  customPrompts: {},
+  isJoinedCompetition: false,
+  setAgentName: (name) => set({ agentName: name }),
+  setAgentClass: (cls) => set({ agentClass: cls }),
+  setAgentStats: (stats) => set({ agentStats: stats }),
+  setAgentModules: (modules) => set({ agentModules: modules }),
+  setCustomPrompts: (prompts) => set({ customPrompts: prompts }),
+  updateCustomPrompt: (capability, prompt) =>
+    set((state) => ({
+      customPrompts: { ...state.customPrompts, [capability]: prompt }
+    })),
+  setAgentId: (id) => set({ agentId: id }),
+  setIsJoinedCompetition: (joined) => set({ isJoinedCompetition: joined }),
+  clearAgent: () =>
+    set({
+      agentId: null,
       agentName: null,
       agentClass: '智能型',
       agentStats: { intelligence: 50, speed: 50, risk: 50 },
       agentModules: [],
       customPrompts: {},
-      isJoinedCompetition: false,
-      setAgentName: (name) => set({ agentName: name }),
-      setAgentClass: (cls) => set({ agentClass: cls }),
-      setAgentStats: (stats) => set({ agentStats: stats }),
-      setAgentModules: (modules) => set({ agentModules: modules }),
-      setCustomPrompts: (prompts) => set({ customPrompts: prompts }),
-      updateCustomPrompt: (capability, prompt) => 
-        set((state) => ({ 
-          customPrompts: { ...state.customPrompts, [capability]: prompt } 
-        })),
-      setIsJoinedCompetition: (joined) => set({ isJoinedCompetition: joined }),
-      clearAgent: () => set({ 
-        agentName: null,
-        agentClass: '智能型',
-        agentStats: { intelligence: 50, speed: 50, risk: 50 },
-        agentModules: [],
-        customPrompts: {},
-        isJoinedCompetition: false
-      }),
-      loadAgent: (data) => set({
-        agentName: data.name,
-        agentClass: data.class,
-        agentStats: data.stats,
-        agentModules: data.modules,
-        customPrompts: data.prompts,
-        isJoinedCompetition: data.isJoined,
-      }),
+      isJoinedCompetition: false
     }),
-    {
-      name: STORAGE_KEYS.AGENT_DATA,
-    }
-  )
-);
+  loadAgent: (data) =>
+    set({
+      agentId: data.id,
+      agentName: data.name,
+      agentClass: data.class,
+      agentStats: data.stats,
+      agentModules: data.modules,
+      customPrompts: data.prompts,
+      isJoinedCompetition: data.isJoined
+    })
+}));
 
 // UI Store (non-persistent)
 interface UIState {
@@ -153,9 +156,10 @@ export const useUIStore = create<UIState>((set) => ({
   selectedCapability: null,
   editingCapability: null,
   setTheme: (theme) => set({ theme }),
-  toggleTheme: () => set((state) => ({ 
-    theme: state.theme === 'dark' ? 'light' : 'dark' 
-  })),
+  toggleTheme: () =>
+    set((state) => ({
+      theme: state.theme === 'dark' ? 'light' : 'dark'
+    })),
   setShowLanding: (show) => set({ showLanding: show }),
   setActiveSideTab: (tab) => set({ activeSideTab: tab }),
   setMobileView: (view) => set({ mobileView: view }),
@@ -164,7 +168,7 @@ export const useUIStore = create<UIState>((set) => ({
   setHighlightedAgent: (agent) => set({ highlightedAgent: agent }),
   setInspectingAgent: (agent) => set({ inspectingAgent: agent }),
   setSelectedCapability: (cap) => set({ selectedCapability: cap }),
-  setEditingCapability: (cap) => set({ editingCapability: cap }),
+  setEditingCapability: (cap) => set({ editingCapability: cap })
 }));
 
 // Modal Store
@@ -187,8 +191,15 @@ interface ModalState {
   setIsSeasonPassOpen: (open: boolean) => void;
   setIsJoinCompetitionModalOpen: (open: boolean) => void;
   setIsNotifHistoryOpen: (open: boolean) => void;
-  setConfirmModal: (modal: { isOpen: boolean; title: string; message: string; action: () => void }) => void;
-  setReadingArticle: (article: { title: string; date: string; tag: string } | null) => void;
+  setConfirmModal: (modal: {
+    isOpen: boolean;
+    title: string;
+    message: string;
+    action: () => void;
+  }) => void;
+  setReadingArticle: (
+    article: { title: string; date: string; tag: string } | null
+  ) => void;
   setPendingAction: (action: 'createAgent' | null) => void;
 }
 
@@ -204,18 +215,23 @@ export const useModalStore = create<ModalState>((set) => ({
   setIsLoginModalOpen: (open) => set({ isLoginModalOpen: open }),
   setIsCreateModalOpen: (open) => set({ isCreateModalOpen: open }),
   setIsSeasonPassOpen: (open) => set({ isSeasonPassOpen: open }),
-  setIsJoinCompetitionModalOpen: (open) => set({ isJoinCompetitionModalOpen: open }),
+  setIsJoinCompetitionModalOpen: (open) =>
+    set({ isJoinCompetitionModalOpen: open }),
   setIsNotifHistoryOpen: (open) => set({ isNotifHistoryOpen: open }),
   setConfirmModal: (modal) => set({ confirmModal: modal }),
   setReadingArticle: (article) => set({ readingArticle: article }),
-  setPendingAction: (action) => set({ pendingAction: action }),
+  setPendingAction: (action) => set({ pendingAction: action })
 }));
 
 // Notification Store
 interface NotificationState {
   notifications: AppNotification[];
   notificationHistory: AppNotification[];
-  addNotification: (title: string, message: string, type?: AppNotification['type']) => void;
+  addNotification: (
+    title: string,
+    message: string,
+    type?: AppNotification['type']
+  ) => void;
   dismissNotification: (id: string) => void;
   clearHistory: () => void;
 }
@@ -229,24 +245,24 @@ export const useNotificationStore = create<NotificationState>((set) => ({
       title,
       message,
       type,
-      timestamp: Date.now(),
+      timestamp: Date.now()
     };
     set((state) => ({
       notifications: [newNote, ...state.notifications].slice(0, 5),
-      notificationHistory: [newNote, ...state.notificationHistory].slice(0, 50),
+      notificationHistory: [newNote, ...state.notificationHistory].slice(0, 50)
     }));
     // Auto-dismiss after 5 seconds
     setTimeout(() => {
       set((state) => ({
-        notifications: state.notifications.filter((n) => n.id !== newNote.id),
+        notifications: state.notifications.filter((n) => n.id !== newNote.id)
       }));
     }, 5000);
   },
-  dismissNotification: (id) => 
+  dismissNotification: (id) =>
     set((state) => ({
-      notifications: state.notifications.filter((n) => n.id !== id),
+      notifications: state.notifications.filter((n) => n.id !== id)
     })),
-  clearHistory: () => set({ notificationHistory: [] }),
+  clearHistory: () => set({ notificationHistory: [] })
 }));
 
 // Language Store
@@ -261,10 +277,10 @@ export const useLanguageStore = create<LanguageState>()(
   persist(
     (set) => ({
       language: 'zh',
-      setLanguage: (language) => set({ language }),
+      setLanguage: (language) => set({ language })
     }),
     {
-      name: STORAGE_KEYS.LANGUAGE,
+      name: STORAGE_KEYS.LANGUAGE
     }
   )
 );
@@ -281,5 +297,5 @@ export const useMarketDataStore = create<MarketDataState>((set) => ({
   chartData: [],
   rankingList: [],
   setChartData: (data) => set({ chartData: data }),
-  setRankingList: (list) => set({ rankingList: list }),
+  setRankingList: (list) => set({ rankingList: list })
 }));
