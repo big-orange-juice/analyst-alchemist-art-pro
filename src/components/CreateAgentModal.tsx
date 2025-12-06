@@ -37,76 +37,74 @@ interface CreateAgentModalProps {
   ) => void;
 }
 
+type ArchetypeId = 'value' | 'quant' | 'growth';
+
 interface StrategyPreset {
-  id: string;
+  id: ArchetypeId;
   name: string;
   desc: string;
   icon: typeof Shield;
   stats: AgentStats;
   defaultPrompt: string;
-  defaultConfig: {
-    risk: string;
-    freq: string;
-    asset: string;
-    execution: string;
-  };
 }
+
+interface ValueInvestorConfig {
+  roe: number;
+  netMargin: number;
+  stopLoss: number;
+  note: string;
+}
+
+interface QuantTraderConfig {
+  techWeight: number;
+  maxPosition: number;
+  stopLoss: number;
+  note: string;
+}
+
+interface GrowthInvestorConfig {
+  revenueGrowth: number;
+  industryGrowth: number;
+  roe: number;
+  note: string;
+}
+
+type InvestorConfigState = {
+  value: ValueInvestorConfig;
+  quant: QuantTraderConfig;
+  growth: GrowthInvestorConfig;
+};
 
 const STRATEGY_PRESETS: StrategyPreset[] = [
   {
-    id: 'conservative',
-    name: '稳健理财型',
-    desc: '低风险偏好，追求绝对收益，严格控制回撤。',
+    id: 'value',
+    name: '价值投资者',
+    desc: '偏好基本面稳健、估值合理的公司，强调安全边际。',
     icon: Shield,
-    stats: { intelligence: 60, speed: 20, risk: 80 },
-    defaultPrompt: `你是一个极度厌恶风险的A股交易员，优先考虑资金安全，只在确定性极高时出手。`,
-    defaultConfig: {
-      risk: 'low',
-      freq: 'low',
-      asset: 'bluechip',
-      execution: 'limit'
-    }
+    stats: { intelligence: 75, speed: 30, risk: 70 },
+    defaultPrompt: `你是一名价值投资者，专注ROE、净利率等质量指标，严格控制下行风险。`
   },
   {
-    id: 'balanced',
-    name: '趋势均衡型',
-    desc: '平衡风险与收益，顺势而为，捕捉波段机会。',
+    id: 'quant',
+    name: '量化交易者',
+    desc: '依赖模型与数据驱动，兼顾技术与风险控制，强调执行纪律。',
     icon: Activity,
-    stats: { intelligence: 50, speed: 50, risk: 50 },
-    defaultPrompt: `你是一个成熟的趋势交易员，擅长通过技术形态和均线系统捕捉主升浪。`,
-    defaultConfig: {
-      risk: 'mid',
-      freq: 'mid',
-      asset: 'growth',
-      execution: 'smart'
-    }
+    stats: { intelligence: 65, speed: 70, risk: 50 },
+    defaultPrompt: `你是一名量化交易者，强调规则化、技术权重与仓位管理，执行严格止损。`
   },
   {
-    id: 'aggressive',
-    name: '激进超短型',
-    desc: '高风险高收益，专注于热点题材与龙头战法。',
+    id: 'growth',
+    name: '成长股投资者',
+    desc: '寻找高景气高增速赛道，关注盈利与行业增速的持续性。',
     icon: Zap,
-    stats: { intelligence: 40, speed: 90, risk: 20 },
-    defaultPrompt: `你是一个激进的短线游资操盘手，专注于市场情绪核心，敢于在分歧中寻找一致性。`,
-    defaultConfig: {
-      risk: 'high',
-      freq: 'high',
-      asset: 'concept',
-      execution: 'market'
-    }
+    stats: { intelligence: 70, speed: 50, risk: 60 },
+    defaultPrompt: `你是一名成长股投资者，优先筛选高营收增速与行业景气，同时关注ROE质量。`
   }
 ];
 
 interface SimResultData {
   duration: string;
   equityCurve: number[];
-}
-
-interface AgentConfigForm {
-  riskLevel: string;
-  tradingFreq: string;
-  assetClass: string;
-  executionStyle: string;
 }
 
 type SimDuration = '1周' | '1月' | '3月' | '1年';
@@ -123,13 +121,14 @@ export default function CreateAgentModal({
 }: CreateAgentModalProps) {
   const [step, setStep] = useState<CreationStep>('naming');
   const [name, setName] = useState('');
-  const [selectedPresetId, setSelectedPresetId] = useState<string>('');
+  const [selectedPresetId, setSelectedPresetId] = useState<ArchetypeId | ''>(
+    ''
+  );
   const [customPrompt, setCustomPrompt] = useState('');
-  const [configForm, setConfigForm] = useState<AgentConfigForm>({
-    riskLevel: '',
-    tradingFreq: '',
-    assetClass: '',
-    executionStyle: 'limit'
+  const [investorConfigs, setInvestorConfigs] = useState<InvestorConfigState>({
+    value: { roe: 15, netMargin: 10, stopLoss: -5, note: '' },
+    quant: { techWeight: 60, maxPosition: 15, stopLoss: -4, note: '' },
+    growth: { revenueGrowth: 20, industryGrowth: 15, roe: 12, note: '' }
   });
   const [uploadedFiles, setUploadedFiles] = useState<
     { name: string; size: string }[]
@@ -152,17 +151,11 @@ export default function CreateAgentModal({
     (p) => p.id === selectedPresetId
   );
 
-  const handlePresetSelect = (presetId: string) => {
+  const handlePresetSelect = (presetId: ArchetypeId) => {
     setSelectedPresetId(presetId);
     const preset = STRATEGY_PRESETS.find((p) => p.id === presetId);
     if (preset) {
       setCustomPrompt(preset.defaultPrompt);
-      setConfigForm({
-        riskLevel: preset.defaultConfig.risk,
-        tradingFreq: preset.defaultConfig.freq,
-        assetClass: preset.defaultConfig.asset,
-        executionStyle: preset.defaultConfig.execution
-      });
     }
   };
 
@@ -281,7 +274,7 @@ export default function CreateAgentModal({
       case 'preset':
         return '核心策略选择';
       case 'configure':
-        return '系统参数配置';
+        return '行为参数配置';
       case 'knowledge':
         return '知识库接入';
       case 'simulation':
@@ -291,11 +284,68 @@ export default function CreateAgentModal({
     }
   };
 
-  const isConfigValid = () => {
-    return (
-      configForm.riskLevel && configForm.tradingFreq && configForm.assetClass
-    );
-  };
+  const isConfigValid = () => !!selectedPresetId;
+
+  const SliderRow = ({
+    label,
+    value,
+    min,
+    max,
+    step,
+    suffix = '%',
+    onChange
+  }: {
+    label: string;
+    value: number;
+    min: number;
+    max: number;
+    step: number;
+    suffix?: string;
+    onChange: (val: number) => void;
+  }) => (
+    <div className='p-4 border border-cp-border bg-black/30 flex flex-col gap-3 hover:border-cp-yellow/60 transition-colors'>
+      <div className='flex items-center justify-between text-sm'>
+        <span className='text-cp-text'>{label}</span>
+        <span className='text-cp-yellow font-mono'>
+          {value.toFixed(1)}
+          {suffix}
+        </span>
+      </div>
+      <div className='grid grid-cols-6 gap-3 items-center'>
+        <input
+          type='range'
+          min={min}
+          max={max}
+          step={step}
+          value={value}
+          onChange={(e) => onChange(Number(e.target.value))}
+          className='col-span-4 w-full cursor-pointer accent-cp-yellow'
+        />
+        <div className='col-span-2 flex items-center gap-2'>
+          <input
+            type='number'
+            value={value}
+            min={min}
+            max={max}
+            step={step}
+            onChange={(e) => onChange(Number(e.target.value))}
+            className='w-full bg-cp-black border border-cp-border px-3 py-2 text-sm text-white focus:border-cp-yellow outline-none'
+          />
+          <span className='text-cp-text-muted text-xs'>{suffix}</span>
+        </div>
+      </div>
+      <div className='flex items-center justify-between text-[10px] text-cp-text-muted uppercase tracking-widest'>
+        <span>
+          {min}
+          {suffix}
+        </span>
+        <span>
+          {max}
+          {suffix}
+        </span>
+      </div>
+    </div>
+  );
 
   return (
     <div className='fixed inset-0 z-[100] bg-black/90 backdrop-blur-md flex items-center justify-center p-4 modal-animate'>
@@ -371,10 +421,10 @@ export default function CreateAgentModal({
             <div className='flex-1 flex flex-col p-8 animate-in fade-in slide-in-from-right-8 overflow-y-auto'>
               <div className='text-center mb-10'>
                 <h3 className='text-2xl font-serif font-bold text-white mb-2'>
-                  选择核心策略模组
+                  选择投资者类型
                 </h3>
                 <p className='text-cp-text-muted font-sans text-sm'>
-                  为您的 Agent 选择一个行为原型。
+                  为您的 Agent 选择一个行为原型并查看说明。
                 </p>
               </div>
 
@@ -443,102 +493,165 @@ export default function CreateAgentModal({
           {step === 'configure' && (
             <div className='flex-1 flex flex-col p-8 animate-in fade-in slide-in-from-right-8 overflow-y-auto'>
               <div className='max-w-4xl mx-auto w-full flex flex-col gap-8 pb-20'>
-                <div className='text-center mb-4'>
-                  <h3 className='text-2xl font-serif font-bold text-white'>
-                    系统参数配置
-                  </h3>
-                  <p className='text-cp-text-muted text-sm'>
-                    微调 {name} 的运行逻辑。
-                  </p>
-                </div>
+                {!selectedPresetId && (
+                  <div className='p-6 border border-cp-border text-center text-cp-text-muted'>
+                    请先在上一步选择投资者类型。
+                  </div>
+                )}
 
-                <div className='grid grid-cols-1 md:grid-cols-2 gap-8'>
-                  <div className='space-y-3'>
-                    <label className='text-xs font-bold text-cp-text-muted uppercase tracking-widest'>
-                      风险偏好 <span className='text-cp-yellow'>*</span>
-                    </label>
-                    <div className='grid grid-cols-3 gap-2'>
-                      {['low', 'mid', 'high'].map((r) => (
-                        <button
-                          key={r}
-                          onClick={() =>
-                            setConfigForm({ ...configForm, riskLevel: r })
-                          }
-                          className={`py-3 border text-xs font-bold uppercase transition-colors ${
-                            configForm.riskLevel === r
-                              ? 'border-cp-yellow bg-cp-yellow text-black'
-                              : 'border-cp-border text-gray-500 hover:text-white'
-                          }`}>
-                          {r === 'low' ? '低' : r === 'mid' ? '中' : '高'}
-                        </button>
-                      ))}
+                {selectedPresetId && (
+                  <div className='space-y-6'>
+                    <div className='flex flex-col gap-2 text-center'>
+                      <h4 className='text-xl font-serif text-white'>
+                        {selectedPreset?.name}
+                      </h4>
+                      <p className='text-sm text-cp-text-muted'>
+                        {selectedPreset?.desc}
+                      </p>
                     </div>
-                  </div>
 
-                  <div className='space-y-3'>
-                    <label className='text-xs font-bold text-cp-text-muted uppercase tracking-widest'>
-                      交易频率 <span className='text-cp-yellow'>*</span>
-                    </label>
-                    <select
-                      value={configForm.tradingFreq}
-                      onChange={(e) =>
-                        setConfigForm({
-                          ...configForm,
-                          tradingFreq: e.target.value
-                        })
-                      }
-                      className='w-full bg-cp-black border border-cp-border p-3 text-sm text-cp-text focus:border-cp-yellow outline-none appearance-none rounded-none'>
-                      <option value='' disabled>
-                        选择频率
-                      </option>
-                      <option value='low'>低频 (周线级别)</option>
-                      <option value='mid'>中频 (日线级别)</option>
-                      <option value='high'>高频 (日内T+0)</option>
-                    </select>
-                  </div>
+                    {selectedPresetId === 'value' && (
+                      <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
+                        <SliderRow
+                          label='只看 ROE 大于'
+                          value={investorConfigs.value.roe}
+                          min={0}
+                          max={40}
+                          step={0.5}
+                          suffix='%'
+                          onChange={(v) =>
+                            setInvestorConfigs((prev) => ({
+                              ...prev,
+                              value: { ...prev.value, roe: v }
+                            }))
+                          }
+                        />
+                        <SliderRow
+                          label='净利率大于'
+                          value={investorConfigs.value.netMargin}
+                          min={0}
+                          max={50}
+                          step={0.5}
+                          suffix='%'
+                          onChange={(v) =>
+                            setInvestorConfigs((prev) => ({
+                              ...prev,
+                              value: { ...prev.value, netMargin: v }
+                            }))
+                          }
+                        />
+                        <SliderRow
+                          label='止损'
+                          value={investorConfigs.value.stopLoss}
+                          min={-30}
+                          max={0}
+                          step={0.5}
+                          suffix='%'
+                          onChange={(v) =>
+                            setInvestorConfigs((prev) => ({
+                              ...prev,
+                              value: { ...prev.value, stopLoss: v }
+                            }))
+                          }
+                        />
+                      </div>
+                    )}
 
-                  <div className='space-y-3'>
-                    <label className='text-xs font-bold text-cp-text-muted uppercase tracking-widest'>
-                      核心资产 <span className='text-cp-yellow'>*</span>
-                    </label>
-                    <select
-                      value={configForm.assetClass}
-                      onChange={(e) =>
-                        setConfigForm({
-                          ...configForm,
-                          assetClass: e.target.value
-                        })
-                      }
-                      className='w-full bg-cp-black border border-cp-border p-3 text-sm text-cp-text focus:border-cp-yellow outline-none appearance-none rounded-none'>
-                      <option value='' disabled>
-                        选择资产类型
-                      </option>
-                      <option value='bluechip'>蓝筹股 (大盘价值)</option>
-                      <option value='growth'>成长股 (赛道趋势)</option>
-                      <option value='concept'>题材股 (情绪博弈)</option>
-                      <option value='etf'>ETF & 债券</option>
-                    </select>
-                  </div>
+                    {selectedPresetId === 'quant' && (
+                      <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
+                        <SliderRow
+                          label='技术面权重'
+                          value={investorConfigs.quant.techWeight}
+                          min={0}
+                          max={100}
+                          step={1}
+                          suffix='%'
+                          onChange={(v) =>
+                            setInvestorConfigs((prev) => ({
+                              ...prev,
+                              quant: { ...prev.quant, techWeight: v }
+                            }))
+                          }
+                        />
+                        <SliderRow
+                          label='单股仓位最大'
+                          value={investorConfigs.quant.maxPosition}
+                          min={0}
+                          max={50}
+                          step={1}
+                          suffix='%'
+                          onChange={(v) =>
+                            setInvestorConfigs((prev) => ({
+                              ...prev,
+                              quant: { ...prev.quant, maxPosition: v }
+                            }))
+                          }
+                        />
+                        <SliderRow
+                          label='止损'
+                          value={investorConfigs.quant.stopLoss}
+                          min={-30}
+                          max={0}
+                          step={0.5}
+                          suffix='%'
+                          onChange={(v) =>
+                            setInvestorConfigs((prev) => ({
+                              ...prev,
+                              quant: { ...prev.quant, stopLoss: v }
+                            }))
+                          }
+                        />
+                      </div>
+                    )}
 
-                  <div className='space-y-3'>
-                    <label className='text-xs font-bold text-cp-text-muted uppercase tracking-widest'>
-                      执行风格
-                    </label>
-                    <select
-                      value={configForm.executionStyle}
-                      onChange={(e) =>
-                        setConfigForm({
-                          ...configForm,
-                          executionStyle: e.target.value
-                        })
-                      }
-                      className='w-full bg-cp-black border border-cp-border p-3 text-sm text-cp-text focus:border-cp-yellow outline-none appearance-none rounded-none'>
-                      <option value='limit'>稳健挂单 (Limit)</option>
-                      <option value='market'>激进吃单 (Market)</option>
-                      <option value='smart'>智能拆单 (Algo)</option>
-                    </select>
+                    {selectedPresetId === 'growth' && (
+                      <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
+                        <SliderRow
+                          label='营收增速大于'
+                          value={investorConfigs.growth.revenueGrowth}
+                          min={0}
+                          max={80}
+                          step={1}
+                          suffix='%'
+                          onChange={(v) =>
+                            setInvestorConfigs((prev) => ({
+                              ...prev,
+                              growth: { ...prev.growth, revenueGrowth: v }
+                            }))
+                          }
+                        />
+                        <SliderRow
+                          label='行业增速大于'
+                          value={investorConfigs.growth.industryGrowth}
+                          min={0}
+                          max={60}
+                          step={1}
+                          suffix='%'
+                          onChange={(v) =>
+                            setInvestorConfigs((prev) => ({
+                              ...prev,
+                              growth: { ...prev.growth, industryGrowth: v }
+                            }))
+                          }
+                        />
+                        <SliderRow
+                          label='只看 ROE 大于'
+                          value={investorConfigs.growth.roe}
+                          min={0}
+                          max={40}
+                          step={0.5}
+                          suffix='%'
+                          onChange={(v) =>
+                            setInvestorConfigs((prev) => ({
+                              ...prev,
+                              growth: { ...prev.growth, roe: v }
+                            }))
+                          }
+                        />
+                      </div>
+                    )}
                   </div>
-                </div>
+                )}
 
                 <div className='space-y-3 mt-4'>
                   <label className='text-xs font-bold text-cp-text-muted uppercase tracking-widest flex items-center justify-between'>
