@@ -11,6 +11,7 @@ import {
 } from '@/types';
 import { useLanguage } from '@/lib/useLanguage';
 import { useAgentStore, useUserStore } from '@/store';
+import { apiUrl } from '@/lib/api';
 
 interface CapabilityModalProps {
   capability: AgentCapability;
@@ -150,14 +151,11 @@ export default function CapabilityModal({
       };
 
       try {
-        const res = await fetch(
-          'http://localhost:8000/api/v1/on-demand/stock-analysis-v2',
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-          }
-        );
+        const res = await fetch(apiUrl('/api/v1/on-demand/stock-analysis-v2'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
 
         if (!res.ok) {
           const text = await res.text();
