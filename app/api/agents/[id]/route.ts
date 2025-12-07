@@ -3,9 +3,9 @@ import { apiUrl } from '@/lib/api';
 
 export async function DELETE(
   _req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const { id } = params;
+  const { id } = await params;
   if (!id) {
     return NextResponse.json({ message: '缺少 agent id' }, { status: 400 });
   }

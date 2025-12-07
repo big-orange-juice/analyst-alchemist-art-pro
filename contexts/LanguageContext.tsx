@@ -7,7 +7,7 @@ import React, {
   useState,
   type ReactNode
 } from 'react';
-import { translations } from '../src/i18n/locales';
+import { translations } from '../i18n/locales';
 
 const STORAGE_KEY = 'analyst_alchemist_language';
 
