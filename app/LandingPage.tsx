@@ -13,7 +13,8 @@ import {
   Crosshair,
   Rewind
 } from 'lucide-react';
-import { useUserStore } from '@/store';
+import { useAgentStore, useUserStore } from '@/store';
+import LoginScreen from '@/components/LoginScreen';
 
 interface TopPerformer {
   rank: number;
@@ -40,6 +41,7 @@ const translations = {
         '接入金融智能矩阵。部署自主 AI 代理，实时回测策略，在全网算法排位中争夺荣耀。',
       init_system: '初始化系统',
       link_identity: '链接身份',
+      switch_identity: '切换身份',
       continue_as: '继续身份',
       top_performers: '表现最佳',
       live_feed_tag: 'S4 实时信道',
@@ -73,8 +75,10 @@ export default function LandingPage({
   initialTopPerformers
 }: LandingPageProps) {
   const router = useRouter();
-  const { currentUser } = useUserStore();
+  const { currentUser, setCurrentUser } = useUserStore();
+  const { clearAgent } = useAgentStore();
   const [isClient, setIsClient] = useState(false);
+  const [isLoginOpen, setIsLoginOpen] = useState(false);
 
   const t = translations.zh;
 
@@ -87,7 +91,7 @@ export default function LandingPage({
   };
 
   const handleLogin = () => {
-    router.push('/dashboard?login=true');
+    setIsLoginOpen(true);
   };
 
   const isLoggedIn = isClient && currentUser !== null;
@@ -107,7 +111,7 @@ export default function LandingPage({
         }}></div>
 
       {/* Header */}
-      <header className='relative z-10 w-full px-8 py-6 flex justify-between items-center border-b border-white/[0.02] bg-black/70 backdrop-blur-md sticky top-0'>
+      <header className='z-10 w-full px-8 py-6 flex justify-between items-center border-b border-white/[0.02] bg-black/70 backdrop-blur-md sticky top-0'>
         <div className='flex items-center gap-3'>
           <div className='text-cp-yellow animate-pulse drop-shadow-[0_0_15px_rgba(209,180,106,0.4)]'>
             <Hexagon size={28} strokeWidth={1.5} />
@@ -167,11 +171,19 @@ export default function LandingPage({
               </button>
             </>
           ) : (
-            <button
-              onClick={handleEnter}
-              className='px-16 py-5 btn-gold text-lg font-semibold tracking-[0.45em] flex items-center gap-3 shadow-[0_0_30px_rgba(197,160,89,0.35)] hover:shadow-[0_0_55px_rgba(197,160,89,0.55)] transition-shadow'>
-              <Zap size={20} fill='black' /> {t.landing.continue_as} {username}
-            </button>
+            <>
+              <button
+                onClick={handleEnter}
+                className='px-16 py-5 btn-gold text-lg font-semibold tracking-[0.45em] flex items-center gap-3 shadow-[0_0_30px_rgba(197,160,89,0.35)] hover:shadow-[0_0_55px_rgba(197,160,89,0.55)] transition-shadow'>
+                <Zap size={20} fill='black' /> {t.landing.continue_as}{' '}
+                {username}
+              </button>
+              <button
+                onClick={handleLogin}
+                className='px-10 py-4 btn-outline text-sm font-semibold tracking-[0.45em] flex items-center gap-2'>
+                {t.landing.switch_identity} <ChevronRight size={18} />
+              </button>
+            </>
           )}
         </div>
       </section>
@@ -294,6 +306,29 @@ export default function LandingPage({
           </div>
         </div>
       </footer>
+
+      {isLoginOpen && (
+        <LoginScreen
+          onClose={() => setIsLoginOpen(false)}
+          onLogin={(incoming) => {
+            const nextUserId = incoming.id || incoming.username;
+            if (currentUser && currentUser.id !== nextUserId) {
+              clearAgent();
+            }
+
+            setCurrentUser({
+              id: nextUserId,
+              username: incoming.username,
+              email: incoming.email,
+              level: 1,
+              achievements: [],
+              avatarFrame: 'default'
+            });
+
+            setIsLoginOpen(false);
+          }}
+        />
+      )}
     </div>
   );
 }

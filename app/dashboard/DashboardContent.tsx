@@ -244,10 +244,8 @@ export default function DashboardContent() {
 
   // Check for login param on load
   useEffect(() => {
-    if (searchParams.get('login') === 'true' && !currentUser) {
-      setIsLoginModalOpen(true);
-    }
-  }, [searchParams, currentUser, setIsLoginModalOpen]);
+    if (searchParams.get('login') === 'true') setIsLoginModalOpen(true);
+  }, [searchParams, setIsLoginModalOpen]);
 
   // Apply theme
   useEffect(() => {
@@ -391,11 +389,22 @@ export default function DashboardContent() {
   }, [agentName, isJoinedCompetition, rankingList]);
 
   // Actions
-  const handleLogin = (username: string, email?: string) => {
+  const handleLogin = (incoming: {
+    id?: string;
+    username: string;
+    email?: string;
+  }) => {
+    const nextUserId = incoming.id || incoming.username;
+
+    // 如果是切换身份，清理与用户相关的 Agent 状态
+    if (currentUser && currentUser.id !== nextUserId) {
+      clearAgent();
+    }
+
     const newUser = {
-      id: Math.random().toString(36).substr(2, 9),
-      username,
-      email,
+      id: nextUserId,
+      username: incoming.username,
+      email: incoming.email,
       level: 1,
       achievements: [],
       avatarFrame: 'default'
@@ -404,7 +413,7 @@ export default function DashboardContent() {
     setIsLoginModalOpen(false);
     notify(
       t.notifications.auth.title,
-      t.notifications.auth.message.replace('{name}', username),
+      t.notifications.auth.message.replace('{name}', incoming.username),
       'success'
     );
 

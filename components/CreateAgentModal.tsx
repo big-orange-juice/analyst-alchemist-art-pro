@@ -40,97 +40,99 @@ interface CreateAgentModalProps {
   ) => void;
 }
 
-type ArchetypeId = 'value' | 'quant' | 'growth';
+type WorkflowId = 'track_thinking' | 'quant_thinking' | 'news_thinking';
 
-interface StrategyPreset {
-  id: ArchetypeId;
-  name: string;
+type PersonaId =
+  | 'aggressive_growth'
+  | 'conservative_value'
+  | 'dividend_focus'
+  | 'quantitative'
+  | 'momentum_trader'
+  | 'contrarian'
+  | 'balanced';
+
+interface WorkflowPreset {
+  id: WorkflowId;
+  title: string;
   desc: string;
   icon: typeof Shield;
   stats: AgentStats;
   defaultPrompt: string;
 }
 
-interface ValueInvestorConfig {
-  roe: number;
-  netMargin: number;
-  stopLoss: number;
-  note: string;
-}
-
-interface QuantTraderConfig {
-  techWeight: number;
-  maxPosition: number;
-  stopLoss: number;
-  note: string;
-}
-
-interface GrowthInvestorConfig {
-  revenueGrowth: number;
-  industryGrowth: number;
-  roe: number;
-  note: string;
-}
-
-type InvestorConfigState = {
-  value: ValueInvestorConfig;
-  quant: QuantTraderConfig;
-  growth: GrowthInvestorConfig;
-};
-
-const randomInRange = (min: number, max: number, step = 1) => {
-  const range = Math.floor((max - min) / step);
-  const rand = Math.floor(Math.random() * (range + 1));
-  return Number((min + rand * step).toFixed(2));
-};
-
-const createRandomConfigs = (): InvestorConfigState => ({
-  value: {
-    roe: randomInRange(5, 25, 0.5),
-    netMargin: randomInRange(5, 30, 0.5),
-    stopLoss: randomInRange(-15, -3, 0.5),
-    note: ''
-  },
-  quant: {
-    techWeight: randomInRange(10, 90, 1),
-    maxPosition: randomInRange(5, 30, 1),
-    stopLoss: randomInRange(-15, -4, 0.5),
-    note: ''
-  },
-  growth: {
-    revenueGrowth: randomInRange(10, 60, 1),
-    industryGrowth: randomInRange(5, 40, 1),
-    roe: randomInRange(8, 25, 0.5),
-    note: ''
-  }
-});
-
-const STRATEGY_PRESETS: StrategyPreset[] = [
+const WORKFLOW_PRESETS: WorkflowPreset[] = [
   {
-    id: 'value',
-    name: '价值投资者',
-    desc: '偏好基本面稳健、估值合理的公司，强调安全边际。',
+    id: 'track_thinking',
+    title: '赛道激进型',
+    desc: '追求高成长赛道，愿意承担高风险。30-40岁，有一定投资经验。',
     icon: Shield,
     stats: { intelligence: 75, speed: 30, risk: 70 },
-    defaultPrompt: `你是一名价值投资者，专注ROE、净利率等质量指标，严格控制下行风险。`
+    defaultPrompt: `你是一名赛道激进型投资者，追求高成长赛道机会，愿意承担更高波动风险。`
   },
   {
-    id: 'quant',
-    name: '量化交易者',
-    desc: '依赖模型与数据驱动，兼顾技术与风险控制，强调执行纪律。',
+    id: 'quant_thinking',
+    title: '稳健价值型',
+    desc: '偏好成熟赛道龙头，低估值高分红。45-60岁，投资经验丰富。',
     icon: Activity,
     stats: { intelligence: 65, speed: 70, risk: 50 },
-    defaultPrompt: `你是一名量化交易者，强调规则化、技术权重与仓位管理，执行严格止损。`
+    defaultPrompt: `你是一名稳健价值型投资者，偏好成熟龙头与高分红资产，重视安全边际与现金流。`
   },
   {
-    id: 'growth',
-    name: '成长股投资者',
-    desc: '寻找高景气高增速赛道，关注盈利与行业增速的持续性。',
+    id: 'news_thinking',
+    title: '红利收益型',
+    desc: '关注高股息赛道，追求稳定现金流。50岁以上，接近退休。',
     icon: Zap,
     stats: { intelligence: 70, speed: 50, risk: 60 },
-    defaultPrompt: `你是一名成长股投资者，优先筛选高营收增速与行业景气，同时关注ROE质量。`
+    defaultPrompt: `你是一名红利收益型投资者，关注高股息资产与稳定现金流，强调长期持有与回撤控制。`
   }
 ];
+
+const PERSONA_PRESETS: Record<
+  WorkflowId,
+  Array<{ id: PersonaId; title: string; desc: string }>
+> = {
+  track_thinking: [
+    {
+      id: 'aggressive_growth',
+      title: 'aggressive_growth',
+      desc: '偏进攻：更关注高成长与赛道弹性。'
+    },
+    {
+      id: 'conservative_value',
+      title: 'conservative_value',
+      desc: '偏防守：更关注稳健价值与风险控制。'
+    },
+    {
+      id: 'dividend_focus',
+      title: 'dividend_focus',
+      desc: '偏红利：更关注股息率与稳定现金流。'
+    }
+  ],
+  quant_thinking: [
+    {
+      id: 'quantitative',
+      title: 'quantitative',
+      desc: '量化策略型：基于数据与模型，严格执行纪律。'
+    },
+    {
+      id: 'momentum_trader',
+      title: 'momentum_trader',
+      desc: '趋势动量型：追涨强势股，跟随市场热点。'
+    }
+  ],
+  news_thinking: [
+    {
+      id: 'contrarian',
+      title: 'contrarian',
+      desc: '逆向投资型：别人恐惧时贪婪，寻找被错杀机会。'
+    },
+    {
+      id: 'balanced',
+      title: 'balanced',
+      desc: '均衡配置型：综合多个维度，分散配置。'
+    }
+  ]
+};
 
 interface SimResultData {
   duration: string;
@@ -144,12 +146,6 @@ type CreationStep =
   | 'configure'
   | 'knowledge'
   | 'simulation';
-
-const RISK_OPTIONS = [
-  { label: '保守型', value: 'conservative' },
-  { label: '均衡型', value: 'balanced' },
-  { label: '激进型', value: 'aggressive' }
-] as const;
 
 export default function CreateAgentModal({
   onCreate,
@@ -167,16 +163,11 @@ export default function CreateAgentModal({
   } = useAgentStore();
   const [step, setStep] = useState<CreationStep>('naming');
   const [name, setName] = useState('');
-  const [selectedPresetId, setSelectedPresetId] = useState<ArchetypeId | ''>(
+  const [selectedPresetId, setSelectedPresetId] = useState<WorkflowId | ''>('');
+  const [selectedPersonaId, setSelectedPersonaId] = useState<PersonaId | ''>(
     ''
   );
-  const [riskProfile, setRiskProfile] = useState<
-    'conservative' | 'balanced' | 'aggressive' | ''
-  >('');
   const [customPrompt, setCustomPrompt] = useState('');
-  const [investorConfigs, setInvestorConfigs] = useState<InvestorConfigState>(
-    () => createRandomConfigs()
-  );
   const [uploadedFiles, setUploadedFiles] = useState<
     { name: string; size: string }[]
   >([]);
@@ -195,7 +186,6 @@ export default function CreateAgentModal({
     agent_id: string | null;
     agent_name: string;
     workflow_id: string;
-    risk_profile: string;
   } | null>(null);
   const appliedExistingRef = useRef(false);
 
@@ -203,13 +193,19 @@ export default function CreateAgentModal({
   const chartInstance = useRef<echarts.ECharts | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const selectedPreset = STRATEGY_PRESETS.find(
+  const selectedPreset = WORKFLOW_PRESETS.find(
     (p) => p.id === selectedPresetId
   );
 
-  const handlePresetSelect = (presetId: ArchetypeId) => {
+  const availablePersonas =
+    selectedPresetId && selectedPresetId in PERSONA_PRESETS
+      ? PERSONA_PRESETS[selectedPresetId as WorkflowId]
+      : [];
+
+  const handlePresetSelect = (presetId: WorkflowId) => {
     setSelectedPresetId(presetId);
-    const preset = STRATEGY_PRESETS.find((p) => p.id === presetId);
+    setSelectedPersonaId('');
+    const preset = WORKFLOW_PRESETS.find((p) => p.id === presetId);
     if (preset) {
       setCustomPrompt(preset.defaultPrompt);
     }
@@ -269,47 +265,39 @@ export default function CreateAgentModal({
     setExistingAgent({
       agent_id: agentId,
       agent_name: agentName,
-      workflow_id: agentClass,
-      risk_profile: ''
+      workflow_id: agentClass
     });
   }, [agentId, agentClass, agentName, existingAgent]);
 
   useEffect(() => {
     if (!existingAgent || appliedExistingRef.current) return;
 
-    const presetId: ArchetypeId | '' = (() => {
-      switch (existingAgent.workflow_id) {
-        case 'track_thinking':
-          return 'value';
-        case 'quant_thinking':
-          return 'quant';
-        case 'news_thinking':
-          return 'growth';
-        default:
-          return '';
-      }
-    })();
+    const presetId: WorkflowId | '' =
+      existingAgent.workflow_id === 'track_thinking' ||
+      existingAgent.workflow_id === 'quant_thinking' ||
+      existingAgent.workflow_id === 'news_thinking'
+        ? (existingAgent.workflow_id as WorkflowId)
+        : '';
 
     if (!presetId) return;
 
     appliedExistingRef.current = true;
     setName(existingAgent.agent_name);
     setSelectedPresetId(presetId);
-    setRiskProfile(existingAgent.risk_profile as typeof riskProfile);
     setHasCreated(true);
 
-    const preset = STRATEGY_PRESETS.find((p) => p.id === presetId);
+    const preset = WORKFLOW_PRESETS.find((p) => p.id === presetId);
     if (preset) {
       onCreate(
         existingAgent.agent_id ?? null,
         existingAgent.agent_name,
         '',
-        preset.name,
+        preset.title,
         preset.stats,
         []
       );
     }
-  }, [existingAgent, onCreate, riskProfile, setName]);
+  }, [existingAgent, onCreate, setName]);
 
   useEffect(() => {
     if (step === 'simulation' && simResult && chartRef.current) {
@@ -348,33 +336,25 @@ export default function CreateAgentModal({
   }, [simResult, step]);
 
   const submitAgentCreation = async (goToSimulation: boolean) => {
-    if (hasCreated || !selectedPreset || !riskProfile) {
+    if (hasCreated || !selectedPresetId || !selectedPersonaId) {
       if (goToSimulation) setStep('simulation');
       return;
     }
 
-    if (!currentUser?.id) {
+    if (!currentUser) {
       onNotify?.('缺少用户信息', '请先登录以创建 Agent。', 'error');
       return;
     }
 
-    const workflowId = getWorkflowId();
-    if (!workflowId) {
-      onNotify?.('流程选择无效', '请返回上一步重新选择策略。', 'error');
-      return;
-    }
-
     const payload = {
-      user_id: currentUser.id,
       agent_name: name,
-      workflow_id: workflowId,
-      risk_profile: riskProfile,
-      custom_parameters: buildCustomParameters()
+      workflow_id: selectedPresetId,
+      persona_id: selectedPersonaId
     };
 
     try {
       setIsSubmitting(true);
-      const response = await fetch('/api/agents', {
+      const response = await fetch('/api/v2/agents', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
@@ -385,16 +365,14 @@ export default function CreateAgentModal({
         throw new Error(errorText || '创建 Agent 失败');
       }
 
-      const result = await response
-        .json()
-        .catch(() => ({ agent_id: null, id: null }));
-      const createdId = result?.agent_id || result?.id || null;
+      const result = await response.json().catch(() => ({ id: null }));
+      const createdId = result?.id != null ? String(result.id) : null;
 
       onCreate(
         createdId,
         name,
         customPrompt,
-        selectedPreset.name,
+        selectedPreset?.title ?? selectedPresetId,
         selectedPreset.stats,
         []
       );
@@ -437,9 +415,9 @@ export default function CreateAgentModal({
       case 'naming':
         return '初始化身份';
       case 'preset':
-        return '核心策略选择';
+        return '工作流选择';
       case 'configure':
-        return '行为参数配置';
+        return '人格选择';
       case 'knowledge':
         return '知识库接入';
       case 'simulation':
@@ -449,124 +427,7 @@ export default function CreateAgentModal({
     }
   };
 
-  const getWorkflowId = () => {
-    switch (selectedPresetId) {
-      case 'value':
-        return 'track_thinking';
-      case 'quant':
-        return 'quant_thinking';
-      case 'growth':
-        return 'news_thinking';
-      default:
-        return '';
-    }
-  };
-
-  const buildCustomParameters = () => {
-    switch (selectedPresetId) {
-      case 'value':
-        return {
-          profitability: {
-            roe: { excellent: investorConfigs.value.roe },
-            net_margin: { excellent: investorConfigs.value.netMargin }
-          },
-          risk: {
-            stop_loss: {
-              technical: { threshold: investorConfigs.value.stopLoss }
-            }
-          }
-        };
-      case 'quant':
-        return {
-          technical: { weight: investorConfigs.quant.techWeight },
-          position: {
-            single_stock: { max: investorConfigs.quant.maxPosition }
-          },
-          risk: {
-            stop_loss: {
-              technical: { threshold: investorConfigs.quant.stopLoss }
-            }
-          }
-        };
-      case 'growth':
-        return {
-          growth: {
-            revenue_growth_rate: {
-              excellent: investorConfigs.growth.revenueGrowth
-            },
-            industry_growth_rate: investorConfigs.growth.industryGrowth
-          },
-          profitability: { roe: { excellent: investorConfigs.growth.roe } }
-        };
-      default:
-        return {};
-    }
-  };
-
-  const isConfigValid = () => !!selectedPresetId && !!riskProfile;
-
-  const SliderRow = ({
-    label,
-    value,
-    min,
-    max,
-    step,
-    suffix = '%',
-    onChange
-  }: {
-    label: string;
-    value: number;
-    min: number;
-    max: number;
-    step: number;
-    suffix?: string;
-    onChange: (val: number) => void;
-  }) => (
-    <div className='p-4 border border-cp-border bg-black/30 flex flex-col gap-3 hover:border-cp-yellow/60 transition-colors'>
-      <div className='flex items-center justify-between text-sm'>
-        <span className='text-cp-text'>{label}</span>
-        <span className='text-cp-yellow font-mono'>
-          {value.toFixed(1)}
-          {suffix}
-        </span>
-      </div>
-      <div className='grid grid-cols-6 gap-3 items-center'>
-        <div className='col-span-4'>
-          <input
-            type='range'
-            min={min}
-            max={max}
-            step={step}
-            value={value}
-            onChange={(e) => onChange(Number(e.target.value))}
-            className='w-full accent-cp-yellow bg-transparent'
-          />
-        </div>
-        <div className='col-span-2 flex items-center gap-2'>
-          <input
-            type='number'
-            value={value}
-            min={min}
-            max={max}
-            step={step}
-            onChange={(e) => onChange(Number(e.target.value))}
-            className='w-full bg-cp-black border border-cp-border px-3 py-2 text-sm text-white focus:border-cp-yellow outline-none'
-          />
-          <span className='text-cp-text-muted text-xs'>{suffix}</span>
-        </div>
-      </div>
-      <div className='flex items-center justify-between text-[10px] text-cp-text-muted uppercase tracking-widest'>
-        <span>
-          {min}
-          {suffix}
-        </span>
-        <span>
-          {max}
-          {suffix}
-        </span>
-      </div>
-    </div>
-  );
+  const isConfigValid = () => !!selectedPresetId && !!selectedPersonaId;
 
   return (
     <div className='fixed inset-0 z-[100] bg-black/90 backdrop-blur-md flex items-center justify-center p-4 modal-animate'>
@@ -646,7 +507,7 @@ export default function CreateAgentModal({
                   onClick={() => setStep('preset')}
                   disabled={!name.trim()}
                   className='w-full py-4 btn-gold flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed'>
-                  下一步: 选择策略 <ChevronRight size={18} />
+                  下一步: 选择工作流 <ChevronRight size={18} />
                 </button>
               </div>
             </div>
@@ -657,15 +518,16 @@ export default function CreateAgentModal({
             <div className='flex-1 flex flex-col p-8 animate-in fade-in slide-in-from-right-8 overflow-y-auto'>
               <div className='text-center mb-10'>
                 <h3 className='text-2xl font-serif font-bold text-white mb-2'>
-                  选择投资者类型
+                  选择工作流（workflow_id）
                 </h3>
                 <p className='text-cp-text-muted font-sans text-sm'>
-                  为您的 Agent 选择一个行为原型并查看说明。
+                  Step2 选择 workflow_id，Step3 将根据 workflow_id 提供
+                  persona_id。
                 </p>
               </div>
 
               <div className='grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl mx-auto w-full mb-10'>
-                {STRATEGY_PRESETS.map((preset) => {
+                {WORKFLOW_PRESETS.map((preset) => {
                   const isSelected = selectedPresetId === preset.id;
                   return (
                     <div
@@ -698,7 +560,7 @@ export default function CreateAgentModal({
                           className={`text-xl font-serif font-bold mb-2 ${
                             isSelected ? 'text-white' : 'text-cp-text-muted'
                           }`}>
-                          {preset.name}
+                          {preset.title}
                         </h4>
                         <p className='text-sm text-gray-500 font-sans leading-relaxed'>
                           {preset.desc}
@@ -731,7 +593,7 @@ export default function CreateAgentModal({
               <div className='max-w-4xl mx-auto w-full flex flex-col gap-8 pb-20'>
                 {!selectedPresetId && (
                   <div className='p-6 border border-cp-border text-center text-cp-text-muted'>
-                    请先在上一步选择投资者类型。
+                    请先在上一步选择 workflow_id。
                   </div>
                 )}
 
@@ -739,216 +601,73 @@ export default function CreateAgentModal({
                   <div className='space-y-6'>
                     <div className='flex flex-col gap-2 text-center'>
                       <h4 className='text-xl font-serif text-white'>
-                        {selectedPreset?.name}
+                        {selectedPreset?.title}
                       </h4>
                       <p className='text-sm text-cp-text-muted'>
                         {selectedPreset?.desc}
                       </p>
                     </div>
 
-                    <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
-                      <div className='md:col-span-1 col-span-full flex flex-col gap-2'>
-                        <label className='text-xs font-bold text-cp-text-muted uppercase tracking-widest'>
-                          风险偏好
-                        </label>
-                        <select
-                          value={riskProfile}
-                          onChange={(e) =>
-                            setRiskProfile(
-                              e.target.value as
-                                | 'conservative'
-                                | 'balanced'
-                                | 'aggressive'
-                                | ''
-                            )
-                          }
-                          className='w-full bg-black/40 border border-cp-border px-4 py-3 text-sm text-white focus:border-cp-yellow outline-none'>
-                          <option value='' disabled>
-                            选择风险偏好
-                          </option>
-                          {RISK_OPTIONS.map((opt) => (
-                            <option
-                              key={opt.value}
-                              value={opt.value}
-                              className='bg-cp-black text-cp-text'>
-                              {opt.label}
-                            </option>
-                          ))}
-                        </select>
+                    <div className='space-y-3'>
+                      <div className='text-xs font-bold text-cp-text-muted uppercase tracking-widest'>
+                        选择 persona_id
+                      </div>
+
+                      <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+                        {availablePersonas.map((p) => {
+                          const isSelected = selectedPersonaId === p.id;
+                          return (
+                            <div
+                              key={p.id}
+                              onClick={() => setSelectedPersonaId(p.id)}
+                              className={`border core-module-card hover-card p-6 cursor-pointer transition-all flex flex-col gap-3 group relative
+                                ${
+                                  isSelected
+                                    ? 'core-module-card--active bg-cp-dark/50'
+                                    : 'bg-transparent hover:border-gray-600'
+                                }
+                              `}>
+                              <div className='flex items-start justify-between gap-4'>
+                                <div className='text-left'>
+                                  <div
+                                    className={`text-base font-serif font-bold ${
+                                      isSelected
+                                        ? 'text-white'
+                                        : 'text-cp-text-muted'
+                                    }`}>
+                                    {p.title}
+                                  </div>
+                                  <div className='text-sm text-gray-500 font-sans leading-relaxed'>
+                                    {p.desc}
+                                  </div>
+                                </div>
+                                {isSelected && (
+                                  <div className='text-cp-yellow shrink-0'>
+                                    <Check size={22} />
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
-
-                    {selectedPresetId === 'value' && (
-                      <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
-                        <SliderRow
-                          label='只看 ROE 大于'
-                          value={investorConfigs.value.roe}
-                          min={0}
-                          max={40}
-                          step={0.5}
-                          suffix='%'
-                          onChange={(v) =>
-                            setInvestorConfigs((prev) => ({
-                              ...prev,
-                              value: { ...prev.value, roe: v }
-                            }))
-                          }
-                        />
-                        <SliderRow
-                          label='净利率大于'
-                          value={investorConfigs.value.netMargin}
-                          min={0}
-                          max={50}
-                          step={0.5}
-                          suffix='%'
-                          onChange={(v) =>
-                            setInvestorConfigs((prev) => ({
-                              ...prev,
-                              value: { ...prev.value, netMargin: v }
-                            }))
-                          }
-                        />
-                        <SliderRow
-                          label='止损'
-                          value={investorConfigs.value.stopLoss}
-                          min={-30}
-                          max={0}
-                          step={0.5}
-                          suffix='%'
-                          onChange={(v) =>
-                            setInvestorConfigs((prev) => ({
-                              ...prev,
-                              value: { ...prev.value, stopLoss: v }
-                            }))
-                          }
-                        />
-                      </div>
-                    )}
-
-                    {selectedPresetId === 'quant' && (
-                      <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
-                        <SliderRow
-                          label='技术面权重'
-                          value={investorConfigs.quant.techWeight}
-                          min={0}
-                          max={100}
-                          step={1}
-                          suffix='%'
-                          onChange={(v) =>
-                            setInvestorConfigs((prev) => ({
-                              ...prev,
-                              quant: { ...prev.quant, techWeight: v }
-                            }))
-                          }
-                        />
-                        <SliderRow
-                          label='单股仓位最大'
-                          value={investorConfigs.quant.maxPosition}
-                          min={0}
-                          max={50}
-                          step={1}
-                          suffix='%'
-                          onChange={(v) =>
-                            setInvestorConfigs((prev) => ({
-                              ...prev,
-                              quant: { ...prev.quant, maxPosition: v }
-                            }))
-                          }
-                        />
-                        <SliderRow
-                          label='止损'
-                          value={investorConfigs.quant.stopLoss}
-                          min={-30}
-                          max={0}
-                          step={0.5}
-                          suffix='%'
-                          onChange={(v) =>
-                            setInvestorConfigs((prev) => ({
-                              ...prev,
-                              quant: { ...prev.quant, stopLoss: v }
-                            }))
-                          }
-                        />
-                      </div>
-                    )}
-
-                    {selectedPresetId === 'growth' && (
-                      <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
-                        <SliderRow
-                          label='营收增速大于'
-                          value={investorConfigs.growth.revenueGrowth}
-                          min={0}
-                          max={80}
-                          step={1}
-                          suffix='%'
-                          onChange={(v) =>
-                            setInvestorConfigs((prev) => ({
-                              ...prev,
-                              growth: { ...prev.growth, revenueGrowth: v }
-                            }))
-                          }
-                        />
-                        <SliderRow
-                          label='行业增速大于'
-                          value={investorConfigs.growth.industryGrowth}
-                          min={0}
-                          max={60}
-                          step={1}
-                          suffix='%'
-                          onChange={(v) =>
-                            setInvestorConfigs((prev) => ({
-                              ...prev,
-                              growth: { ...prev.growth, industryGrowth: v }
-                            }))
-                          }
-                        />
-                        <SliderRow
-                          label='只看 ROE 大于'
-                          value={investorConfigs.growth.roe}
-                          min={0}
-                          max={40}
-                          step={0.5}
-                          suffix='%'
-                          onChange={(v) =>
-                            setInvestorConfigs((prev) => ({
-                              ...prev,
-                              growth: { ...prev.growth, roe: v }
-                            }))
-                          }
-                        />
-                      </div>
-                    )}
                   </div>
                 )}
 
-                <div className='space-y-3 mt-4'>
-                  <label className='text-xs font-bold text-cp-text-muted uppercase tracking-widest flex items-center justify-between'>
-                    <span>备注 / 指令微调</span>
-                    <span className='text-[10px] opacity-50'>
-                      SYSTEM PROMPT
-                    </span>
-                  </label>
-                  <textarea
-                    value={customPrompt}
-                    onChange={(e) => setCustomPrompt(e.target.value)}
-                    className='w-full h-32 bg-black/40 border border-cp-border p-4 text-sm text-cp-text/80 focus:border-cp-yellow outline-none resize-none font-mono leading-relaxed'
-                    placeholder='在此输入自定义的 Prompt 补充说明...'
-                  />
+                <div className='mt-auto flex justify-center gap-6 pt-6 border-t border-cp-border'>
+                  <button
+                    onClick={() => setStep('preset')}
+                    className='px-8 py-3 btn-outline flex items-center gap-2'>
+                    <ChevronLeft size={16} /> 返回
+                  </button>
+                  <button
+                    onClick={() => setStep('knowledge')}
+                    disabled={!isConfigValid()}
+                    className='px-8 py-3 btn-gold flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed'>
+                    下一步 <ChevronRight size={16} />
+                  </button>
                 </div>
-              </div>
-
-              <div className='mt-auto flex justify-center gap-6 pt-6 border-t border-white/[0.02] bg-white/[0.02] sticky bottom-0 z-10 p-4'>
-                <button
-                  onClick={() => setStep('preset')}
-                  className='px-8 py-3 btn-outline flex items-center gap-2'>
-                  <ChevronLeft size={16} /> 返回
-                </button>
-                <button
-                  onClick={() => setStep('knowledge')}
-                  disabled={!isConfigValid()}
-                  className='px-12 py-3 btn-gold flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed'>
-                  下一步 <ChevronRight size={16} />
-                </button>
               </div>
             </div>
           )}

@@ -3,9 +3,10 @@
 import React, { useState } from 'react';
 import { Hexagon, Fingerprint, Power, Globe, X } from 'lucide-react';
 import { useLanguage } from '@/lib/useLanguage';
+import { login, register } from '@/lib/authApi';
 
 interface LoginScreenProps {
-  onLogin: (username: string, email?: string) => void;
+  onLogin: (user: { id?: string; username: string; email?: string }) => void;
   onClose: () => void;
 }
 
@@ -17,15 +18,41 @@ export default function LoginScreen({ onLogin, onClose }: LoginScreenProps) {
   const [password, setPassword] = useState('');
   const [isConnecting, setIsConnecting] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!username.trim() || !password.trim()) return;
     if (mode === 'register' && !email.trim()) return;
 
     setIsConnecting(true);
-    setTimeout(() => {
-      onLogin(username, email);
-    }, 1500);
+
+    try {
+      if (mode === 'register') {
+        await register({ username, email, password });
+        // 注册成功后自动登录：再走一次登录接口以获得 token（由 Next 代理写入 HttpOnly cookie）
+        await login({ username, password });
+
+        // UI 层仍沿用现有 onLogin 流程写入本地用户态
+        onLogin({ username, email });
+        return;
+      }
+
+      const data = await login({ username, password });
+
+      const maybeId =
+        data && typeof data === 'object'
+          ? (data as any).id ?? (data as any).user_id ?? (data as any).user?.id
+          : undefined;
+      const maybeEmail =
+        data && typeof data === 'object'
+          ? (data as any).email ?? (data as any).user?.email
+          : undefined;
+
+      onLogin({ id: maybeId, username, email: maybeEmail ?? email });
+    } catch (err) {
+      // 不引入额外 UI，仅恢复按钮可用并在控制台输出
+      console.error(err);
+      setIsConnecting(false);
+    }
   };
 
   return (
@@ -38,7 +65,7 @@ export default function LoginScreen({ onLogin, onClose }: LoginScreenProps) {
         </button>
 
         {/* Left Side - Artistic Branding */}
-        <div className='w-full md:w-5/12 bg-white/[0.02] p-10 flex flex-col justify-between relative overflow-hidden border-b md:border-b-0 md:border-r border-white/[0.02] hover-card m-1 border-transparent'>
+        <div className='w-full md:w-5/12 bg-white/[0.02] p-10 flex flex-col justify-between relative overflow-hidden border-b md:border-b-0 md:border-r border-white/[0.02] hover-card m-1'>
           <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-5"></div>
 
           <div className='relative z-10'>

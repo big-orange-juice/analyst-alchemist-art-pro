@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { apiUrl } from '@/lib/api';
+import { getAuthHeader } from '@/lib/serverAuth';
 
 export async function GET(req: NextRequest) {
   const { searchParams } = req.nextUrl;
@@ -17,7 +18,11 @@ export async function GET(req: NextRequest) {
     )}&skip=${encodeURIComponent(skip)}&limit=${encodeURIComponent(limit)}`
   );
 
-  const res = await fetch(target, { method: 'GET' });
+  const auth = await getAuthHeader(req);
+  const res = await fetch(target, {
+    method: 'GET',
+    headers: auth ? { Authorization: auth } : undefined
+  });
   const text = await res.text();
 
   if (!res.ok) {
@@ -39,9 +44,14 @@ export async function POST(req: Request) {
   try {
     const payload = await req.json();
 
+    const auth = await getAuthHeader(req);
+
     const res = await fetch(apiUrl('/api/v1/agents'), {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        ...(auth ? { Authorization: auth } : {})
+      },
       body: JSON.stringify(payload)
     });
 

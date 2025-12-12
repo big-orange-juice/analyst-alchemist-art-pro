@@ -1,13 +1,19 @@
 import { NextResponse } from 'next/server';
 import { apiUrl } from '@/lib/api';
+import { getAuthHeader } from '@/lib/serverAuth';
 
 export async function POST(req: Request) {
   try {
     const payload = await req.json();
 
+    const auth = await getAuthHeader(req);
+
     const res = await fetch(apiUrl('/api/v1/on-demand/stock-analysis-v2'), {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        ...(auth ? { Authorization: auth } : {})
+      },
       body: JSON.stringify(payload)
     });
 

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { apiUrl } from '@/lib/api';
+import { getAuthHeader } from '@/lib/serverAuth';
 
 export async function DELETE(
   _req: NextRequest,
@@ -11,7 +12,11 @@ export async function DELETE(
   }
 
   const target = apiUrl(`/api/v1/agents/${encodeURIComponent(id)}`);
-  const res = await fetch(target, { method: 'DELETE' });
+  const auth = await getAuthHeader(_req);
+  const res = await fetch(target, {
+    method: 'DELETE',
+    headers: auth ? { Authorization: auth } : undefined
+  });
   const text = await res.text();
 
   if (!res.ok) {
