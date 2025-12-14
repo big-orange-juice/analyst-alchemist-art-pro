@@ -22,6 +22,7 @@ import {
 import * as echarts from 'echarts';
 import type { AgentStats, AgentModule, AppNotification } from '@/types';
 import { useUserStore, useAgentStore } from '@/store';
+import { ApiError, apiFetch } from '@/lib/http';
 
 interface CreateAgentModalProps {
   onCreate: (
@@ -352,18 +353,15 @@ export default function CreateAgentModal({
 
     try {
       setIsSubmitting(true);
-      const response = await fetch('/api/v2/agents', {
+      const result = await apiFetch<any, typeof payload>('/api/v2/agents', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+        body: payload
+      }).catch((err) => {
+        if (err instanceof ApiError) {
+          throw new Error(err.message || '创建 Agent 失败');
+        }
+        throw err;
       });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(errorText || '创建 Agent 失败');
-      }
-
-      const result = await response.json().catch(() => ({ id: null }));
       const createdId = result?.id != null ? String(result.id) : null;
 
       onCreate(

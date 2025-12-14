@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { useAgentStore, useUserStore } from '@/store';
 import LoginScreen from '@/components/LoginScreen';
+import { apiFetch } from '@/lib/http';
 
 interface TopPerformer {
   rank: number;
@@ -99,11 +100,9 @@ export default function LandingPage({
   useEffect(() => {
     let cancelled = false;
 
-    fetch('/api/v2/stock-activities')
-      .then(async (res) => {
-        if (!res.ok) throw new Error(await res.text());
-        return res.json();
-      })
+    apiFetch<StockActivity[]>('/api/v2/stock-activities', {
+      unauthorizedHandling: 'ignore'
+    })
       .then((data) => {
         if (cancelled) return;
         const list: StockActivity[] = Array.isArray(data) ? data : [];

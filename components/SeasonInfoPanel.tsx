@@ -13,6 +13,7 @@ import {
   Target
 } from 'lucide-react';
 import { useLanguage } from '@/lib/useLanguage';
+import { apiFetch } from '@/lib/http';
 import { AgentCapability, CapabilityHistoryEntry } from '@/types';
 
 type CapabilityFeedTab = 'ANALYSIS' | 'PICKING' | 'BACKTEST' | 'REPORT';
@@ -89,10 +90,14 @@ export default function SeasonInfoPanel({
 
   // Fetch holdings from API
   useEffect(() => {
-    fetch('/api/holdings')
-      .then((res) => res.json())
-      .then((data) => setHoldings(data))
-      .catch(console.error);
+    apiFetch('/api/holdings')
+      .then((data) => {
+        const list = Array.isArray(data) ? data : [];
+        setHoldings(list as any);
+      })
+      .catch(() => {
+        setHoldings([]);
+      });
   }, []);
 
   // Fetch current activity from API
@@ -101,14 +106,9 @@ export default function SeasonInfoPanel({
     setActivityLoading(true);
     setActivityError(null);
 
-    fetch('/api/v2/stock-activities')
-      .then(async (res) => {
-        if (!res.ok) {
-          const text = await res.text();
-          throw new Error(text || t('activity_panel.fetch_failed'));
-        }
-        return res.json();
-      })
+    apiFetch<StockActivity[]>('/api/v2/stock-activities', {
+      unauthorizedHandling: 'ignore'
+    })
       .then((data) => {
         if (aborted) return;
         const list: StockActivity[] = Array.isArray(data) ? data : [];

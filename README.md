@@ -10,11 +10,11 @@ View your app in AI Studio: https://ai.studio/apps/drive/1D4VtWBmjiJ1AM5-QqspCxj
 
 ## Run Locally
 
-**Prerequisites:**  Node.js
-
+**Prerequisites:** Node.js
 
 1. Install dependencies:
    `npm install`
 2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
+3. (Optional) Set `AA_ACCESS_TOKEN_MAX_AGE_SECONDS` in `.env.local` to control the access token cookie lifetime (default: 3600 seconds).
+4. Run the app:
    `npm run dev`

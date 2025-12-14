@@ -7,7 +7,6 @@ export async function GET(req: NextRequest) {
   const userId = searchParams.get('user_id');
   const skip = searchParams.get('skip') ?? '0';
   const limit = searchParams.get('limit') ?? '10';
-
   if (!userId) {
     return NextResponse.json({ message: '缺少 user_id' }, { status: 400 });
   }

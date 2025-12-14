@@ -138,10 +138,8 @@ export default function AgentPartyFrame({
 
   const renderMember = (cap: AgentCapability, slotIndex: number) => {
     const label = t(`capabilities.${cap}.label`);
-    const desc = t(`capabilities.${cap}.desc`);
     const role = t(`capabilities.${cap}.role`);
     const slotTag = String(slotIndex + 1).padStart(2, '0');
-    const liveLabel = t('notification_system.live');
     const meta = capabilityMeta[cap];
 
     const Icon = {
@@ -231,7 +229,7 @@ export default function AgentPartyFrame({
   };
 
   return (
-    <div className='flex flex-col w-full h-full bg-gradient-to-b from-cp-dim to-cp-black border border-white/[0.02] overflow-hidden shadow-2xl backdrop-blur-sm'>
+    <div className='flex flex-col w-full h-full bg-gradient-to-b from-cp-dim to-cp-black border border-white/[0.02] shadow-2xl backdrop-blur-sm overflow-hidden'>
       {/* Header Section */}
       <div className='shrink-0 p-6 relative overflow-hidden'>
         {/* Background Glow */}
@@ -341,7 +339,7 @@ export default function AgentPartyFrame({
       </div>
 
       {/* Capabilities Section */}
-      <div className='flex-1 overflow-y-auto custom-scrollbar bg-black/40 flex flex-col relative'>
+      <div className='flex-1 min-h-0 bg-black/40 flex flex-col relative'>
         <div className='px-6 py-3 text-[10px] font-bold text-cp-text-muted/60 uppercase tracking-widest bg-black/60 border-b border-white/[0.02] sticky top-0 backdrop-blur-md z-10 flex items-center justify-between shadow-sm'>
           <span className='flex items-center gap-2'>
             <Brain size={12} />
@@ -364,14 +362,14 @@ export default function AgentPartyFrame({
           )}
         </div>
 
-        <div className='grid grid-cols-1 divide-y divide-white/[0.02]'>
+        <div className='grid grid-cols-1 flex-1 min-h-0 overflow-y-auto custom-scrollbar divide-y divide-white/[0.02]'>
           {Object.values(AgentCapability).map((cap, idx) =>
             renderMember(cap, idx)
           )}
         </div>
 
         {/* Bottom Texture */}
-        <div className="flex-1 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-[0.03] min-h-[60px] pointer-events-none"></div>
+        <div className="shrink-0 h-[60px] bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-[0.03] pointer-events-none" />
       </div>
     </div>
   );

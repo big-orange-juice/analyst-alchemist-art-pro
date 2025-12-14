@@ -6,10 +6,10 @@ import { X, Cpu, Play, RotateCcw, Save } from 'lucide-react';
 import {
   AgentCapability,
   AGENT_CAPABILITY_DETAILS,
-  AppNotification,
-  CapabilityHistoryEntry
+  AppNotification
 } from '@/types';
 import { useLanguage } from '@/lib/useLanguage';
+import { apiFetch } from '@/lib/http';
 import { useAgentStore, useUserStore } from '@/store';
 
 interface CapabilityModalProps {
@@ -28,7 +28,7 @@ export default function CapabilityModal({
   onClose,
   onNotify
 }: CapabilityModalProps) {
-  const { t, dictionary } = useLanguage();
+  const { t } = useLanguage();
   const { agentId } = useAgentStore();
   const { currentUser } = useUserStore();
   const details = AGENT_CAPABILITY_DETAILS[capability];
@@ -45,9 +45,6 @@ export default function CapabilityModal({
     return `${now.getFullYear()}-${month}-${day}`;
   });
   const [newsSource, setNewsSource] = useState('');
-  const historyEntries =
-    (dictionary.capability_history?.[capability] as CapabilityHistoryEntry[]) ||
-    [];
 
   const isStockAnalysis = useMemo(
     () => capability === 'STOCK_ANALYSIS',
@@ -223,18 +220,10 @@ export default function CapabilityModal({
       };
 
       try {
-        const res = await fetch('/api/stock-analysis', {
+        const data = await apiFetch('/api/stock-analysis', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
+          body: payload
         });
-
-        if (!res.ok) {
-          const text = await res.text();
-          throw new Error(text || '请求失败');
-        }
-
-        const data = await res.json().catch(() => ({}));
         setOutput(formatStockAnalysisResponse(data) || JSON.stringify(data));
       } catch (err) {
         const message = err instanceof Error ? err.message : '执行出错';
@@ -294,18 +283,10 @@ export default function CapabilityModal({
       };
 
       try {
-        const res = await fetch('/api/stock-selection', {
+        const data = await apiFetch('/api/stock-selection', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
+          body: payload
         });
-
-        if (!res.ok) {
-          const text = await res.text();
-          throw new Error(text || '请求失败');
-        }
-
-        const data = await res.json().catch(() => ({}));
         setOutput(formatStockSelectionResponse(data) || JSON.stringify(data));
       } catch (err) {
         const message = err instanceof Error ? err.message : '执行出错';

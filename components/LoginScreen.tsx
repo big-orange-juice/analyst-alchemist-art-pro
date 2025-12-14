@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { Hexagon, Fingerprint, Power, Globe, X } from 'lucide-react';
 import { useLanguage } from '@/lib/useLanguage';
+import { apiFetch } from '@/lib/http';
 
 type StockActivity = {
   id: number | string;
@@ -24,26 +25,22 @@ const authRegister = async (payload: {
   email: string;
   password: string;
 }) => {
-  const res = await fetch('/api/auth/register', {
+  const text = await apiFetch<string, typeof payload>('/api/auth/register', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload)
+    body: payload,
+    parseAs: 'text',
+    unauthorizedHandling: 'ignore'
   });
-
-  const text = await res.text();
-  if (!res.ok) throw new Error(text || '请求失败');
   return parseMaybeJson(text);
 };
 
 const authLogin = async (payload: { username: string; password: string }) => {
-  const res = await fetch('/api/auth/login', {
+  const text = await apiFetch<string, typeof payload>('/api/auth/login', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload)
+    body: payload,
+    parseAs: 'text',
+    unauthorizedHandling: 'ignore'
   });
-
-  const text = await res.text();
-  if (!res.ok) throw new Error(text || '请求失败');
   return parseMaybeJson(text);
 };
 
@@ -66,11 +63,9 @@ export default function LoginScreen({ onLogin, onClose }: LoginScreenProps) {
   useEffect(() => {
     let cancelled = false;
 
-    fetch('/api/v2/stock-activities')
-      .then(async (res) => {
-        if (!res.ok) throw new Error(await res.text());
-        return res.json();
-      })
+    apiFetch<StockActivity[]>('/api/v2/stock-activities', {
+      unauthorizedHandling: 'ignore'
+    })
       .then((data) => {
         if (cancelled) return;
         const list: StockActivity[] = Array.isArray(data) ? data : [];

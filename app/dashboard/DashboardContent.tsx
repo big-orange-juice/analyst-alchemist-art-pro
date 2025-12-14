@@ -33,7 +33,6 @@ import type {
 
 // Components
 import MatrixRain from '@/components/MatrixRain';
-import EquityChart from '@/components/EquityChart';
 import RankingList from '@/components/RankingList';
 import AgentPartyFrame from '@/components/AgentPartyFrame';
 import SeasonInfoPanel from '@/components/SeasonInfoPanel';
@@ -50,6 +49,8 @@ import PromptEditModal from '@/components/PromptEditModal';
 import ExternalAgentModal from '@/components/ExternalAgentModal';
 import ArticleModal from '@/components/ArticleModal';
 import NotificationHistoryModal from '@/components/NotificationHistoryModal';
+import { ApiError, apiFetch } from '@/lib/http';
+import EquityChart from '@/components/EquityChart';
 
 type StockActivity = {
   id: number | string;
@@ -271,26 +272,25 @@ export default function DashboardContent() {
 
   // Fetch initial data
   useEffect(() => {
-    fetch('/api/rankings')
-      .then((res) => res.json())
-      .then(
-        (data: { rankings: RankingItem[]; chartData: ChartDataPoint[] }) => {
-          setRankingList(data.rankings);
-          setChartData(data.chartData);
-        }
-      )
-      .catch(console.error);
+    apiFetch<{ rankings: RankingItem[]; chartData: ChartDataPoint[] }>(
+      '/api/rankings'
+    )
+      .then((data) => {
+        setRankingList(data.rankings);
+        setChartData(data.chartData);
+      })
+      .catch(() => {
+        // keep silent to preserve existing UX
+      });
   }, [setChartData, setRankingList]);
 
   // Fetch current activity (no token required)
   useEffect(() => {
     let cancelled = false;
 
-    fetch('/api/v2/stock-activities')
-      .then(async (res) => {
-        if (!res.ok) throw new Error(await res.text());
-        return res.json();
-      })
+    apiFetch<StockActivity[]>('/api/v2/stock-activities', {
+      unauthorizedHandling: 'ignore'
+    })
       .then((data) => {
         if (cancelled) return;
         const list: StockActivity[] = Array.isArray(data) ? data : [];
@@ -382,9 +382,7 @@ export default function DashboardContent() {
         const query = `/api/agents?user_id=${encodeURIComponent(
           resolvedUserId
         )}&skip=0&limit=1`;
-        const res = await fetch(query, { signal: controller.signal });
-        if (!res.ok || cancelled) return;
-        const data = await res.json();
+        const data = await apiFetch<any>(query, { signal: controller.signal });
         if (cancelled) return;
 
         const list = Array.isArray(data)
@@ -554,17 +552,17 @@ export default function DashboardContent() {
     }
 
     try {
-      const res = await fetch(`/api/agents/${encodeURIComponent(agentId)}`, {
-        method: 'DELETE'
+      await apiFetch(`/api/agents/${encodeURIComponent(agentId)}`, {
+        method: 'DELETE',
+        parseAs: 'text'
       });
-
-      if (!res.ok) {
-        const errorText = await res.text();
-        throw new Error(errorText || '删除 Agent 失败');
-      }
     } catch (error) {
       const message =
-        error instanceof Error ? error.message : '删除 Agent 时出现错误';
+        error instanceof ApiError
+          ? error.message
+          : error instanceof Error
+          ? error.message
+          : '删除 Agent 时出现错误';
       notify('删除失败', message, 'error');
       setConfirmModal({ ...confirmModal, isOpen: false });
       return;
@@ -607,35 +605,10 @@ export default function DashboardContent() {
     }
 
     try {
-      const res = await fetch('/api/v2/stock-activities/tasks', {
+      await apiFetch('/api/v2/stock-activities/tasks', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ activity_id: activityId })
+        body: { activity_id: activityId }
       });
-
-      const text = await res.text();
-      const maybeJson = (() => {
-        try {
-          return JSON.parse(text);
-        } catch {
-          return null;
-        }
-      })();
-
-      if (!res.ok) {
-        const detailMsg =
-          maybeJson && typeof maybeJson === 'object'
-            ? (maybeJson as any)?.detail?.[0]?.msg ??
-              (maybeJson as any)?.message
-            : null;
-        const msg =
-          (detailMsg && String(detailMsg)) ||
-          text ||
-          (language === 'zh' ? '参赛失败' : 'Join failed');
-
-        notify(language === 'zh' ? '参赛失败' : 'Join Failed', msg, 'error');
-        return;
-      }
 
       setIsJoinedCompetition(true);
       setIsJoinCompetitionModalOpen(false);
@@ -646,7 +619,9 @@ export default function DashboardContent() {
       );
     } catch (err) {
       const msg =
-        err instanceof Error
+        err instanceof ApiError
+          ? err.message
+          : err instanceof Error
           ? err.message
           : language === 'zh'
           ? '参赛失败'
@@ -671,18 +646,17 @@ export default function DashboardContent() {
   };
 
   const handleSavePrompt = (newPrompt: string) => {
-    if (editingCapability) {
-      updateCustomPrompt(editingCapability, newPrompt);
-      notify(
-        t.notifications.prompt_saved.title,
-        t.notifications.prompt_saved.message.replace(
-          '{capability}',
-          editingCapability
-        ),
-        'success'
-      );
-      setEditingCapability(null);
-    }
+    if (!editingCapability) return;
+    updateCustomPrompt(editingCapability, newPrompt);
+    notify(
+      t.notifications.prompt_saved.title,
+      t.notifications.prompt_saved.message.replace(
+        '{capability}',
+        editingCapability
+      ),
+      'success'
+    );
+    setEditingCapability(null);
   };
 
   const toggleTheme = () => {
@@ -694,7 +668,7 @@ export default function DashboardContent() {
   };
 
   return (
-    <div className='w-full h-screen flex flex-col bg-cp-black text-cp-text overflow-hidden'>
+    <div className='h-screen bg-cp-black text-cp-text relative flex flex-col overflow-hidden'>
       <MatrixRain theme={theme} />
 
       {/* Top Bar */}
@@ -704,13 +678,12 @@ export default function DashboardContent() {
             <Hexagon
               className='text-cp-yellow group-hover:scale-110 transition-transform'
               size={28}
-              strokeWidth={1.5}
             />
-            <div className='hidden md:block'>
-              <h1 className='text-sm font-bold font-serif tracking-[0.45em] uppercase text-cp-text'>
+            <div className='flex flex-col'>
+              <h1 className='text-sm font-serif font-bold tracking-widest text-cp-text group-hover:text-cp-yellow transition-colors'>
                 {t.app.title}
               </h1>
-              <p className='text-[10px] font-mono text-cp-text-muted tracking-[0.35em]'>
+              <p className='text-[10px] text-cp-text-muted tracking-widest uppercase'>
                 {currentActivity?.activity_name || t.app.subtitle}
               </p>
             </div>
@@ -798,7 +771,7 @@ export default function DashboardContent() {
           {/* Tab Content */}
           <div className='flex-1 overflow-hidden min-h-0'>
             {activeSideTab === 'MY_AGENT' ? (
-              <div className='h-full overflow-y-auto custom-scrollbar p-4'>
+              <div className='h-full min-h-0 custom-scrollbar p-4'>
                 {agentName ? (
                   <AgentPartyFrame
                     agentName={agentName}
@@ -855,7 +828,7 @@ export default function DashboardContent() {
                 }
                 onInspectAgent={(name) => setInspectingAgent(name)}
                 onHoverAgent={setHoveredAgent}
-                activeAgent={highlightedAgent}
+                activeAgent={hoveredAgent ?? highlightedAgent}
               />
             )}
           </div>

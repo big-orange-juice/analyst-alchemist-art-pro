@@ -2,9 +2,15 @@ import { cookies } from 'next/headers';
 import type { NextResponse } from 'next/server';
 
 export const ACCESS_TOKEN_COOKIE = 'aa_access_token';
+export const ACCESS_TOKEN_MAX_AGE_SECONDS = (() => {
+  const raw = process.env.AA_ACCESS_TOKEN_MAX_AGE_SECONDS;
+  if (!raw) return 60 * 60;
+  const parsed = Number(raw);
+  if (!Number.isFinite(parsed) || parsed <= 0) return 60 * 60;
+  return Math.floor(parsed);
+})();
 
 export const getAuthHeader = async (req: Request) => {
-  debugger;
   const direct = req.headers.get('authorization');
   if (direct) return direct;
 
@@ -23,7 +29,8 @@ export const setAccessTokenCookie = (
     httpOnly: true,
     sameSite: 'lax',
     secure: process.env.NODE_ENV === 'production',
-    path: '/'
+    path: '/',
+    maxAge: ACCESS_TOKEN_MAX_AGE_SECONDS
   });
 };
 
