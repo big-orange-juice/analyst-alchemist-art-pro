@@ -17,10 +17,12 @@ type StockActivity = {
 interface CompetitionJoinModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onJoin: (payload: { activity_id: string; cycle: number }) => Promise<void> | void;
+  onJoin: (payload: {
+    activity_id: string;
+    cycle: number;
+  }) => Promise<void> | void;
   activity?: StockActivity | null;
 }
-
 
 export default function CompetitionJoinModal({
   isOpen,

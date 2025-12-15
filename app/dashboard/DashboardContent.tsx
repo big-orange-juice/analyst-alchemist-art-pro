@@ -518,7 +518,8 @@ export default function DashboardContent() {
     activity_id?: string;
     cycle?: number;
   }) => {
-    const activityId = (payload?.activity_id as any) ?? (currentActivity as any)?.id;
+    const activityId =
+      (payload?.activity_id as any) ?? (currentActivity as any)?.id;
     if (!activityId) {
       notify(
         t.notifications.join_failed.title,
