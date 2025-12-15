@@ -28,8 +28,8 @@ export default function EditAgentModal({
   onSave,
   onClose
 }: EditAgentModalProps) {
-  const { dictionary } = useLanguage();
-  const copy = dictionary.edit_agent;
+  const { t } = useLanguage();
+  const tt = (key: string) => t(`edit_agent.${key}`);
   const [name, setName] = useState(initialName);
 
   return (
@@ -41,7 +41,7 @@ export default function EditAgentModal({
             <User className='text-cp-yellow' size={24} strokeWidth={1.5} />
             <div>
               <h2 className='text-xl font-bold font-serif text-white uppercase tracking-wider'>
-                {copy.title}
+                {tt('title')}
               </h2>
             </div>
           </div>
@@ -56,14 +56,14 @@ export default function EditAgentModal({
         <div className='flex-1 flex flex-col justify-center items-center p-8'>
           <div className='w-full max-w-md space-y-8 text-center hover-card p-8 border border-transparent'>
             <h3 className='text-2xl font-serif font-bold text-white'>
-              {copy.subtitle}
+              {tt('subtitle')}
             </h3>
             <input
               type='text'
               value={name}
               onChange={(e) => setName(e.target.value)}
               className='w-full bg-transparent border-b border-cp-border p-4 text-center text-xl font-mono text-cp-yellow focus:border-cp-yellow focus:outline-none hover-card'
-              placeholder={copy.placeholder}
+              placeholder={tt('placeholder')}
             />
             <button
               onClick={() => {
@@ -71,7 +71,7 @@ export default function EditAgentModal({
                 onClose();
               }}
               className='w-full py-4 btn-gold flex items-center justify-center gap-2'>
-              {copy.save} <ChevronRight size={18} />
+              {tt('save')} <ChevronRight size={18} />
             </button>
           </div>
         </div>

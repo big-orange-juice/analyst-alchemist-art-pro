@@ -29,9 +29,15 @@ export default function StockAnalysisPanel({
   setIsLoading,
   setOutput
 }: Props) {
-  const { t } = useLanguage();
+  const { t, get, language } = useLanguage();
   const agentId = useAgentStore((s) => s.agentId);
   const currentUser = useUserStore((s) => s.currentUser);
+
+  const symbolOptions =
+    (get('stock_analysis_panel.symbol_options') as Array<{
+      value: string;
+      label: string;
+    }>) ?? [];
 
   const [stockSymbol, setStockSymbol] = useState('000859.SZ');
   const [tradingDate, setTradingDate] = useState(
@@ -44,8 +50,8 @@ export default function StockAnalysisPanel({
 
     if (!agentId || !currentUser?.id) {
       onNotify?.(
-        t('capability_modal.missing_agent_title') || '缺少 Agent',
-        t('capability_modal.missing_agent_desc') || '请先创建或选择 Agent。',
+        t('capability_modal.missing_agent_title'),
+        t('capability_modal.missing_agent_desc'),
         'error'
       );
       setIsLoading(false);
@@ -74,19 +80,32 @@ export default function StockAnalysisPanel({
       const maybeJson = tryParseJsonText(text);
       if (maybeJson != null) {
         setOutput(
-          formatStockAnalysisResponse(maybeJson as Record<string, any>) ||
-            '（暂无可展示内容）'
+          formatStockAnalysisResponse(maybeJson as Record<string, any>, {
+            t,
+            language
+          }) || t('stock_selection_panel.unable_format')
         );
       } else if (looksLikeJsonText(text)) {
-        const message = '返回内容不是有效 JSON，无法解析。';
-        onNotify?.('解析失败', message, 'error');
+        const message = t('stock_selection_panel.parse_failed_desc');
+        onNotify?.(
+          t('stock_selection_panel.parse_failed_title'),
+          message,
+          'error'
+        );
         setOutput(message);
       } else {
-        setOutput(text || '（空响应）');
+        setOutput(text || t('stock_selection_panel.empty_response'));
       }
     } catch (err) {
-      const message = err instanceof Error ? err.message : '执行出错';
-      onNotify?.('执行失败', message, 'error');
+      const message =
+        err instanceof Error
+          ? err.message
+          : t('stock_selection_panel.execute_failed_desc');
+      onNotify?.(
+        t('stock_selection_panel.execute_failed_title'),
+        message,
+        'error'
+      );
       setOutput(message);
     } finally {
       setIsLoading(false);
@@ -102,21 +121,23 @@ export default function StockAnalysisPanel({
       <div className='space-y-4'>
         <div className='flex flex-col gap-2'>
           <span className='text-xs text-cp-text-muted tracking-widest uppercase'>
-            {t('capability_modal.stock_symbol') || '分析标的'}
+            {t('capability_modal.stock_symbol')}
           </span>
           <select
             value={stockSymbol}
             onChange={(e) => setStockSymbol(e.target.value)}
             className='bg-black/40 border border-cp-border px-3 py-2 text-sm text-white focus:border-cp-yellow outline-none'>
-            <option value='000859.SZ'>中信国安（000859.SZ）</option>
-            <option value='600519.SH'>贵州茅台（600519.SH）</option>
-            <option value='300750.SZ'>宁德时代（300750.SZ）</option>
+            {symbolOptions.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
           </select>
         </div>
 
         <div className='flex flex-col gap-2'>
           <span className='text-xs text-cp-text-muted tracking-widest uppercase'>
-            {t('capability_modal.trading_date') || '交易日'}
+            {t('capability_modal.trading_date')}
           </span>
           <input
             type='date'
@@ -128,13 +149,13 @@ export default function StockAnalysisPanel({
 
         <div className='flex flex-col gap-2'>
           <span className='text-xs text-cp-text-muted tracking-widest uppercase'>
-            {t('capability_modal.news_source') || '新闻源（可选）'}
+            {t('capability_modal.news_source')}
           </span>
           <input
             type='text'
             value={newsSource}
             onChange={(e) => setNewsSource(e.target.value)}
-            placeholder='Bloomberg / 同花顺 / 自定义'
+            placeholder={t('stock_analysis_panel.news_source_ph')}
             className='bg-black/40 border border-cp-border px-3 py-2 text-sm text-white focus:border-cp-yellow outline-none placeholder:text-cp-text-muted'
           />
         </div>

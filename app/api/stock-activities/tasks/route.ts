@@ -7,6 +7,11 @@ type DetailError = {
   message?: string;
 };
 
+type StockActivityTaskPayload = {
+  activity_id: string;
+  cycle: number;
+};
+
 const tryParseJson = (text: string) => {
   try {
     return JSON.parse(text);
@@ -22,12 +27,25 @@ export async function POST(req: Request) {
       return NextResponse.json({ message: '未登录' }, { status: 401 });
     }
 
-    const payload = await req.json();
+    const payload = (await req.json()) as Partial<StockActivityTaskPayload>;
     const activityId = (payload as any)?.activity_id;
+    const cycleRaw = (payload as any)?.cycle;
+    const cycle = typeof cycleRaw === 'number' ? cycleRaw : Number(cycleRaw);
 
     if (activityId === undefined || activityId === null || activityId === '') {
       return NextResponse.json(
         { message: '缺少参数：activity_id' },
+        { status: 400 }
+      );
+    }
+
+    if (!Number.isFinite(cycle)) {
+      return NextResponse.json({ message: '缺少参数：cycle' }, { status: 400 });
+    }
+
+    if (cycle < 5) {
+      return NextResponse.json(
+        { message: 'cycle 最小值为 5（分钟）' },
         { status: 400 }
       );
     }
@@ -39,7 +57,10 @@ export async function POST(req: Request) {
         'Content-Type': 'application/json',
         Authorization: auth
       },
-      body: JSON.stringify({ activity_id: activityId })
+      body: JSON.stringify({
+        activity_id: String(activityId),
+        cycle
+      })
     });
 
     const text = await res.text();

@@ -14,11 +14,15 @@ import { AgentCapability } from '@/types';
 import { useLanguage } from '@/lib/useLanguage';
 
 interface AgentCapabilitiesListProps {
+  isJoined?: boolean;
+  onRequestJoin?: () => void;
   onSelectCapability: (cap: AgentCapability) => void;
   onEditCapability: (cap: AgentCapability) => void;
 }
 
 export default function AgentCapabilitiesList({
+  isJoined = false,
+  onRequestJoin,
   onSelectCapability,
   onEditCapability
 }: AgentCapabilitiesListProps) {
@@ -100,11 +104,22 @@ export default function AgentCapabilitiesList({
     const meta = capabilityMeta[cap];
     const Icon = iconByCap[cap];
 
+    const isAutoTrading = cap === AgentCapability.AUTO_TRADING;
+    const autoTradingStatusText = isJoined
+      ? '参赛中 · 自动交易'
+      : '未参赛 · 点击参赛';
+
     return (
       <div
         key={cap}
-        className='group relative p-3 border-b border-white/[0.02] hover:bg-white/[0.03] transition-all duration-300 cursor-pointer flex flex-col  overflow-hidden'
+        className={`group relative border-b border-white/[0.02] hover:bg-white/[0.03] transition-all duration-300 cursor-pointer flex flex-col overflow-hidden ${
+          isAutoTrading ? 'p-4 min-h-[120px]' : 'p-3'
+        }`}
         onClick={() => {
+          if (isAutoTrading) {
+            if (!isJoined) onRequestJoin?.();
+            return;
+          }
           onSelectCapability(cap);
         }}>
         <div
@@ -143,9 +158,48 @@ export default function AgentCapabilitiesList({
           </div>
         </div>
 
-        <div className='relative z-10 mt-auto pt-2 flex items-center justify-end text-[10px] font-mono text-cp-text-muted/60 uppercase tracking-[0.2em]'>
-          <span>SKILL_{slotTag}</span>
-        </div>
+        {isAutoTrading ? (
+          <div className='relative z-10 mt-2 flex items-center justify-between gap-3'>
+            <div className='flex items-center gap-2 min-w-0'>
+              <div
+                className={`w-2 h-2 rounded-full ${
+                  isJoined
+                    ? 'bg-cp-yellow shadow-[0_0_10px_var(--cp-yellow)] animate-pulse'
+                    : 'bg-white/30'
+                }`}
+              />
+              <div className='text-[11px] text-cp-text-muted truncate'>
+                {autoTradingStatusText}
+              </div>
+            </div>
+
+            <div className='flex items-center gap-3 shrink-0'>
+              {isJoined ? (
+                <button
+                  type='button'
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onRequestJoin?.();
+                  }}
+                  className='px-3 py-1 rounded-full text-[11px] font-bold tracking-widest border border-white/[0.08] bg-white/[0.02] text-cp-text-muted hover:text-white hover:bg-white/[0.05] transition-colors'>
+                  退出参赛
+                </button>
+              ) : null}
+
+              {isJoined ? (
+                <div className='w-28 h-1.5 rounded-full bg-white/[0.06] overflow-hidden border border-white/[0.08]'>
+                  <div className='h-full w-1/2 bg-cp-yellow/70 animate-pulse' />
+                </div>
+              ) : null}
+            </div>
+          </div>
+        ) : null}
+
+        {!isAutoTrading ? (
+          <div className='relative z-10 mt-auto pt-2 flex items-center justify-end text-[10px] font-mono text-cp-text-muted/60 uppercase tracking-[0.2em]'>
+            <span>SKILL_{slotTag}</span>
+          </div>
+        ) : null}
       </div>
     );
   };

@@ -15,8 +15,8 @@ export default function SeasonPassModal({
   level = 0,
   onJoin
 }: SeasonPassModalProps) {
-  const { t, dictionary } = useLanguage();
-  const copy = dictionary.season_pass.season_pass_modal;
+  const { t } = useLanguage();
+  const tt = (key: string) => t(`season_pass.season_pass_modal.${key}`);
   const currentLevel = level;
 
   return (
@@ -50,11 +50,11 @@ export default function SeasonPassModal({
           <div className='w-full max-w-5xl mb-12 hover-card p-6 border border-transparent bg-white/[0.02]'>
             <div className='flex justify-between items-end mb-4'>
               <div className='text-5xl font-serif font-bold text-cp-yellow'>
-                {copy.level_prefix}
+                {tt('level_prefix')}
                 {currentLevel}
               </div>
               <div className='text-sm font-mono text-cp-text-muted'>
-                {copy.progress}
+                {tt('progress')}
               </div>
             </div>
             <div className='w-full h-2 bg-white/[0.05] border border-white/[0.02]'>
@@ -75,7 +75,7 @@ export default function SeasonPassModal({
                 {/* Level Header */}
                 <div className='p-4 border-b border-white/[0.02] flex justify-between items-center bg-white/[0.02]'>
                   <span className='text-sm font-bold font-sans uppercase tracking-widest text-cp-text-muted'>
-                    {copy.level_label} {lvl}
+                    {tt('level_label')} {lvl}
                   </span>
                   {lvl <= currentLevel ? (
                     <Check size={16} className='text-cp-yellow' />
@@ -87,19 +87,19 @@ export default function SeasonPassModal({
                 {/* Tasks */}
                 <div className='p-4 flex-1 flex flex-col gap-2'>
                   <div className='text-[10px] text-cp-text-muted uppercase tracking-widest mb-1'>
-                    {copy.missions_title}
+                    {tt('missions_title')}
                   </div>
                   <div className='flex items-center gap-2 text-xs text-cp-text'>
                     <Target size={12} className='text-cp-cyan' />{' '}
-                    <span>{copy.mission_trade}</span>
+                    <span>{tt('mission_trade')}</span>
                   </div>
                   <div className='flex items-center gap-2 text-xs text-cp-text'>
                     <Target size={12} className='text-cp-cyan' />{' '}
-                    <span>{copy.mission_winrate}</span>
+                    <span>{tt('mission_winrate')}</span>
                   </div>
                   <div className='flex items-center gap-2 text-xs text-cp-text'>
                     <Target size={12} className='text-cp-cyan' />{' '}
-                    <span>{copy.mission_deploy}</span>
+                    <span>{tt('mission_deploy')}</span>
                   </div>
                 </div>
 
@@ -114,7 +114,7 @@ export default function SeasonPassModal({
                     }
                   />
                   <div className='text-sm font-serif font-bold text-white'>
-                    {copy.reward}
+                    {tt('reward')}
                   </div>
                 </div>
               </div>
@@ -123,7 +123,7 @@ export default function SeasonPassModal({
 
           <div className='mt-16'>
             <button onClick={onJoin} className='px-16 py-5 btn-gold text-lg'>
-              {currentLevel === 0 ? copy.activate : copy.view}
+              {currentLevel === 0 ? tt('activate') : tt('view')}
             </button>
           </div>
         </div>

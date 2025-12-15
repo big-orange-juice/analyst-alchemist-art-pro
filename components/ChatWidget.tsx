@@ -13,15 +13,15 @@ interface ChatWidgetProps {
 const STORAGE_KEY = 'analyst_alchemist_chat_history';
 
 export default function ChatWidget({ isOpen, onClose }: ChatWidgetProps) {
-  const { dictionary } = useLanguage();
-  const chatCopy = dictionary.chat;
+  const { t } = useLanguage();
+  const tt = (key: string) => t(`chat.${key}`);
 
   const [messages, setMessages] = useState<ChatMessage[]>(() => {
     if (typeof window === 'undefined') {
       return [
         {
           role: 'model',
-          content: chatCopy.initial_message,
+          content: tt('initial_message'),
           timestamp: Date.now()
         }
       ];
@@ -37,7 +37,7 @@ export default function ChatWidget({ isOpen, onClose }: ChatWidgetProps) {
     return [
       {
         role: 'model',
-        content: chatCopy.initial_message,
+        content: tt('initial_message'),
         timestamp: Date.now()
       }
     ];
@@ -123,7 +123,7 @@ export default function ChatWidget({ isOpen, onClose }: ChatWidgetProps) {
   const handleClearHistory = () => {
     const initialMsg: ChatMessage = {
       role: 'model',
-      content: chatCopy.initial_message,
+      content: tt('initial_message'),
       timestamp: Date.now()
     };
     setMessages([initialMsg]);
@@ -149,7 +149,7 @@ export default function ChatWidget({ isOpen, onClose }: ChatWidgetProps) {
     setTimeout(() => {
       const response: ChatMessage = {
         role: 'model',
-        content: `收到您的消息: "${userMsg.content}"\n\n这是一个模拟回复。实际的 AI 服务已被移除。`,
+        content: tt('simulated_reply').replace('{content}', userMsg.content),
         timestamp: Date.now()
       };
       setMessages((prev) => [...prev, response]);
@@ -176,14 +176,14 @@ export default function ChatWidget({ isOpen, onClose }: ChatWidgetProps) {
         <div className='flex items-center gap-2 text-cp-yellow'>
           <Terminal size={18} strokeWidth={2} />
           <span className='font-bold tracking-wider font-sans text-base'>
-            {chatCopy.header}
+            {tt('header')}
           </span>
         </div>
         <div className='flex items-center gap-3'>
           <button
             onClick={handleClearHistory}
             className='text-cp-text-muted hover:text-cp-red transition-colors p-1'
-            title={chatCopy.clear_title}
+            title={tt('clear_title')}
             onMouseDown={(e) => e.stopPropagation()}>
             <Trash2 size={16} />
           </button>
@@ -222,7 +222,7 @@ export default function ChatWidget({ isOpen, onClose }: ChatWidgetProps) {
         ))}
         {isThinking && messages[messages.length - 1]?.role === 'user' && (
           <div className='text-cp-cyan text-sm animate-pulse pl-2 font-mono'>
-            {chatCopy.typing}
+            {tt('typing')}
           </div>
         )}
         <div ref={messagesEndRef} />
@@ -236,7 +236,7 @@ export default function ChatWidget({ isOpen, onClose }: ChatWidgetProps) {
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-            placeholder={chatCopy.placeholder}
+            placeholder={tt('placeholder')}
             className='flex-1 bg-black/20 border border-white/[0.02] text-cp-text p-3 text-sm focus:border-cp-yellow focus:outline-none placeholder-gray-600 font-mono rounded-none'
           />
           <button

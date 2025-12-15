@@ -24,8 +24,8 @@ export default function NotificationHistoryModal({
   onClose,
   onClear
 }: NotificationHistoryModalProps) {
-  const { dictionary } = useLanguage();
-  const copy = dictionary.notification_history;
+  const { t } = useLanguage();
+  const tt = (key: string) => t(`notification_history.${key}`);
   return (
     <div className='fixed inset-0 z-[100] flex items-center justify-center backdrop-blur-xl bg-black/70 p-4 modal-animate'>
       <div className='w-full max-w-md glass-panel border-2 border-cp-yellow ring-1 ring-cp-yellow flex flex-col shadow-[0_0_40px_rgba(0,0,0,0.5)] h-[600px] relative'>
@@ -34,7 +34,7 @@ export default function NotificationHistoryModal({
           <div className='flex items-center gap-2'>
             <Bell className='text-cp-yellow' size={18} />
             <span className='font-bold font-oxanium text-cp-text uppercase'>
-              {copy.title}
+              {tt('title')}
             </span>
             <span className='bg-white/[0.05] text-xs px-1.5 py-0.5 rounded text-white'>
               {notifications.length}
@@ -44,7 +44,7 @@ export default function NotificationHistoryModal({
             <button
               onClick={onClear}
               className='p-2 text-gray-500 hover:text-red-400 transition-colors'
-              title={copy.clear}>
+              title={tt('clear')}>
               <Trash2 size={16} />
             </button>
             <button
@@ -60,7 +60,7 @@ export default function NotificationHistoryModal({
           {notifications.length === 0 ? (
             <div className='h-full flex flex-col items-center justify-center text-gray-600 gap-3'>
               <Bell size={40} className='opacity-20' />
-              <p className='text-sm font-mono'>{copy.empty}</p>
+              <p className='text-sm font-mono'>{tt('empty')}</p>
             </div>
           ) : (
             <div className='space-y-2'>

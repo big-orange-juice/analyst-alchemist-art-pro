@@ -23,6 +23,7 @@ import * as echarts from 'echarts';
 import type { AgentStats, AgentModule, AppNotification } from '@/types';
 import { useUserStore, useAgentStore } from '@/store';
 import { ApiError, apiFetch } from '@/lib/http';
+import { useLanguage } from '@/lib/useLanguage';
 
 interface CreateAgentModalProps {
   onCreate: (
@@ -54,93 +55,93 @@ type PersonaId =
 
 interface WorkflowPreset {
   id: WorkflowId;
-  title: string;
-  desc: string;
+  titleKey: string;
+  descKey: string;
   icon: typeof Shield;
   stats: AgentStats;
-  defaultPrompt: string;
+  promptKey: string;
 }
 
 const WORKFLOW_PRESETS: WorkflowPreset[] = [
   {
     id: 'track_thinking',
-    title: '赛道激进型',
-    desc: '追求高成长赛道，愿意承担高风险。30-40岁，有一定投资经验。',
+    titleKey: 'workflow_track_title',
+    descKey: 'workflow_track_desc',
     icon: Shield,
     stats: { intelligence: 75, speed: 30, risk: 70 },
-    defaultPrompt: `你是一名赛道激进型投资者，追求高成长赛道机会，愿意承担更高波动风险。`
+    promptKey: 'workflow_track_prompt'
   },
   {
     id: 'quant_thinking',
-    title: '稳健价值型',
-    desc: '偏好成熟赛道龙头，低估值高分红。45-60岁，投资经验丰富。',
+    titleKey: 'workflow_quant_title',
+    descKey: 'workflow_quant_desc',
     icon: Activity,
     stats: { intelligence: 65, speed: 70, risk: 50 },
-    defaultPrompt: `你是一名稳健价值型投资者，偏好成熟龙头与高分红资产，重视安全边际与现金流。`
+    promptKey: 'workflow_quant_prompt'
   },
   {
     id: 'news_thinking',
-    title: '红利收益型',
-    desc: '关注高股息赛道，追求稳定现金流。50岁以上，接近退休。',
+    titleKey: 'workflow_news_title',
+    descKey: 'workflow_news_desc',
     icon: Zap,
     stats: { intelligence: 70, speed: 50, risk: 60 },
-    defaultPrompt: `你是一名红利收益型投资者，关注高股息资产与稳定现金流，强调长期持有与回撤控制。`
+    promptKey: 'workflow_news_prompt'
   }
 ];
 
 const PERSONA_PRESETS: Record<
   WorkflowId,
-  Array<{ id: PersonaId; title: string; desc: string }>
+  Array<{ id: PersonaId; titleKey: string; descKey: string }>
 > = {
   track_thinking: [
     {
       id: 'aggressive_growth',
-      title: '赛道激进型',
-      desc: '追求高成长赛道，愿意承担高风险'
+      titleKey: 'persona_aggressive_growth_title',
+      descKey: 'persona_aggressive_growth_desc'
     },
     {
       id: 'conservative_value',
-      title: '稳健价值型',
-      desc: '偏好成熟赛道龙头，低估值高分红'
+      titleKey: 'persona_conservative_value_title',
+      descKey: 'persona_conservative_value_desc'
     },
     {
       id: 'dividend_focus',
-      title: '红利收益型',
-      desc: '关注高股息赛道，追求稳定现金流'
+      titleKey: 'persona_dividend_focus_title',
+      descKey: 'persona_dividend_focus_desc'
     }
   ],
   quant_thinking: [
     {
       id: 'quantitative',
-      title: '量化策略型',
-      desc: '基于数据和模型，严格执行纪律'
+      titleKey: 'persona_quantitative_title',
+      descKey: 'persona_quantitative_desc'
     },
     {
       id: 'momentum_trader',
-      title: '趋势动量型',
-      desc: '追涨强势股，跟随市场热点'
+      titleKey: 'persona_momentum_trader_title',
+      descKey: 'persona_momentum_trader_desc'
     }
   ],
   news_thinking: [
     {
       id: 'contrarian',
-      title: '逆向投资型',
-      desc: '别人恐惧时贪婪，寻找被错杀机会'
+      titleKey: 'persona_contrarian_title',
+      descKey: 'persona_contrarian_desc'
     },
     {
       id: 'balanced',
-      title: '均衡配置型',
-      desc: '综合考虑多个维度，分散配置'
+      titleKey: 'persona_balanced_title',
+      descKey: 'persona_balanced_desc'
     }
   ]
 };
 
 interface SimResultData {
-  duration: string;
+  duration: SimDuration;
   equityCurve: number[];
 }
 
-type SimDuration = '1周' | '1月' | '3月' | '1年';
+type SimDuration = '1w' | '1m' | '3m' | '1y';
 type CreationStep =
   | 'naming'
   | 'preset'
@@ -153,6 +154,17 @@ export default function CreateAgentModal({
   onClose,
   onNotify
 }: CreateAgentModalProps) {
+  const { t } = useLanguage();
+  const tt = (key: string) => t(`create_agent_modal.${key}`);
+
+  useEffect(() => {
+    if (simStatus !== 'idle') return;
+    setSimLogs([
+      t('create_agent_modal.sim_log_ready'),
+      t('create_agent_modal.sim_log_pick')
+    ]);
+  }, [simStatus, t]);
+
   const { currentUser } = useUserStore();
   const { agentName, agentClass, agentId } = useAgentStore();
   const [step, setStep] = useState<CreationStep>('naming');
@@ -165,13 +177,13 @@ export default function CreateAgentModal({
   const [uploadedFiles, setUploadedFiles] = useState<
     { name: string; size: string }[]
   >([]);
-  const [simDurationMode, setSimDurationMode] = useState<SimDuration>('1周');
+  const [simDurationMode, setSimDurationMode] = useState<SimDuration>('1w');
   const [simStatus, setSimStatus] = useState<'idle' | 'running' | 'finished'>(
     'idle'
   );
   const [simLogs, setSimLogs] = useState<string[]>([
-    '> 系统就绪...',
-    '> 请选择回测周期并启动。'
+    tt('sim_log_ready'),
+    tt('sim_log_pick')
   ]);
   const [simResult, setSimResult] = useState<SimResultData | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -187,7 +199,14 @@ export default function CreateAgentModal({
   const chartInstance = useRef<echarts.ECharts | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const selectedPreset = WORKFLOW_PRESETS.find(
+  const resolvedWorkflowPresets = WORKFLOW_PRESETS.map((p) => ({
+    ...p,
+    title: tt(p.titleKey),
+    desc: tt(p.descKey),
+    defaultPrompt: tt(p.promptKey)
+  }));
+
+  const selectedPreset = resolvedWorkflowPresets.find(
     (p) => p.id === selectedPresetId
   );
 
@@ -196,10 +215,16 @@ export default function CreateAgentModal({
       ? PERSONA_PRESETS[selectedPresetId as WorkflowId]
       : [];
 
+  const resolvedAvailablePersonas = availablePersonas.map((p) => ({
+    ...p,
+    title: tt(p.titleKey),
+    desc: tt(p.descKey)
+  }));
+
   const handlePresetSelect = (presetId: WorkflowId) => {
     setSelectedPresetId(presetId);
     setSelectedPersonaId('');
-    const preset = WORKFLOW_PRESETS.find((p) => p.id === presetId);
+    const preset = resolvedWorkflowPresets.find((p) => p.id === presetId);
     if (preset) {
       setCustomPrompt(preset.defaultPrompt);
     }
@@ -222,10 +247,10 @@ export default function CreateAgentModal({
   const startSimulation = () => {
     setSimStatus('running');
     setSimLogs([
-      '> 初始化回测环境...',
-      '> 加载历史数据...',
-      `> 设置回测周期: ${simDurationMode}`,
-      '> 开始执行策略模拟...'
+      tt('sim_log_init'),
+      tt('sim_log_load'),
+      `${tt('sim_log_set_duration')}: ${tt(`duration_${simDurationMode}`)}`,
+      tt('sim_log_run')
     ]);
     setSimResult(null);
 
@@ -235,7 +260,7 @@ export default function CreateAgentModal({
       if (Math.random() > 0.6) {
         setSimLogs((prev) => [
           ...prev,
-          `> 模拟交易日 Day ${count}: 信号检测中...`
+          `${tt('sim_log_day')} ${count}: ${tt('sim_log_scanning')}`
         ]);
       }
     }, 200);
@@ -243,7 +268,7 @@ export default function CreateAgentModal({
     setTimeout(() => {
       clearInterval(interval);
       setSimStatus('finished');
-      setSimLogs((prev) => [...prev, '> 回测完成。', '> 生成分析报告...']);
+      setSimLogs((prev) => [...prev, tt('sim_log_done'), tt('sim_log_report')]);
       setSimResult({
         duration: simDurationMode,
         equityCurve: Array.from(
@@ -282,11 +307,12 @@ export default function CreateAgentModal({
 
     const preset = WORKFLOW_PRESETS.find((p) => p.id === presetId);
     if (preset) {
+      const presetTitle = tt(preset.titleKey);
       onCreate(
         existingAgent.agent_id ?? null,
         existingAgent.agent_name,
         '',
-        preset.title,
+        presetTitle,
         preset.stats,
         []
       );
@@ -335,12 +361,20 @@ export default function CreateAgentModal({
       return;
     }
     if (!selectedPreset) {
-      onNotify?.('创建失败', '无效的工作流选择。', 'error');
+      onNotify?.(
+        tt('notify_create_failed'),
+        tt('notify_invalid_workflow'),
+        'error'
+      );
       return;
     }
 
     if (!currentUser) {
-      onNotify?.('缺少用户信息', '请先登录以创建 Agent。', 'error');
+      onNotify?.(
+        tt('notify_missing_user_title'),
+        tt('notify_missing_user_desc'),
+        'error'
+      );
       return;
     }
 
@@ -358,7 +392,9 @@ export default function CreateAgentModal({
         errorHandling: 'ignore'
       }).catch((err) => {
         if (err instanceof ApiError) {
-          throw new Error(err.message || '创建 Agent 失败');
+          throw new Error(
+            err.message || tt('notify_create_agent_failed_fallback')
+          );
         }
         throw err;
       });
@@ -373,12 +409,18 @@ export default function CreateAgentModal({
         []
       );
       setHasCreated(true);
-      onNotify?.('创建成功', 'Agent 已成功创建并部署。', 'success');
+      onNotify?.(
+        tt('notify_create_success'),
+        tt('notify_create_success_desc'),
+        'success'
+      );
       if (goToSimulation) setStep('simulation');
     } catch (error) {
       const message =
-        error instanceof Error ? error.message : '创建 Agent 时出现错误';
-      onNotify?.('创建失败', message, 'error');
+        error instanceof Error
+          ? error.message
+          : tt('notify_create_agent_failed_fallback');
+      onNotify?.(tt('notify_create_failed'), message, 'error');
     } finally {
       setIsSubmitting(false);
     }
@@ -409,17 +451,32 @@ export default function CreateAgentModal({
   const getStepTitle = () => {
     switch (step) {
       case 'naming':
-        return '初始化身份';
+        return tt('step_naming');
       case 'preset':
-        return '工作流选择';
+        return tt('step_preset');
       case 'configure':
-        return '人格选择';
+        return tt('step_configure');
       case 'knowledge':
-        return '知识库接入';
+        return tt('step_knowledge');
       case 'simulation':
-        return '回测模拟';
+        return tt('step_simulation');
       default:
         return '';
+    }
+  };
+
+  const getTotalReturnPct = (duration: SimDuration) => {
+    switch (duration) {
+      case '1w':
+        return '3.2';
+      case '1m':
+        return '7.4';
+      case '3m':
+        return '15.4';
+      case '1y':
+        return '28.9';
+      default:
+        return '0.0';
     }
   };
 
@@ -439,13 +496,14 @@ export default function CreateAgentModal({
                 {getStepTitle()}
               </h2>
               <p className='text-xs text-cp-text-muted font-sans uppercase tracking-widest mt-1'>
-                Step {getStepNumber()} / 05
+                {tt('step_label')} {getStepNumber()}
+                {tt('step_of')}
               </p>
               {existingAgent && (
                 <div className='mt-2 text-xs text-cp-text-muted'>
-                  已有 Agent:{' '}
+                  {tt('existing_agent')}:{' '}
                   <span className='text-white'>{existingAgent.agent_name}</span>{' '}
-                  · 流程{' '}
+                  · {tt('existing_agent_flow')}{' '}
                   <span className='text-cp-yellow font-mono'>
                     {existingAgent.workflow_id}
                   </span>{' '}
@@ -475,10 +533,10 @@ export default function CreateAgentModal({
                     />
                   </div>
                   <h3 className='text-3xl font-serif font-bold text-white'>
-                    初始化唯一 ID
+                    {tt('naming_title')}
                   </h3>
                   <p className='text-cp-text-muted font-sans font-light'>
-                    此名称将作为该智能体在 Matrix 网络中的唯一标识。
+                    {tt('naming_desc')}
                   </p>
                 </div>
 
@@ -487,7 +545,7 @@ export default function CreateAgentModal({
                     type='text'
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    placeholder='输入代号'
+                    placeholder={tt('naming_placeholder')}
                     className='w-full bg-transparent border-b border-cp-border py-4 text-center text-2xl font-serif text-cp-yellow focus:border-cp-yellow focus:outline-none placeholder-gray-800 transition-colors uppercase tracking-widest'
                     maxLength={15}
                     autoFocus
@@ -498,7 +556,7 @@ export default function CreateAgentModal({
                   onClick={() => setStep('preset')}
                   disabled={!name.trim()}
                   className='w-full py-4 btn-gold flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed'>
-                  下一步: 选择工作流 <ChevronRight size={18} />
+                  {tt('naming_next')} <ChevronRight size={18} />
                 </button>
               </div>
             </div>
@@ -509,12 +567,12 @@ export default function CreateAgentModal({
             <div className='flex-1 flex flex-col p-8 animate-in fade-in slide-in-from-right-8 overflow-y-auto'>
               <div className='text-center mb-10'>
                 <h3 className='text-2xl font-serif font-bold text-white mb-2'>
-                  选择工作流
+                  {tt('preset_title')}
                 </h3>
               </div>
 
               <div className='grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl mx-auto w-full mb-10'>
-                {WORKFLOW_PRESETS.map((preset) => {
+                {resolvedWorkflowPresets.map((preset) => {
                   const isSelected = selectedPresetId === preset.id;
                   return (
                     <div
@@ -562,13 +620,13 @@ export default function CreateAgentModal({
                 <button
                   onClick={() => setStep('naming')}
                   className='px-8 py-3 btn-outline flex items-center gap-2'>
-                  <ChevronLeft size={16} /> 返回
+                  <ChevronLeft size={16} /> {tt('back')}
                 </button>
                 <button
                   onClick={() => setStep('configure')}
                   disabled={!selectedPresetId}
                   className='px-8 py-3 btn-gold flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed'>
-                  下一步 <ChevronRight size={16} />
+                  {tt('next')} <ChevronRight size={16} />
                 </button>
               </div>
             </div>
@@ -580,7 +638,7 @@ export default function CreateAgentModal({
               <div className='max-w-4xl mx-auto w-full flex flex-col gap-8 pb-20'>
                 {!selectedPresetId && (
                   <div className='p-6 border border-cp-border text-center text-cp-text-muted'>
-                    请先在上一步选择工作流
+                    {tt('configure_missing_preset')}
                   </div>
                 )}
 
@@ -597,7 +655,7 @@ export default function CreateAgentModal({
 
                     <div className='space-y-3'>
                       <div className='grid grid-cols-1 md:grid-cols-1 gap-4'>
-                        {availablePersonas.map((p) => {
+                        {resolvedAvailablePersonas.map((p) => {
                           const isSelected = selectedPersonaId === p.id;
                           return (
                             <div
@@ -642,13 +700,13 @@ export default function CreateAgentModal({
                   <button
                     onClick={() => setStep('preset')}
                     className='px-8 py-3 btn-outline flex items-center gap-2'>
-                    <ChevronLeft size={16} /> 返回
+                    <ChevronLeft size={16} /> {tt('back')}
                   </button>
                   <button
                     onClick={() => setStep('knowledge')}
                     disabled={!isConfigValid()}
                     className='px-8 py-3 btn-gold flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed'>
-                    下一步 <ChevronRight size={16} />
+                    {tt('next')} <ChevronRight size={16} />
                   </button>
                 </div>
               </div>
@@ -660,10 +718,10 @@ export default function CreateAgentModal({
             <div className='flex-1 flex flex-col p-8 animate-in fade-in slide-in-from-right-8'>
               <div className='text-center mb-8'>
                 <h3 className='text-2xl font-serif font-bold text-white mb-2'>
-                  知识库接入 (可选)
+                  {tt('knowledge_title')}
                 </h3>
                 <p className='text-cp-text-muted font-sans text-sm'>
-                  上传私有文档以增强 Agent 的分析能力。
+                  {tt('knowledge_desc')}
                 </p>
               </div>
 
@@ -685,10 +743,10 @@ export default function CreateAgentModal({
                     />
                   </div>
                   <h4 className='text-lg font-bold text-cp-text mb-2'>
-                    点击或拖拽上传文件
+                    {tt('upload_title')}
                   </h4>
                   <p className='text-sm text-cp-text-muted'>
-                    支持 PDF, TXT, MD, CSV 格式 (最大 20MB)
+                    {tt('upload_desc')}
                   </p>
                 </div>
 
@@ -722,20 +780,20 @@ export default function CreateAgentModal({
                 <button
                   onClick={() => setStep('configure')}
                   className='px-8 py-3 btn-outline flex items-center gap-2'>
-                  <ChevronLeft size={16} /> 返回
+                  <ChevronLeft size={16} /> {tt('back')}
                 </button>
                 <div className='flex gap-4'>
                   <button
                     onClick={() => submitAgentCreation(true)}
                     disabled={isSubmitting}
                     className='px-8 py-3 btn-outline text-cp-text-muted hover:text-white disabled:opacity-50 disabled:cursor-not-allowed'>
-                    {isSubmitting ? '创建中...' : '跳过'}
+                    {isSubmitting ? tt('creating') : tt('skip')}
                   </button>
                   <button
                     onClick={() => submitAgentCreation(true)}
                     disabled={isSubmitting}
                     className='px-12 py-3 btn-gold flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed'>
-                    {isSubmitting ? '创建中...' : '完成上传'}{' '}
+                    {isSubmitting ? tt('creating') : tt('finish_upload')}{' '}
                     <ChevronRight size={16} />
                   </button>
                 </div>
@@ -749,26 +807,25 @@ export default function CreateAgentModal({
               <div className='w-full md:w-1/3 border-r border-white/[0.02] p-6 flex flex-col bg-white/[0.02]'>
                 <div className='mb-6'>
                   <h3 className='text-lg font-serif font-bold text-white mb-4 flex items-center gap-2'>
-                    <Clock size={18} className='text-cp-yellow' /> 回测周期
+                    <Clock size={18} className='text-cp-yellow' />{' '}
+                    {tt('sim_title')}
                   </h3>
                   <div className='grid grid-cols-2 gap-3'>
-                    {(['1周', '1月', '3月', '1年'] as SimDuration[]).map(
-                      (d) => (
-                        <button
-                          key={d}
-                          onClick={() => setSimDurationMode(d)}
-                          disabled={simStatus === 'running'}
-                          className={`px-5 py-3 text-sm font-bold transition-all shadow-lg
+                    {(['1w', '1m', '3m', '1y'] as SimDuration[]).map((d) => (
+                      <button
+                        key={d}
+                        onClick={() => setSimDurationMode(d)}
+                        disabled={simStatus === 'running'}
+                        className={`px-5 py-3 text-sm font-bold transition-all shadow-lg
                                             ${
                                               simDurationMode === d
                                                 ? 'bg-cp-yellow text-black scale-105 border-transparent'
                                                 : 'bg-black/20 border border-white/[0.02] text-cp-text-muted hover:border-cp-yellow hover:text-white'
                                             }
                                         `}>
-                          {d}
-                        </button>
-                      )
-                    )}
+                        {tt(`duration_${d}`)}
+                      </button>
+                    ))}
                   </div>
                 </div>
 
@@ -781,8 +838,7 @@ export default function CreateAgentModal({
                     ))}
                     {simStatus === 'running' && (
                       <div className='animate-pulse text-cp-yellow'>
-                        {' '}
-                        处理中...
+                        {tt('sim_processing')}
                       </div>
                     )}
                   </div>
@@ -793,7 +849,7 @@ export default function CreateAgentModal({
                     <button
                       onClick={startSimulation}
                       className='w-full py-4 border border-white/[0.02] text-cp-text-muted hover:text-white hover:border-cp-yellow transition-colors font-bold uppercase tracking-widest flex items-center justify-center gap-2'>
-                      <RotateCcw size={18} /> 重新回测
+                      <RotateCcw size={18} /> {tt('sim_rerun')}
                     </button>
                   ) : null}
                 </div>
@@ -810,10 +866,10 @@ export default function CreateAgentModal({
                         className='group relative px-10 py-5 btn-gold text-lg shadow-[0_0_30px_rgba(197,160,89,0.3)] hover:scale-105 transition-transform'>
                         <div className='flex items-center gap-3'>
                           <Play size={24} fill='black' />
-                          <span>开始模拟回测</span>
+                          <span>{tt('sim_start')}</span>
                         </div>
                         <div className='absolute -bottom-8 left-0 w-full text-center text-xs text-white/60 font-mono opacity-0 group-hover:opacity-100 transition-opacity'>
-                          EST. TIME: 3s
+                          {tt('sim_est_time')}
                         </div>
                       </button>
                     </div>
@@ -823,24 +879,24 @@ export default function CreateAgentModal({
                 <div className='h-24 border-t border-white/[0.02] bg-white/[0.02] flex items-center justify-around px-8'>
                   {[
                     {
-                      label: '总收益',
+                      label: tt('stat_total_return'),
                       val: simResult
-                        ? `+${simResult.duration === '1周' ? '3.2' : '15.4'}%`
+                        ? `+${getTotalReturnPct(simResult.duration)}%`
                         : '--',
                       color: 'text-cp-yellow'
                     },
                     {
-                      label: '最大回撤',
+                      label: tt('stat_max_drawdown'),
                       val: simResult ? '-2.1%' : '--',
                       color: 'text-white'
                     },
                     {
-                      label: '胜率',
+                      label: tt('stat_win_rate'),
                       val: simResult ? '62%' : '--',
                       color: 'text-white'
                     },
                     {
-                      label: '夏普比率',
+                      label: tt('stat_sharpe'),
                       val: simResult ? '1.85' : '--',
                       color: 'text-white'
                     }
@@ -869,7 +925,7 @@ export default function CreateAgentModal({
               <button
                 onClick={() => setStep('knowledge')}
                 className='px-6 py-2 text-cp-text-muted hover:text-white flex items-center gap-2 text-sm font-bold'>
-                <ChevronLeft size={16} /> 调整参数
+                <ChevronLeft size={16} /> {tt('adjust_params')}
               </button>
               <button
                 onClick={handleFinalDeploy}
@@ -877,7 +933,7 @@ export default function CreateAgentModal({
                   !hasCreated || simStatus !== 'finished' || isSubmitting
                 }
                 className='px-10 py-3 btn-gold flex items-center gap-2 disabled:opacity-50 disabled:filter disabled:grayscale'>
-                {isSubmitting ? '创建中...' : '完成部署'}{' '}
+                {isSubmitting ? tt('creating') : tt('finish_deploy')}{' '}
                 <ChevronRight size={16} />
               </button>
             </div>

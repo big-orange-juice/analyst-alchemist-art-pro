@@ -52,6 +52,7 @@ import NotificationHistoryModal from '@/components/NotificationHistoryModal';
 import { ApiError, apiFetch } from '@/lib/http';
 import EquityChart from '@/components/EquityChart';
 import ArticleAnalysisModal from '@/components/ArticleAnalysisModal';
+import { translations } from '@/i18n/locales';
 
 type StockActivity = {
   id: number | string;
@@ -66,112 +67,9 @@ type StockActivity = {
   index_sort?: number;
 };
 
-// Translations
-const translations = {
-  zh: {
-    app: {
-      title: 'ANALYST ALCHEMIST',
-      subtitle: '智能体炼金师',
-      login: '接入',
-      logout: '断开连接',
-      operator_id: '操作员 ID',
-      theme_toggle: '切换主题',
-      lang_toggle: '切换语言',
-      back_to_landing: '返回首页'
-    },
-    nav: {
-      market: '市场',
-      team: '技能',
-      ranking: '排名',
-      my_team: '我的功能',
-      leaderboard: '排行榜'
-    },
-    ranking: { live_battle: '实时对决' },
-    confirm_modal: {
-      delete_agent_title: '确认销毁',
-      delete_agent_message: '确定要销毁此 Agent 吗？该操作不可逆。',
-      logout_title: '确认退出',
-      logout_message: '确定要退出登录吗？',
-      withdraw_title: '退出活动',
-      withdraw_message: '确认退出？你将停止获取积分，排名会被冻结。'
-    },
-    notifications: {
-      auth: { title: '链接成功', message: '欢迎回来，{name}。' },
-      logout: { title: '已断开', message: '用户已安全退出。' },
-      agent_deployed: {
-        title: 'Agent 已部署',
-        message: '{name} 就绪。加入活动即可参赛。'
-      },
-      agent_deleted: { title: '销毁完成', message: 'Agent 实例已移除。' },
-      withdrawn: {
-        title: '已退出活动',
-        message: '已离开赛场，历史成绩已归档。'
-      },
-      joined: { title: '成功参赛', message: 'Agent 已进入活动池。' },
-      prompt_saved: {
-        title: '配置已保存',
-        message: '[{capability}] 指令已更新。'
-      }
-    }
-  },
-  en: {
-    app: {
-      title: 'ANALYST ALCHEMIST',
-      subtitle: 'ACTIVITY IN PROGRESS',
-      login: 'LOGIN',
-      logout: 'DISCONNECT',
-      operator_id: 'OPERATOR ID',
-      theme_toggle: 'TOGGLE THEME',
-      lang_toggle: 'LANGUAGE',
-      back_to_landing: 'Back to Home'
-    },
-    nav: {
-      market: 'MARKET',
-      team: 'TEAM',
-      ranking: 'RANK',
-      my_team: 'MY SQUAD',
-      leaderboard: 'LEADERBOARD'
-    },
-    ranking: { live_battle: 'LIVE BATTLE' },
-    confirm_modal: {
-      delete_agent_title: 'Confirm Destruction',
-      delete_agent_message:
-        'Are you sure you want to destroy this Agent instance? This action is irreversible.',
-      logout_title: 'Confirm Logout',
-      logout_message: 'Are you sure you want to log out?',
-      withdraw_title: 'Withdraw from Activity',
-      withdraw_message:
-        'Are you sure? You will stop earning points and your rank will freeze.'
-    },
-    notifications: {
-      auth: { title: 'Authenticated', message: 'Welcome, {name}.' },
-      logout: { title: 'Disconnected', message: 'User logged out securely.' },
-      agent_deployed: {
-        title: 'Agent Deployed',
-        message: '{name} is ready. Join activity to compete.'
-      },
-      agent_deleted: {
-        title: 'Destruction Complete',
-        message: 'Agent instance removed.'
-      },
-      withdrawn: {
-        title: 'Withdrawn',
-        message: 'Exited competition. Records archived.'
-      },
-      joined: {
-        title: 'Competition Joined',
-        message: 'Agent entered activity pool.'
-      },
-      prompt_saved: {
-        title: 'Configuration Saved',
-        message: '[{capability}] prompt updated.'
-      }
-    }
-  }
-};
-
 export default function DashboardContent() {
   const searchParams = useSearchParams();
+  const loginParam = searchParams.get('login');
 
   // Stores
   const { currentUser, setCurrentUser, clearUser } = useUserStore();
@@ -260,10 +158,10 @@ export default function DashboardContent() {
 
   // Check for login param on load
   useEffect(() => {
-    if (searchParams.get('login') === 'true' && !currentUser) {
+    if (loginParam === 'true' && !currentUser && !isLoginModalOpen) {
       setIsLoginModalOpen(true);
     }
-  }, [currentUser, searchParams, setIsLoginModalOpen]);
+  }, [currentUser, isLoginModalOpen, loginParam, setIsLoginModalOpen]);
 
   // Apply theme
   useEffect(() => {
@@ -565,7 +463,11 @@ export default function DashboardContent() {
 
   const handleDeleteAgent = async () => {
     if (!agentId) {
-      notify('删除失败', '未找到当前 Agent 的 ID。', 'error');
+      notify(
+        t.notifications.delete_failed.title,
+        t.notifications.delete_failed.missing_agent_id,
+        'error'
+      );
       return;
     }
 
@@ -581,8 +483,8 @@ export default function DashboardContent() {
           ? error.message
           : error instanceof Error
           ? error.message
-          : '删除 Agent 时出现错误';
-      notify('删除失败', message, 'error');
+          : t.notifications.delete_failed.generic_error;
+      notify(t.notifications.delete_failed.title, message, 'error');
       setConfirmModal({ ...confirmModal, isOpen: false });
       return;
     }
@@ -612,12 +514,25 @@ export default function DashboardContent() {
     });
   };
 
-  const handleJoinCompetition = async () => {
-    const activityId = (currentActivity as any)?.id;
+  const handleJoinCompetition = async (payload?: {
+    activity_id?: string;
+    cycle?: number;
+  }) => {
+    const activityId = (payload?.activity_id as any) ?? (currentActivity as any)?.id;
     if (!activityId) {
       notify(
-        language === 'zh' ? '参赛失败' : 'Join Failed',
-        language === 'zh' ? '缺少活动ID' : 'Missing activity id',
+        t.notifications.join_failed.title,
+        t.notifications.join_failed.missing_activity_id,
+        'error'
+      );
+      return;
+    }
+
+    const cycleValue = typeof payload?.cycle === 'number' ? payload.cycle : 0;
+    if (!Number.isFinite(cycleValue) || cycleValue < 5) {
+      notify(
+        t.notifications.join_failed.title,
+        '执行周期最小值为 5 分钟',
         'error'
       );
       return;
@@ -626,15 +541,18 @@ export default function DashboardContent() {
     try {
       await apiFetch('/api/stock-activities/tasks', {
         method: 'POST',
-        body: { activity_id: activityId },
+        body: {
+          activity_id: String(activityId),
+          cycle: cycleValue
+        },
         errorHandling: 'ignore'
       });
 
       setIsJoinedCompetition(true);
       setIsJoinCompetitionModalOpen(false);
       notify(
-        language === 'zh' ? '参赛成功' : 'Joined',
-        language === 'zh' ? '已成功参赛' : 'Joined successfully',
+        t.notifications.joined.title,
+        t.notifications.joined.message,
         'success'
       );
     } catch (err) {
@@ -643,10 +561,8 @@ export default function DashboardContent() {
           ? err.message
           : err instanceof Error
           ? err.message
-          : language === 'zh'
-          ? '参赛失败'
-          : 'Join failed';
-      notify(language === 'zh' ? '参赛失败' : 'Join Failed', msg, 'error');
+          : t.notifications.join_failed.title;
+      notify(t.notifications.join_failed.title, msg, 'error');
     }
   };
 
@@ -944,7 +860,7 @@ export default function DashboardContent() {
         <CompetitionJoinModal
           isOpen={true}
           onClose={() => setIsJoinCompetitionModalOpen(false)}
-          onJoin={handleJoinCompetition}
+          onJoin={(payload) => handleJoinCompetition(payload)}
           activity={currentActivity}
         />
       )}
@@ -993,7 +909,6 @@ export default function DashboardContent() {
         <ArticleAnalysisModal
           agentId={agentId}
           userId={currentUser?.id ? String(currentUser.id) : null}
-          language={language}
           onClose={() => setIsArticleAnalysisOpen(false)}
           onNotify={notify}
         />

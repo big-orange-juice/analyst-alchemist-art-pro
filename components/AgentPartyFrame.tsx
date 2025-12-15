@@ -42,12 +42,7 @@ export default function AgentPartyFrame({
     <div className='flex flex-col w-full h-full bg-gradient-to-b from-cp-dim to-cp-black border border-white/[0.02] shadow-2xl backdrop-blur-sm overflow-hidden'>
       {/* Header Section */}
       <div className='shrink-0 p-6 relative overflow-hidden'>
-        <AgentSummaryHeader
-          agentName={agentName}
-          agentClass={agentClass}
-          isJoined={isJoined}
-          onToggleJoin={onToggleJoin}
-        />
+        <AgentSummaryHeader agentName={agentName} agentClass={agentClass} />
 
         <AgentStatsGrid isJoined={isJoined} rank={rank} profit={profit} />
 
@@ -67,6 +62,8 @@ export default function AgentPartyFrame({
         />
 
         <AgentCapabilitiesList
+          isJoined={isJoined}
+          onRequestJoin={onToggleJoin}
           onSelectCapability={onSelectCapability}
           onEditCapability={onEditCapability}
         />

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   Terminal,
   Crown,
@@ -68,7 +68,8 @@ export default function SeasonInfoPanel({
   isJoined = false,
   onOpenPass
 }: SeasonInfoPanelProps) {
-  const { t, dictionary } = useLanguage();
+  const { t, get, language } = useLanguage();
+  const tt = useCallback((key: string) => t(`season_info_panel.${key}`), [t]);
   const [activity, setActivity] = useState<StockActivity | null>(null);
   const [activityLoading, setActivityLoading] = useState(false);
   const [activityError, setActivityError] = useState<string | null>(null);
@@ -147,26 +148,39 @@ export default function SeasonInfoPanel({
     if (agentName && isJoined) {
       const interval = setInterval(() => {
         const now = new Date();
-        const timeStr = now.toLocaleTimeString('zh-CN', { hour12: false });
+        const locale = language === 'zh' ? 'zh-CN' : 'en-US';
+        const timeStr = now.toLocaleTimeString(locale, { hour12: false });
         const newLogs = [
           {
             time: timeStr,
-            action: '正在扫描市场信号...',
+            action: tt('logs.scanning'),
             type: 'info' as const
           },
           {
             time: timeStr,
-            action: '检测到信号: 600030',
+            action: tt('logs.signal_detected').replace('{symbol}', '600030'),
             type: 'success' as const
           },
-          { time: timeStr, action: '风控检查通过', type: 'info' as const },
           {
             time: timeStr,
-            action: '挂单中: 买入 300750',
+            action: tt('logs.risk_ok'),
+            type: 'info' as const
+          },
+          {
+            time: timeStr,
+            action: tt('logs.placing_order').replace('{symbol}', '300750'),
             type: 'warn' as const
           },
-          { time: timeStr, action: '分析深度数据...', type: 'info' as const },
-          { time: timeStr, action: '更新持仓盈亏...', type: 'info' as const }
+          {
+            time: timeStr,
+            action: tt('logs.deep_analysis'),
+            type: 'info' as const
+          },
+          {
+            time: timeStr,
+            action: tt('logs.updating_pnl'),
+            type: 'info' as const
+          }
         ];
         const randomLog = newLogs[Math.floor(Math.random() * newLogs.length)];
         setLogs((prev) => [randomLog, ...prev].slice(0, 20));
@@ -175,7 +189,7 @@ export default function SeasonInfoPanel({
     } else {
       setLogs([]);
     }
-  }, [agentName, isJoined]);
+  }, [agentName, isJoined, language, tt]);
 
   const capabilityFeedTabs = Object.keys(
     CAPABILITY_TAB_CONFIG
@@ -185,7 +199,7 @@ export default function SeasonInfoPanel({
   ): tab is CapabilityFeedTab =>
     capabilityFeedTabs.includes(tab as CapabilityFeedTab);
   const capabilityHistory =
-    (dictionary.capability_history as
+    (get('capability_history') as
       | Partial<Record<AgentCapability, CapabilityHistoryEntry[]>>
       | undefined) ?? {};
   const activeFeedConfig = isCapabilityFeedTab(activeTab)
@@ -221,28 +235,30 @@ export default function SeasonInfoPanel({
               className={`h-full type-eyebrow tab-item shrink-0 flex items-center gap-2 transition-colors hover:text-white ${
                 activeTab === 'ANALYSIS' ? 'active' : ''
               }`}>
-              <BarChart2 size={12} /> 个股诊断
+              <BarChart2 size={12} />{' '}
+              {t(CAPABILITY_TAB_CONFIG.ANALYSIS.labelKey)}
             </button>
             <button
               onClick={() => setActiveTab('PICKING')}
               className={`h-full type-eyebrow tab-item shrink-0 flex items-center gap-2 transition-colors hover:text-white ${
                 activeTab === 'PICKING' ? 'active' : ''
               }`}>
-              <Crosshair size={12} /> 智能选股
+              <Crosshair size={12} />{' '}
+              {t(CAPABILITY_TAB_CONFIG.PICKING.labelKey)}
             </button>
             <button
               onClick={() => setActiveTab('BACKTEST')}
               className={`h-full type-eyebrow tab-item shrink-0 flex items-center gap-2 transition-colors hover:text-white ${
                 activeTab === 'BACKTEST' ? 'active' : ''
               }`}>
-              <Rewind size={12} /> 历史回测
+              <Rewind size={12} /> {t(CAPABILITY_TAB_CONFIG.BACKTEST.labelKey)}
             </button>
             <button
               onClick={() => setActiveTab('REPORT')}
               className={`h-full type-eyebrow tab-item shrink-0 flex items-center gap-2 transition-colors hover:text-white ${
                 activeTab === 'REPORT' ? 'active' : ''
               }`}>
-              <FileText size={12} /> 研报生成
+              <FileText size={12} /> {t(CAPABILITY_TAB_CONFIG.REPORT.labelKey)}
             </button>
           </>
         )}
@@ -341,7 +357,7 @@ export default function SeasonInfoPanel({
                       <button
                         onClick={onOpenPass}
                         className='w-full py-3 glass-button flex items-center justify-center gap-2 text-xs font-bold text-cp-text-muted hover:text-white'>
-                        查看活动通行证 <ChevronRight size={14} />
+                        {tt('pass_button')} <ChevronRight size={14} />
                       </button>
                     )}
                   </div>
@@ -357,7 +373,7 @@ export default function SeasonInfoPanel({
             <div className='w-[35%] border-r border-white/[0.02] flex flex-col bg-white/[0.01]'>
               <div className='h-8 flex items-center px-3 border-b border-white/[0.02] bg-white/[0.02] shrink-0'>
                 <span className='type-eyebrow flex items-center gap-2'>
-                  <Target size={10} /> 实时持仓
+                  <Target size={10} /> {tt('holdings_title')}
                 </span>
               </div>
               <div className='flex-1 overflow-y-auto custom-scrollbar'>
@@ -386,7 +402,7 @@ export default function SeasonInfoPanel({
                   </div>
                 ))}
                 <div className='p-2 type-caption text-gray-600 text-center italic mt-2'>
-                  数据延迟 3s
+                  {tt('holdings_delay')}
                 </div>
               </div>
             </div>
@@ -395,7 +411,7 @@ export default function SeasonInfoPanel({
             <div className='flex-1 flex flex-col min-h-0'>
               <div className='h-8 flex items-center px-3 border-b border-white/[0.02] bg-white/[0.02] shrink-0'>
                 <span className='type-eyebrow flex items-center gap-2'>
-                  <Terminal size={10} /> 系统日志
+                  <Terminal size={10} /> {tt('system_logs')}
                 </span>
               </div>
               <div className='flex-1 overflow-y-auto custom-scrollbar p-3 type-mono text-[11px] flex flex-col-reverse bg-transparent leading-relaxed'>
@@ -423,7 +439,7 @@ export default function SeasonInfoPanel({
                   </div>
                 ))}
                 <div className='text-cp-text-muted mb-4 opacity-50 select-none type-mono'>
-                  --- SYSTEM STREAM START ---
+                  {tt('system_stream_start')}
                 </div>
               </div>
             </div>

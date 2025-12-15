@@ -16,6 +16,7 @@ import {
 import { useAgentStore, useUserStore } from '@/store';
 import LoginScreen from '@/components/LoginScreen';
 import { apiFetch } from '@/lib/http';
+import { useLanguage } from '@/lib/useLanguage';
 
 interface TopPerformer {
   rank: number;
@@ -35,54 +36,11 @@ type StockActivity = {
   index_sort?: number;
 };
 
-// Client-side translations
-const translations = {
-  zh: {
-    app: { title: 'ANALYST ALCHEMIST' },
-    landing: {
-      system_online: '系统在线',
-      version: '版本 4.0 // 艺术重构',
-      season_live: '活动进行中',
-      hero_title_1: '铸造你的',
-      hero_title_2: 'ALPHA AGENT',
-      hero_desc:
-        '接入金融智能矩阵。部署自主 AI 代理，实时回测策略，在全网算法排位中争夺荣耀。',
-      init_system: '初始化系统',
-      link_identity: '链接身份',
-      switch_identity: '切换身份',
-      continue_as: '继续身份',
-      top_performers: '表现最佳',
-      live_feed_tag: '实时信道',
-      enter: '进入系统',
-      total_return: '累计收益',
-      badge: { legend: '传说', whale: '巨鲸', bot: '智能体' },
-      features: {
-        strategy_title: '多因子策略矩阵',
-        strategy_desc:
-          '内置经典的量化因子库（动量、价值、波动率），支持通过自然语言组合生成全新的阿尔法策略。',
-        backtest_title: '机构级回测引擎',
-        backtest_desc:
-          '基于 Tick 级历史数据，毫秒级仿真撮合，提供夏普比率、最大回撤等专业的绩效归因分析。',
-        community_title: '去中心化智库',
-        community_desc:
-          '加入全球排位赛，与顶尖的 Quant Agent 对抗。共享策略逻辑，获取活动奖励。',
-        security_title: '零信任安全架构',
-        security_desc:
-          '所有策略代码均在沙箱环境中运行。用户的私有数据与核心算法享有最高级别的加密保护。'
-      },
-      footer: {
-        rights: '© 2024 Analyst Alchemist. All systems nominal.',
-        privacy: '隐私协议',
-        terms: '服务条款'
-      }
-    }
-  }
-};
-
 export default function LandingPage({
   initialTopPerformers
 }: LandingPageProps) {
   const router = useRouter();
+  const { t } = useLanguage();
   const { currentUser, setCurrentUser } = useUserStore();
   const { clearAgent } = useAgentStore();
   const [isClient, setIsClient] = useState(false);
@@ -90,8 +48,6 @@ export default function LandingPage({
   const [currentActivity, setCurrentActivity] = useState<StockActivity | null>(
     null
   );
-
-  const t = translations.zh;
 
   useEffect(() => {
     setIsClient(true);
@@ -131,7 +87,8 @@ export default function LandingPage({
 
   const isLoggedIn = isClient && currentUser !== null;
   const username = currentUser?.username;
-  const activityLabel = currentActivity?.activity_name || t.landing.season_live;
+  const activityLabel =
+    currentActivity?.activity_name || t('landing.season_live');
 
   return (
     <div className='relative w-full min-h-screen bg-cp-black text-cp-text overflow-y-auto custom-scrollbar flex flex-col font-sans tracking-[0.01em]'>
@@ -154,11 +111,11 @@ export default function LandingPage({
           </div>
           <div>
             <h1 className='text-2xl md:text-3xl font-serif font-semibold tracking-[0.45em] text-cp-text uppercase'>
-              {t.app.title}
+              {t('app.title')}
             </h1>
             <div className='flex items-center gap-2 text-[11px] text-cp-text-muted font-mono tracking-[0.3em]'>
               <span className='w-2 h-2 rounded-full bg-green-500'></span>
-              {t.landing.system_online}
+              {t('landing.system_online')}
             </div>
           </div>
         </div>
@@ -166,7 +123,7 @@ export default function LandingPage({
         <div className='hidden md:flex items-center gap-8'>
           <div className='flex flex-col items-end text-right'>
             <span className='text-[11px] text-cp-text-muted uppercase tracking-[0.4em]'>
-              {t.landing.version}
+              {t('landing.version')}
             </span>
             <span className='text-sm font-semibold text-cp-yellow animate-pulse tracking-[0.35em] uppercase'>
               {activityLabel}
@@ -182,14 +139,14 @@ export default function LandingPage({
         </div>
 
         <h2 className='text-5xl md:text-8xl font-serif font-semibold tracking-tight text-cp-text mb-2 leading-tight animate-in fade-in slide-in-from-bottom-8 duration-1000'>
-          {t.landing.hero_title_1} <br />
+          {t('landing.hero_title_1')} <br />
           <span className='text-transparent bg-clip-text bg-gradient-to-r from-cp-yellow via-white to-cp-yellow animate-pulse-fast'>
-            {t.landing.hero_title_2}
+            {t('landing.hero_title_2')}
           </span>
         </h2>
 
         <p className='max-w-2xl text-cp-text-muted text-lg md:text-xl font-light leading-relaxed mb-12 animate-in fade-in slide-in-from-bottom-10 duration-1000 delay-200'>
-          {t.landing.hero_desc}
+          {t('landing.hero_desc')}
         </p>
 
         <div className='flex flex-col md:flex-row gap-6 animate-in fade-in slide-in-from-bottom-12 duration-1000 delay-300'>
@@ -198,12 +155,12 @@ export default function LandingPage({
               <button
                 onClick={handleEnter}
                 className='px-10 py-4 btn-outline text-sm font-semibold tracking-[0.45em] flex items-center gap-2'>
-                <Activity size={18} /> {t.landing.init_system}
+                <Activity size={18} /> {t('landing.init_system')}
               </button>
               <button
                 onClick={handleLogin}
                 className='px-12 py-4 btn-gold text-base font-semibold tracking-[0.45em] flex items-center gap-2 shadow-[0_0_30px_rgba(197,160,89,0.35)] hover:shadow-[0_0_55px_rgba(197,160,89,0.55)] transition-shadow'>
-                {t.landing.link_identity} <ChevronRight size={18} />
+                {t('landing.link_identity')} <ChevronRight size={18} />
               </button>
             </>
           ) : (
@@ -211,13 +168,13 @@ export default function LandingPage({
               <button
                 onClick={handleEnter}
                 className='px-16 py-5 btn-gold text-lg font-semibold tracking-[0.45em] flex items-center gap-3 shadow-[0_0_30px_rgba(197,160,89,0.35)] hover:shadow-[0_0_55px_rgba(197,160,89,0.55)] transition-shadow'>
-                <Zap size={20} fill='black' /> {t.landing.continue_as}{' '}
+                <Zap size={20} fill='black' /> {t('landing.continue_as')}{' '}
                 {username}
               </button>
               <button
                 onClick={handleLogin}
                 className='px-10 py-4 btn-outline text-sm font-semibold tracking-[0.45em] flex items-center gap-2'>
-                {t.landing.switch_identity} <ChevronRight size={18} />
+                {t('landing.resume')} <ChevronRight size={18} />
               </button>
             </>
           )}
@@ -230,23 +187,23 @@ export default function LandingPage({
           {[
             {
               icon: Crosshair,
-              title: t.landing.features.strategy_title,
-              desc: t.landing.features.strategy_desc
+              title: t('landing.features.strategy_title'),
+              desc: t('landing.features.strategy_desc')
             },
             {
               icon: Rewind,
-              title: t.landing.features.backtest_title,
-              desc: t.landing.features.backtest_desc
+              title: t('landing.features.backtest_title'),
+              desc: t('landing.features.backtest_desc')
             },
             {
               icon: Users,
-              title: t.landing.features.community_title,
-              desc: t.landing.features.community_desc
+              title: t('landing.features.community_title'),
+              desc: t('landing.features.community_desc')
             },
             {
               icon: Shield,
-              title: t.landing.features.security_title,
-              desc: t.landing.features.security_desc
+              title: t('landing.features.security_title'),
+              desc: t('landing.features.security_desc')
             }
           ].map((feature, idx) => (
             <div
@@ -272,16 +229,16 @@ export default function LandingPage({
           <div className='flex justify-between items-end mb-10'>
             <div>
               <h3 className='text-3xl font-serif font-semibold text-cp-text mb-2 tracking-tight'>
-                {t.landing.top_performers}
+                {t('landing.top_performers')}
               </h3>
               <p className='text-cp-text-muted text-sm font-sans tracking-[0.3em] uppercase'>
-                {t.landing.live_feed_tag}
+                {t('landing.live_feed_tag')}
               </p>
             </div>
             <button
               onClick={handleEnter}
               className='text-cp-yellow text-[11px] font-semibold uppercase tracking-[0.45em] flex items-center gap-2 hover:text-white transition-colors'>
-              {t.landing.enter} <ChevronRight size={14} />
+              {t('landing.enter')} <ChevronRight size={14} />
             </button>
           </div>
 
@@ -299,9 +256,13 @@ export default function LandingPage({
                       {item.name}
                     </span>
                     <span className='px-2 py-0.5 text-[11px] font-semibold border border-white/[0.1] text-cp-text-muted uppercase rounded-full tracking-[0.35em]'>
-                      {t.landing.badge[
-                        item.badge.toLowerCase() as keyof typeof t.landing.badge
-                      ] || item.badge}
+                      {(() => {
+                        const key = item.badge.toLowerCase();
+                        const candidate = t(`landing.badge.${key}`);
+                        return candidate === `landing.badge.${key}`
+                          ? item.badge
+                          : candidate;
+                      })()}
                     </span>
                   </div>
                 </div>
@@ -310,7 +271,7 @@ export default function LandingPage({
                     {item.profit}
                   </div>
                   <div className='text-[11px] text-cp-text-muted uppercase tracking-[0.35em]'>
-                    {t.landing.total_return}
+                    {t('landing.total_return')}
                   </div>
                 </div>
               </div>
@@ -325,19 +286,19 @@ export default function LandingPage({
           <div className='flex items-center gap-2 text-cp-text-muted'>
             <Hexagon size={16} />
             <span className='text-[11px] font-mono tracking-[0.3em] uppercase'>
-              {t.landing.footer.rights}
+              {t('landing.footer.rights')}
             </span>
           </div>
           <div className='flex gap-8'>
             <a
               href='#'
               className='text-[11px] font-semibold text-cp-text-muted hover:text-cp-yellow transition-colors uppercase tracking-[0.4em]'>
-              {t.landing.footer.privacy}
+              {t('landing.footer.privacy')}
             </a>
             <a
               href='#'
               className='text-[11px] font-semibold text-cp-text-muted hover:text-cp-yellow transition-colors uppercase tracking-[0.4em]'>
-              {t.landing.footer.terms}
+              {t('landing.footer.terms')}
             </a>
           </div>
         </div>

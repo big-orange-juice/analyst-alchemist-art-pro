@@ -1,9 +1,11 @@
 'use client';
 
 import React, { useMemo, useState } from 'react';
-import { X } from 'lucide-react';
+import { Copy, Cpu, Play, RotateCcw, Save, X } from 'lucide-react';
 import MarkdownIt from 'markdown-it';
 import { apiFetch, ApiError } from '@/lib/http';
+import { useLanguage } from '@/lib/useLanguage';
+import { copyToClipboard } from '@/lib/clipboard';
 
 type ContentMode = 'url' | 'text' | 'file';
 
@@ -20,7 +22,6 @@ type ArticleAnalysisPayload = {
 interface ArticleAnalysisModalProps {
   agentId: string | null;
   userId: string | null;
-  language: 'zh' | 'en';
   onClose: () => void;
   onNotify?: (
     title: string,
@@ -39,10 +40,11 @@ const parseFocusList = (raw: string) => {
 export default function ArticleAnalysisModal({
   agentId,
   userId,
-  language,
   onClose,
   onNotify
 }: ArticleAnalysisModalProps) {
+  const { t } = useLanguage();
+
   const [mode, setMode] = useState<ContentMode>('url');
   const [url, setUrl] = useState('');
   const [text, setText] = useState('');
@@ -60,6 +62,10 @@ export default function ArticleAnalysisModal({
     () => md.render(resultText || ''),
     [md, resultText]
   );
+
+  const tt = (key: string) => t(`article_analysis_modal.${key}`);
+
+  const tmd = (key: string) => tt(`md_${key}`);
 
   const safeText = (v: unknown) => {
     if (v === null || v === undefined) return '';
@@ -107,37 +113,37 @@ export default function ArticleAnalysisModal({
     const timestampText = safeText(root.timestamp);
 
     const lines: string[] = [];
-    lines.push(`# 文章分析结果${symbolText ? `：${symbolText}` : ''}`);
+    lines.push(`# ${tmd('title')}${symbolText ? `: ${symbolText}` : ''}`);
     const metaParts = [
-      contentTypeText ? `内容类型：${contentTypeText}` : '',
-      tradingDateText ? `交易日：${tradingDateText}` : '',
-      timestampText ? `时间：${timestampText}` : ''
+      contentTypeText ? `${tmd('content_type')}: ${contentTypeText}` : '',
+      tradingDateText ? `${tmd('trading_date')}: ${tradingDateText}` : '',
+      timestampText ? `${tmd('timestamp')}: ${timestampText}` : ''
     ].filter(Boolean);
     if (metaParts.length) lines.push(metaParts.join('  |  '));
     lines.push('');
 
     if (extracted) {
-      lines.push('## 提取内容');
+      lines.push(`## ${tmd('extracted')}`);
       const summary = safeText(extracted.summary);
       const textLength = safeText(extracted.text_length);
       const hasTables = safeText(extracted.has_tables);
       const hasImages = safeText(extracted.has_images);
-      if (summary) lines.push(`**摘要：** ${summary}`);
+      if (summary) lines.push(`**${tmd('summary')}:** ${summary}`);
       const extractedMeta = [
-        textLength ? `文本长度：${textLength}` : '',
-        hasTables ? `包含表格：${hasTables}` : '',
-        hasImages ? `包含图片：${hasImages}` : ''
+        textLength ? `${tmd('text_length')}: ${textLength}` : '',
+        hasTables ? `${tmd('has_tables')}: ${hasTables}` : '',
+        hasImages ? `${tmd('has_images')}: ${hasImages}` : ''
       ].filter(Boolean);
       if (extractedMeta.length) lines.push(extractedMeta.join('  |  '));
       lines.push('');
     }
 
     if (structured) {
-      lines.push('## 结构化信息');
+      lines.push(`## ${tmd('structured')}`);
       const theme = safeText(structured.document_theme);
       const category = safeText(structured.document_category);
-      if (theme) lines.push(`- 文档主题：${theme}`);
-      if (category) lines.push(`- 文档类别：${category}`);
+      if (theme) lines.push(`- ${tmd('doc_theme')}: ${theme}`);
+      if (category) lines.push(`- ${tmd('doc_category')}: ${category}`);
 
       const keyMetrics =
         structured.key_metrics && typeof structured.key_metrics === 'object'
@@ -148,12 +154,12 @@ export default function ArticleAnalysisModal({
         const profit = safeText(keyMetrics.profit);
         const growth = safeText(keyMetrics.growth_rate);
         const metricParts = [
-          revenue ? `营收：${revenue}` : '',
-          profit ? `利润：${profit}` : '',
-          growth ? `增长率：${growth}` : ''
+          revenue ? `${tmd('revenue')}: ${revenue}` : '',
+          profit ? `${tmd('profit')}: ${profit}` : '',
+          growth ? `${tmd('growth')}: ${growth}` : ''
         ].filter(Boolean);
         if (metricParts.length)
-          lines.push(`- 关键指标：${metricParts.join('  |  ')}`);
+          lines.push(`- ${tmd('key_metrics')}: ${metricParts.join('  |  ')}`);
       }
 
       const summary = safeText(structured.summary);
@@ -163,13 +169,22 @@ export default function ArticleAnalysisModal({
         lines.push('');
       }
 
-      lines.push(formatList('### 重要事件', structured.important_events));
-      lines.push(formatList('### 风险因素', structured.risk_factors));
-      lines.push(formatList('### 投资观点', structured.investment_views));
+      lines.push(
+        formatList(`### ${tmd('events')}`, structured.important_events)
+      );
+      lines.push(
+        formatList(`### ${tmd('risk_factors')}`, structured.risk_factors)
+      );
+      lines.push(
+        formatList(
+          `### ${tmd('investment_views')}`,
+          structured.investment_views
+        )
+      );
     }
 
     if (analyses) {
-      lines.push('## 分析结论');
+      lines.push(`## ${tmd('analyses')}`);
 
       const appendAnalysis = (title: string, key: string) => {
         const a = analyses[key];
@@ -195,32 +210,32 @@ export default function ArticleAnalysisModal({
         lines.push('');
       };
 
-      appendAnalysis('宏观分析', 'macro_analysis');
-      appendAnalysis('技术分析', 'technical_analysis');
-      appendAnalysis('基本面分析', 'fundamental_analysis');
-      appendAnalysis('情绪分析', 'sentiment_analysis');
-      appendAnalysis('风险分析', 'risk_analysis');
+      appendAnalysis(tmd('macro_analysis'), 'macro_analysis');
+      appendAnalysis(tmd('technical_analysis'), 'technical_analysis');
+      appendAnalysis(tmd('fundamental_analysis'), 'fundamental_analysis');
+      appendAnalysis(tmd('sentiment_analysis'), 'sentiment_analysis');
+      appendAnalysis(tmd('risk_analysis'), 'risk_analysis');
     }
 
     if (advice) {
-      lines.push('## 投资建议');
+      lines.push(`## ${tmd('investment_advice')}`);
       const rating = safeText(advice.rating);
       const position = safeText(advice.position_suggestion);
       const confidence = safeText(advice.confidence);
       const targetPrice = safeText(advice.target_price);
 
-      if (rating) lines.push(`- 评级：**${rating}**`);
-      if (position) lines.push(`- 仓位建议：${position}`);
-      if (targetPrice) lines.push(`- 目标价：${targetPrice}`);
-      if (confidence) lines.push(`- 置信度：${confidence}`);
+      if (rating) lines.push(`- ${tmd('rating')}: **${rating}**`);
+      if (position) lines.push(`- ${tmd('position')}: ${position}`);
+      if (targetPrice) lines.push(`- ${tmd('target_price')}: ${targetPrice}`);
+      if (confidence) lines.push(`- ${tmd('confidence')}: ${confidence}`);
       lines.push('');
 
-      lines.push(formatList('### 关键风险', advice.key_risks));
-      lines.push(formatList('### 行动计划', advice.action_plan));
+      lines.push(formatList(`### ${tmd('key_risks')}`, advice.key_risks));
+      lines.push(formatList(`### ${tmd('action_plan')}`, advice.action_plan));
 
       const reasoning = safeText(advice.reasoning);
       if (reasoning) {
-        lines.push('### 解释');
+        lines.push(`### ${tmd('explain')}`);
         lines.push(reasoning);
         lines.push('');
       }
@@ -231,23 +246,11 @@ export default function ArticleAnalysisModal({
 
   const symbolOptions = useMemo(
     () => [
-      { value: '', labelZh: '不指定', labelEn: 'Not set' },
-      { value: 'AAPL', labelZh: '苹果（AAPL）', labelEn: 'Apple (AAPL)' },
-      {
-        value: '600519.SH',
-        labelZh: '贵州茅台（600519.SH）',
-        labelEn: 'Kweichow Moutai (600519.SH)'
-      },
-      {
-        value: '000001.SZ',
-        labelZh: '平安银行（000001.SZ）',
-        labelEn: 'Ping An Bank (000001.SZ)'
-      },
-      {
-        value: '000859.SZ',
-        labelZh: '中信国安（000859.SZ）',
-        labelEn: 'CITIC Guoan (000859.SZ)'
-      }
+      { value: '', labelKey: 'not_set' },
+      { value: 'AAPL', labelKey: 'symbol_aapl' },
+      { value: '600519.SH', labelKey: 'symbol_600519' },
+      { value: '000001.SZ', labelKey: 'symbol_000001' },
+      { value: '000859.SZ', labelKey: 'symbol_000859' }
     ],
     []
   );
@@ -276,59 +279,11 @@ export default function ArticleAnalysisModal({
   const canSubmit =
     !!agentId && !!userId && mode !== 'file' && contentData.trim();
 
-  const copy =
-    language === 'zh'
-      ? {
-          title: '生成报告',
-          subtitle: 'POST /api/v2/research/article-analysis',
-          mode_url: '在线链接',
-          mode_text: '粘贴文本',
-          mode_file: '文件上传',
-          content_type: '内容类型',
-          content_data: '内容',
-          focus: '分析关注点（每行/逗号分隔）',
-          symbol: '股票代码（可选）',
-          trading_date: '交易日（可选）',
-          url_ph: 'https://...',
-          text_ph: '在此粘贴文章/研报纯文本...',
-          focus_ph: '例如：估值，行业景气，财务质量，风险点',
-          response: '响应结果',
-          clear: '清空',
-          submit: '生成',
-          cancel: '取消',
-          missing: '缺少用户或Agent信息，请先登录并创建Agent。',
-          ok: '请求已提交',
-          fail: '生成失败'
-        }
-      : {
-          title: 'Generate Report',
-          subtitle: 'POST /api/v2/research/article-analysis',
-          mode_url: 'Use online URL',
-          mode_text: 'Paste plain text',
-          mode_file: 'Upload file (disabled)',
-          content_type: 'content_type',
-          content_data: 'content_data',
-          focus: 'analysis_focus (newline/comma separated)',
-          symbol: 'symbol (optional)',
-          trading_date: 'trading_date (optional)',
-          url_ph: 'https://...',
-          text_ph: 'Paste article/report plain text here...',
-          focus_ph: 'e.g. valuation, catalysts, financials, risks',
-          response: 'Response',
-          clear: 'Clear',
-          submit: 'Generate',
-          cancel: 'Cancel',
-          missing:
-            'Missing user/agent. Please login and create an agent first.',
-          ok: 'Request submitted',
-          fail: 'Request failed'
-        };
-
   const isContentTypeLocked = mode === 'url' || mode === 'text';
 
   const handleSubmit = async () => {
     if (!agentId || !userId) {
-      onNotify?.(copy.fail, copy.missing, 'warning');
+      onNotify?.(tt('missing_title'), tt('missing_desc'), 'warning');
       return;
     }
 
@@ -355,50 +310,73 @@ export default function ArticleAnalysisModal({
       });
 
       const formatted = formatResultToMarkdown(res);
-      setResultText(formatted || '（空响应）');
-      onNotify?.(copy.ok, copy.subtitle, 'success');
+      setResultText(formatted || tt('empty_response'));
+      onNotify?.(tt('ok_title'), tt('ok_message'), 'success');
     } catch (err) {
       const message =
         err instanceof ApiError
           ? err.message
           : err instanceof Error
           ? err.message
-          : copy.fail;
+          : tt('fail_title');
       setResultText(message);
-      onNotify?.(copy.fail, message, 'error');
+      onNotify?.(tt('fail_title'), message, 'error');
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  return (
-    <div className='fixed inset-0 z-[170] flex items-center justify-center bg-black/70 backdrop-blur-xl p-4 modal-animate'>
-      <div className='w-full max-w-6xl h-[85vh] glass-panel border-2 border-cp-yellow ring-1 ring-cp-yellow shadow-2xl flex flex-col relative overflow-hidden'>
-        <button
-          onClick={onClose}
-          className='absolute top-6 right-6 text-gray-500 hover:text-white transition-colors z-10'
-          aria-label='close'>
-          <X size={24} />
-        </button>
+  const handleCopy = async () => {
+    const value = resultText || '';
+    if (!value.trim()) return;
+    const ok = await copyToClipboard(value);
+    onNotify?.(
+      t('common.copy'),
+      ok ? t('common.copied') : t('common.copy_failed'),
+      ok ? 'success' : 'error'
+    );
+  };
 
-        <div className='p-8 md:p-10 border-b border-cp-border bg-white/[0.02] shrink-0'>
-          <h2 className='text-2xl md:text-3xl font-serif font-bold text-white'>
-            {copy.title}
-          </h2>
-          <p className='text-cp-text-muted text-sm mt-2 font-mono'>
-            {copy.subtitle}
-          </p>
-          {!agentId || !userId ? (
-            <p className='text-cp-red text-xs mt-3'>{copy.missing}</p>
-          ) : null}
+  return (
+    <div className='fixed inset-0 z-50 flex items-center justify-center backdrop-blur-xl bg-black/70 p-4 modal-animate'>
+      <div className='w-full md:max-w-6xl h-[85vh] glass-panel border-2 border-cp-yellow ring-1 ring-cp-yellow flex flex-col shadow-2xl'>
+        <div className='flex items-center justify-between p-6 bg-white/[0.02] border-b border-cp-border shrink-0'>
+          <div className='flex items-center gap-4'>
+            <div className='w-10 h-10 border border-cp-border flex items-center justify-center text-cp-yellow bg-white/[0.02]'>
+              <Cpu size={20} strokeWidth={1.5} />
+            </div>
+            <div>
+              <h2 className='text-xl font-bold font-serif tracking-wide uppercase text-white'>
+                {tt('title')}
+              </h2>
+              <p className='text-xs text-cp-text-muted font-sans mt-0.5'>
+                {tt('subtitle')}
+              </p>
+            </div>
+          </div>
+
+          <button
+            onClick={onClose}
+            className='text-gray-500 hover:text-white transition-colors'
+            aria-label='close'>
+            <X size={24} />
+          </button>
         </div>
 
         <div className='relative flex-1 flex flex-col md:flex-row overflow-hidden bg-transparent'>
           {/* Form */}
-          <div className='w-full md:w-1/3 border-b md:border-b-0 md:border-r border-cp-border p-8 md:p-10 overflow-y-auto custom-scrollbar min-h-0 bg-white/[0.02]'>
+          <div className='w-full md:w-1/3 border-b md:border-b-0 md:border-r border-cp-border p-6 flex flex-col bg-white/[0.02] hover-card m-2 gap-4 overflow-y-auto custom-scrollbar min-h-0'>
+            {!agentId || !userId ? (
+              <p className='text-cp-red text-xs'>{tt('missing_desc')}</p>
+            ) : null}
+
+            <label className='text-cp-text-muted text-xs font-bold uppercase tracking-widest block'>
+              {tt('input_label')}
+            </label>
+
             <div
               role='tablist'
-              className='flex items-center gap-4 mb-6 border-b border-cp-border'>
+              className='flex items-center gap-4 border-b border-cp-border'>
               <button
                 onClick={() => {
                   setMode('url');
@@ -406,12 +384,12 @@ export default function ArticleAnalysisModal({
                 }}
                 role='tab'
                 aria-selected={mode === 'url'}
-                className={`px-3 py-2 text-[10px] font-bold uppercase tracking-widest transition-colors -mb-px border-b-2 ${
+                className={`px-3 py-2 text-[11px] font-bold uppercase tracking-widest transition-colors -mb-px border-b-2 ${
                   mode === 'url'
                     ? 'border-cp-yellow text-cp-yellow'
                     : 'border-transparent text-cp-text-muted hover:text-white'
                 }`}>
-                {copy.mode_url}
+                {tt('mode_url')}
               </button>
 
               <button
@@ -421,12 +399,12 @@ export default function ArticleAnalysisModal({
                 }}
                 role='tab'
                 aria-selected={mode === 'text'}
-                className={`px-3 py-2 text-[10px] font-bold uppercase tracking-widest transition-colors -mb-px border-b-2 ${
+                className={`px-3 py-2 text-[11px] font-bold uppercase tracking-widest transition-colors -mb-px border-b-2 ${
                   mode === 'text'
                     ? 'border-cp-yellow text-cp-yellow'
                     : 'border-transparent text-cp-text-muted hover:text-white'
                 }`}>
-                {copy.mode_text}
+                {tt('mode_text')}
               </button>
 
               <button
@@ -440,19 +418,19 @@ export default function ArticleAnalysisModal({
                 }}
                 role='tab'
                 aria-selected={mode === 'file'}
-                className={`px-3 py-2 text-[10px] font-bold uppercase tracking-widest transition-colors -mb-px border-b-2 ${
+                className={`px-3 py-2 text-[11px] font-bold uppercase tracking-widest transition-colors -mb-px border-b-2 ${
                   mode === 'file'
                     ? 'border-cp-yellow text-cp-yellow'
                     : 'border-transparent text-cp-text-muted hover:text-white'
                 }`}>
-                {copy.mode_file}
+                {tt('mode_file')}
               </button>
             </div>
 
             <div className='grid grid-cols-1 gap-5'>
               <div className='space-y-2'>
                 <label className='block text-cp-text-muted text-[11px] font-bold uppercase tracking-widest'>
-                  {copy.content_type}
+                  {tt('content_type')}
                 </label>
                 <select
                   value={contentType}
@@ -473,19 +451,19 @@ export default function ArticleAnalysisModal({
                       : 'cursor-pointer'
                   }`}>
                   <option value='url' className='bg-black text-white'>
-                    URL 链接
+                    {tt('content_type_url')}
                   </option>
                   <option value='text' className='bg-black text-white'>
-                    纯文本
+                    {tt('content_type_text')}
                   </option>
                   <option value='pdf' className='bg-black text-white'>
-                    PDF 文档
+                    {tt('content_type_pdf')}
                   </option>
                   <option value='excel' className='bg-black text-white'>
-                    Excel 表格
+                    {tt('content_type_excel')}
                   </option>
                   <option value='image' className='bg-black text-white'>
-                    图片
+                    {tt('content_type_image')}
                   </option>
                 </select>
               </div>
@@ -493,13 +471,13 @@ export default function ArticleAnalysisModal({
               {mode === 'url' ? (
                 <div className='space-y-2'>
                   <label className='block text-cp-text-muted text-[11px] font-bold uppercase tracking-widest'>
-                    {copy.content_data}
+                    {tt('content_data')}
                   </label>
                   <input
                     value={url}
                     onChange={(e) => setUrl(e.target.value)}
                     className='w-full px-4 py-3 bg-transparent border border-cp-border text-cp-text outline-none font-mono text-sm'
-                    placeholder={copy.url_ph}
+                    placeholder={tt('url_ph')}
                   />
                 </div>
               ) : null}
@@ -507,13 +485,13 @@ export default function ArticleAnalysisModal({
               {mode === 'text' ? (
                 <div className='space-y-2'>
                   <label className='block text-cp-text-muted text-[11px] font-bold uppercase tracking-widest'>
-                    {copy.content_data}
+                    {tt('content_data')}
                   </label>
                   <textarea
                     value={text}
                     onChange={(e) => setText(e.target.value)}
                     className='w-full min-h-[180px] px-4 py-3 bg-transparent border border-cp-border text-cp-text outline-none font-mono text-sm resize-y custom-scrollbar'
-                    placeholder={copy.text_ph}
+                    placeholder={tt('text_ph')}
                   />
                 </div>
               ) : null}
@@ -521,23 +499,23 @@ export default function ArticleAnalysisModal({
               {mode === 'file' ? (
                 <div className='space-y-2'>
                   <label className='block text-cp-text-muted text-[11px] font-bold uppercase tracking-widest'>
-                    {copy.content_data}
+                    {tt('content_data')}
                   </label>
                   <div className='w-full px-4 py-3 bg-white/[0.01] border border-cp-border text-cp-text-muted font-mono text-xs outline-none cursor-not-allowed'>
-                    文件上传暂不可用
+                    {tt('file_disabled')}
                   </div>
                 </div>
               ) : null}
 
               <div className='space-y-2'>
                 <label className='block text-cp-text-muted text-[11px] font-bold uppercase tracking-widest'>
-                  {copy.focus}
+                  {tt('focus')}
                 </label>
                 <textarea
                   value={analysisFocusRaw}
                   onChange={(e) => setAnalysisFocusRaw(e.target.value)}
                   className='w-full min-h-[90px] px-4 py-3 bg-transparent border border-cp-border text-cp-text outline-none font-mono text-sm resize-y custom-scrollbar'
-                  placeholder={copy.focus_ph}
+                  placeholder={tt('focus_ph')}
                 />
                 {focusList.length ? (
                   <div className='text-[11px] text-cp-text-muted font-mono'>
@@ -549,7 +527,7 @@ export default function ArticleAnalysisModal({
               <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
                 <div className='space-y-2'>
                   <label className='block text-cp-text-muted text-[11px] font-bold uppercase tracking-widest'>
-                    {copy.symbol}
+                    {tt('symbol')}
                   </label>
                   <select
                     value={symbol}
@@ -560,14 +538,14 @@ export default function ArticleAnalysisModal({
                         key={opt.value || '__empty__'}
                         value={opt.value}
                         className='bg-black text-white'>
-                        {language === 'zh' ? opt.labelZh : opt.labelEn}
+                        {tt(opt.labelKey)}
                       </option>
                     ))}
                   </select>
                 </div>
                 <div className='space-y-2'>
                   <label className='block text-cp-text-muted text-[11px] font-bold uppercase tracking-widest'>
-                    {copy.trading_date}
+                    {tt('trading_date')}
                   </label>
                   <select
                     value={tradingDate}
@@ -578,45 +556,53 @@ export default function ArticleAnalysisModal({
                         key={d || '__empty__'}
                         value={d}
                         className='bg-black text-white'>
-                        {d || (language === 'zh' ? '不指定' : 'Not set')}
+                        {d || tt('not_set')}
                       </option>
                     ))}
                   </select>
                 </div>
               </div>
 
-              <div className='flex justify-end gap-3 pt-2'>
-                <button
-                  onClick={onClose}
-                  className='px-6 py-3 btn-outline text-xs'>
-                  {copy.cancel}
-                </button>
-                <button
-                  onClick={handleSubmit}
-                  disabled={!canSubmit || isSubmitting}
-                  className='px-8 py-3 btn-gold text-xs disabled:opacity-50 disabled:cursor-not-allowed'>
-                  {isSubmitting ? '...' : copy.submit}
-                </button>
-              </div>
+              <button
+                onClick={handleSubmit}
+                disabled={!canSubmit || isSubmitting}
+                className='w-full py-4 btn-gold flex items-center justify-center gap-2 disabled:opacity-50 mt-auto'>
+                {isSubmitting ? (
+                  <RotateCcw className='animate-spin' size={18} />
+                ) : (
+                  <Play size={18} />
+                )}
+                {tt('submit')}
+              </button>
             </div>
           </div>
 
           {/* Result */}
-          <div className='flex-1 p-8 md:p-10 flex flex-col bg-transparent gap-6 min-h-0'>
-            <div className='flex items-center justify-between'>
-              <div className='text-xs font-bold uppercase tracking-widest text-cp-text-muted'>
-                {copy.response}
-              </div>
+          <div className='flex-1 p-8 flex flex-col bg-transparent gap-6 min-h-0'>
+            <div className='flex items-center justify-between mb-4'>
+              <label className='text-cp-text-muted text-xs font-bold uppercase tracking-widest block'>
+                {tt('response')}
+              </label>
               <div className='flex items-center gap-4'>
                 {isSubmitting && (
                   <span className='text-[11px] text-cp-yellow tracking-widest'>
-                    {language === 'zh' ? '生成中...' : 'Loading...'}
+                    {tt('submitting')}
                   </span>
                 )}
                 <button
+                  type='button'
+                  onClick={handleCopy}
+                  disabled={isSubmitting || !resultText.trim()}
+                  className='text-xs text-cp-text-muted hover:text-white transition-colors uppercase tracking-widest disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2'
+                  aria-label={t('common.copy')}>
+                  <Copy size={14} />
+                  {t('common.copy')}
+                </button>
+                <button
+                  type='button'
                   onClick={() => setResultText('')}
                   className='text-xs text-cp-text-muted hover:text-white transition-colors uppercase tracking-widest'>
-                  {copy.clear}
+                  {tt('clear')}
                 </button>
               </div>
             </div>
@@ -650,12 +636,15 @@ export default function ArticleAnalysisModal({
                   dangerouslySetInnerHTML={{ __html: renderedOutput }}
                 />
               ) : (
-                <span className='text-gray-600 italic'>
-                  {language === 'zh'
-                    ? '等待生成结果...'
-                    : 'Waiting for result...'}
-                </span>
+                <span className='text-gray-600 italic'>{tt('waiting')}</span>
               )}
+            </div>
+
+            <div className='mt-6 flex justify-end'>
+              <button className='px-6 py-3 btn-outline text-xs flex items-center gap-2'>
+                <Save size={16} />
+                {t('common.save')}
+              </button>
             </div>
           </div>
         </div>

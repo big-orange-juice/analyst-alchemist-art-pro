@@ -16,8 +16,7 @@ export default function NotificationSystem({
   onDismiss,
   onNotificationClick
 }: NotificationSystemProps) {
-  const { dictionary } = useLanguage();
-  const copy = dictionary.notification_system;
+  const { t } = useLanguage();
   return (
     <div className='fixed top-24 right-8 z-[9999] flex flex-col gap-4 w-full max-w-[380px] pointer-events-none font-sans'>
       <style>
@@ -107,7 +106,7 @@ export default function NotificationSystem({
                     <div
                       className={`w-1.5 h-1.5 rounded-full ${accentClass} animate-pulse`}></div>
                     <span className='text-[9px] font-bold uppercase tracking-widest text-cp-text-muted'>
-                      {copy.live}
+                      {t('notification_system.live')}
                     </span>
                   </div>
                 </div>

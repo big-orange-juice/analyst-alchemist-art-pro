@@ -1,0 +1,34 @@
+export const common = {
+  zh: {
+    cancel: '取消',
+    confirm: '确认',
+    back: '返回',
+    next: '下一步',
+    save: '保存',
+    close: '关闭',
+    edit: '编辑',
+    delete: '删除',
+    copy: '复制',
+    copied: '已复制',
+    copy_failed: '复制失败',
+    chat: '通讯',
+    online: '在线',
+    offline: '离线'
+  },
+  en: {
+    cancel: 'Cancel',
+    confirm: 'Confirm',
+    back: 'Back',
+    next: 'Next',
+    save: 'Save',
+    close: 'Close',
+    edit: 'Edit',
+    delete: 'Delete',
+    copy: 'Copy',
+    copied: 'Copied',
+    copy_failed: 'Copy failed',
+    chat: 'Chat',
+    online: 'Online',
+    offline: 'Offline'
+  }
+} as const;

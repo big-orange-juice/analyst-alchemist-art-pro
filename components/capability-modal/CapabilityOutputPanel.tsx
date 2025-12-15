@@ -1,9 +1,10 @@
 'use client';
 
-import { useMemo } from 'react';
-import { Save } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Copy, Save } from 'lucide-react';
 import MarkdownIt from 'markdown-it';
 import { useLanguage } from '@/lib/useLanguage';
+import { copyToClipboard } from '@/lib/clipboard';
 
 type Props = {
   isLoading: boolean;
@@ -13,8 +14,35 @@ type Props = {
 export default function CapabilityOutputPanel({ isLoading, output }: Props) {
   const { t } = useLanguage();
 
+  const [copyStatus, setCopyStatus] = useState<'idle' | 'ok' | 'fail'>('idle');
+  const resetTimerRef = useRef<number | null>(null);
+
   const md = useMemo(() => new MarkdownIt({ linkify: true, breaks: true }), []);
   const renderedOutput = useMemo(() => md.render(output || ''), [md, output]);
+
+  useEffect(() => {
+    return () => {
+      if (resetTimerRef.current != null) {
+        window.clearTimeout(resetTimerRef.current);
+      }
+    };
+  }, []);
+
+  const handleCopy = async () => {
+    const value = output || '';
+    if (!value.trim()) return;
+
+    const ok = await copyToClipboard(value);
+    setCopyStatus(ok ? 'ok' : 'fail');
+
+    if (resetTimerRef.current != null) {
+      window.clearTimeout(resetTimerRef.current);
+    }
+    resetTimerRef.current = window.setTimeout(
+      () => setCopyStatus('idle'),
+      1200
+    );
+  };
 
   return (
     <div className='flex-1 p-8 flex flex-col bg-transparent gap-6 min-h-0'>
@@ -72,9 +100,24 @@ export default function CapabilityOutputPanel({ isLoading, output }: Props) {
         </div>
 
         <div className='mt-6 flex justify-end'>
-          <button className='px-6 py-3 btn-outline text-xs flex items-center gap-2'>
-            <Save size={16} /> {t('capability_modal.save')}
-          </button>
+          <div className='flex items-center gap-3'>
+            <button
+              type='button'
+              onClick={handleCopy}
+              disabled={isLoading || !output.trim()}
+              className='px-6 py-3 btn-outline text-xs flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed'
+              aria-label={t('common.copy')}>
+              <Copy size={16} />
+              {copyStatus === 'ok'
+                ? t('common.copied')
+                : copyStatus === 'fail'
+                ? t('common.copy_failed')
+                : t('common.copy')}
+            </button>
+            <button className='px-6 py-3 btn-outline text-xs flex items-center gap-2'>
+              <Save size={16} /> {t('capability_modal.save')}
+            </button>
+          </div>
         </div>
       </div>
     </div>

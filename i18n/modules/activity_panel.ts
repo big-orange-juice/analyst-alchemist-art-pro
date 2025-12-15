@@ -1,0 +1,38 @@
+export const activity_panel = {
+  zh: {
+    tab_overview: '活动概览',
+    tab_logs: '运行日志',
+    current_activity: '当前活动',
+    status: '状态',
+    activity_info: '活动信息',
+    loading_dots: '加载中...',
+    loading: '加载中',
+    empty: '暂无活动',
+    unknown: '未知',
+    dash: '—',
+    period: '第 {n} 期',
+    fetch_failed: '获取活动失败',
+    date_range: '日期：{start} ~ {end}',
+    date_empty: '日期：—',
+    initial_capital: '初始资金：¥{amount}',
+    initial_empty: '初始资金：—'
+  },
+  en: {
+    tab_overview: 'ACTIVITY',
+    tab_logs: 'LOGS',
+    current_activity: 'CURRENT ACTIVITY',
+    status: 'STATUS',
+    activity_info: 'ACTIVITY INFO',
+    loading_dots: 'LOADING...',
+    loading: 'LOADING',
+    empty: 'NO ACTIVITY',
+    unknown: 'UNKNOWN',
+    dash: '—',
+    period: 'PERIOD {n}',
+    fetch_failed: 'Failed to load activity',
+    date_range: 'DATE: {start} ~ {end}',
+    date_empty: 'DATE: —',
+    initial_capital: 'INITIAL: ¥{amount}',
+    initial_empty: 'INITIAL: —'
+  }
+} as const;

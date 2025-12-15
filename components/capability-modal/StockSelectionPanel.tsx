@@ -25,27 +25,6 @@ type Props = {
   ) => void;
 };
 
-const INDUSTRY_OPTIONS = [
-  '不限',
-  '消费',
-  '科技',
-  '医药',
-  '金融',
-  '能源',
-  '制造',
-  '地产'
-];
-
-const THEME_OPTIONS = [
-  '不限',
-  '价值',
-  '成长',
-  '红利',
-  '低波动',
-  '高股息',
-  '景气度'
-];
-
 export default function StockSelectionPanel({
   isLoading,
   onNotify,
@@ -53,12 +32,23 @@ export default function StockSelectionPanel({
   setOutput,
   customPrompt
 }: Props) {
-  const { t } = useLanguage();
+  const { t, get, language } = useLanguage();
   const agentId = useAgentStore((s) => s.agentId);
   const currentUser = useUserStore((s) => s.currentUser);
 
-  const [industry, setIndustry] = useState(INDUSTRY_OPTIONS[0]);
-  const [theme, setTheme] = useState(THEME_OPTIONS[0]);
+  const industryOptions =
+    (get('stock_selection_panel.industry_options') as Array<{
+      value: string;
+      label: string;
+    }>) ?? [];
+  const themeOptions =
+    (get('stock_selection_panel.theme_options') as Array<{
+      value: string;
+      label: string;
+    }>) ?? [];
+
+  const [industry, setIndustry] = useState('');
+  const [theme, setTheme] = useState('');
   const [userCustomInput, setUserCustomInput] = useState(customPrompt || '');
   const [needLlmAnalysis, setNeedLlmAnalysis] = useState(false);
 
@@ -66,13 +56,22 @@ export default function StockSelectionPanel({
     setUserCustomInput(customPrompt || '');
   }, [customPrompt]);
 
+  useEffect(() => {
+    if (!industry && industryOptions.length)
+      setIndustry(industryOptions[0].value);
+  }, [industry, industryOptions]);
+
+  useEffect(() => {
+    if (!theme && themeOptions.length) setTheme(themeOptions[0].value);
+  }, [theme, themeOptions]);
+
   const handleExecute = async () => {
     setIsLoading(true);
 
     if (!agentId || !currentUser?.id) {
       onNotify?.(
-        t('capability_modal.missing_agent_title') || '缺少 Agent',
-        t('capability_modal.missing_agent_desc') || '请先创建或选择 Agent。',
+        t('capability_modal.missing_agent_title'),
+        t('capability_modal.missing_agent_desc'),
         'error'
       );
       setIsLoading(false);
@@ -102,20 +101,32 @@ export default function StockSelectionPanel({
       const maybeJson = tryParseJsonText(text);
       if (maybeJson != null) {
         const mdText = formatStockSelectionResponse(
-          maybeJson as StockSelectionResponse
+          maybeJson as StockSelectionResponse,
+          { t, language }
         );
-        setOutput(mdText || '（无法格式化返回内容）');
+        setOutput(mdText || t('stock_selection_panel.unable_format'));
       } else if (looksLikeJsonText(text)) {
-        const message = '返回内容不是有效 JSON，无法解析。';
-        onNotify?.('解析失败', message, 'error');
+        const message = t('stock_selection_panel.parse_failed_desc');
+        onNotify?.(
+          t('stock_selection_panel.parse_failed_title'),
+          message,
+          'error'
+        );
         setOutput(message);
       } else {
         // 如果后端返回的是自然语言说明，直接以文本（Markdown）展示即可
-        setOutput(text || '（空响应）');
+        setOutput(text || t('stock_selection_panel.empty_response'));
       }
     } catch (err) {
-      const message = err instanceof Error ? err.message : '执行出错';
-      onNotify?.('执行失败', message, 'error');
+      const message =
+        err instanceof Error
+          ? err.message
+          : t('stock_selection_panel.execute_failed_desc');
+      onNotify?.(
+        t('stock_selection_panel.execute_failed_title'),
+        message,
+        'error'
+      );
       setOutput(message);
     } finally {
       setIsLoading(false);
@@ -131,15 +142,15 @@ export default function StockSelectionPanel({
       <div className='space-y-4'>
         <div className='flex flex-col gap-2'>
           <span className='text-xs text-cp-text-muted tracking-widest uppercase'>
-            行业
+            {t('stock_selection_panel.industry_label')}
           </span>
           <select
             value={industry}
             onChange={(e) => setIndustry(e.target.value)}
             className='bg-black/40 border border-cp-border px-3 py-2 text-sm text-white focus:border-cp-yellow outline-none'>
-            {INDUSTRY_OPTIONS.map((opt) => (
-              <option key={opt} value={opt}>
-                {opt}
+            {industryOptions.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
               </option>
             ))}
           </select>
@@ -147,15 +158,15 @@ export default function StockSelectionPanel({
 
         <div className='flex flex-col gap-2'>
           <span className='text-xs text-cp-text-muted tracking-widest uppercase'>
-            主题
+            {t('stock_selection_panel.theme_label')}
           </span>
           <select
             value={theme}
             onChange={(e) => setTheme(e.target.value)}
             className='bg-black/40 border border-cp-border px-3 py-2 text-sm text-white focus:border-cp-yellow outline-none'>
-            {THEME_OPTIONS.map((opt) => (
-              <option key={opt} value={opt}>
-                {opt}
+            {themeOptions.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
               </option>
             ))}
           </select>
@@ -163,19 +174,19 @@ export default function StockSelectionPanel({
 
         <div className='flex flex-col gap-2'>
           <span className='text-xs text-cp-text-muted tracking-widest uppercase'>
-            用户输入内容
+            {t('stock_selection_panel.user_input_label')}
           </span>
           <textarea
             value={userCustomInput}
             onChange={(e) => setUserCustomInput(e.target.value)}
-            placeholder='例如：偏好价值/成长，持有周期，风险偏好等'
+            placeholder={t('stock_selection_panel.user_input_ph')}
             className='bg-black/40 border border-cp-border px-3 py-2 text-sm text-white focus:border-cp-yellow outline-none placeholder:text-cp-text-muted resize-none min-h-[196px]'
           />
         </div>
 
         <label className='flex items-center justify-between gap-3 bg-black/20 border border-cp-border px-3 py-2 hover:border-cp-yellow transition-colors select-none cursor-pointer'>
           <span className='text-xs text-cp-text-muted uppercase tracking-widest'>
-            是否启用大模型分析
+            {t('stock_selection_panel.enable_llm')}
           </span>
 
           <span className='relative inline-flex items-center'>
