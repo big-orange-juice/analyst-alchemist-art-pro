@@ -100,7 +100,7 @@ export default function LandingPage({
   useEffect(() => {
     let cancelled = false;
 
-    apiFetch<StockActivity[]>('/api/v2/stock-activities', {
+    apiFetch<StockActivity[]>('/api/stock-activities', {
       unauthorizedHandling: 'ignore'
     })
       .then((data) => {

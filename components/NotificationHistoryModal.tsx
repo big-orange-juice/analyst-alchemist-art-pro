@@ -27,13 +27,13 @@ export default function NotificationHistoryModal({
   const { dictionary } = useLanguage();
   const copy = dictionary.notification_history;
   return (
-    <div className='fixed inset-0 z-[100] flex items-center justify-center backdrop-blur-sm bg-black/80 p-4 modal-animate'>
-      <div className='w-full max-w-md glass-panel border border-white/[0.02] flex flex-col shadow-[0_0_40px_rgba(0,0,0,0.5)] h-[600px] relative'>
+    <div className='fixed inset-0 z-[100] flex items-center justify-center backdrop-blur-xl bg-black/70 p-4 modal-animate'>
+      <div className='w-full max-w-md glass-panel border border-cp-yellow/50 ring-1 ring-cp-yellow/20 flex flex-col shadow-[0_0_40px_rgba(0,0,0,0.5)] h-[600px] relative'>
         {/* Header */}
-        <div className='flex items-center justify-between p-4 border-b border-white/[0.02] bg-white/[0.02] shrink-0'>
+        <div className='flex items-center justify-between p-4 border-b border-cp-border bg-white/[0.02] shrink-0'>
           <div className='flex items-center gap-2'>
-            <Bell className='text-[#D4AF37]' size={18} />
-            <span className='font-bold font-oxanium text-[#EAEAEA] uppercase'>
+            <Bell className='text-cp-yellow' size={18} />
+            <span className='font-bold font-oxanium text-cp-text uppercase'>
               {copy.title}
             </span>
             <span className='bg-white/[0.05] text-xs px-1.5 py-0.5 rounded text-white'>
@@ -49,7 +49,7 @@ export default function NotificationHistoryModal({
             </button>
             <button
               onClick={onClose}
-              className='p-2 text-gray-500 hover:text-[#EAEAEA] transition-colors'>
+              className='p-2 text-gray-500 hover:text-cp-text transition-colors'>
               <X size={20} />
             </button>
           </div>
@@ -67,7 +67,7 @@ export default function NotificationHistoryModal({
               {notifications.map((note) => (
                 <div
                   key={note.id}
-                  className='bg-white/[0.02] border border-white/[0.02] p-3 hover:border-white/[0.1] transition-colors flex gap-3 group hover-card'>
+                  className='bg-white/[0.02] border border-cp-border p-3 hover:border-cp-yellow/30 transition-colors flex gap-3 group hover-card'>
                   <div className='mt-1 shrink-0'>
                     {note.type === 'success' && (
                       <CheckCircle size={16} className='text-[#D4AF37]' />

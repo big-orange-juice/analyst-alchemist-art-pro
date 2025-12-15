@@ -168,11 +168,11 @@ export default function ChatWidget({ isOpen, onClose }: ChatWidgetProps) {
         left: windowWidth >= 768 ? `${position.x}px` : '0',
         top: windowWidth >= 768 ? `${position.y}px` : '0'
       }}
-      className='fixed md:w-[450px] md:h-[600px] w-full h-full glass-panel border border-white/[0.02] flex flex-col z-[999] shadow-[0_10px_40px_rgba(0,0,0,0.6)] animate-in fade-in duration-200'>
+      className='fixed md:w-[450px] md:h-[600px] w-full h-full glass-panel border border-cp-border ring-1 ring-cp-yellow/10 flex flex-col z-[999] shadow-[0_10px_40px_rgba(0,0,0,0.6)] animate-in fade-in duration-200'>
       {/* Header - Draggable Area */}
       <div
         onMouseDown={handleMouseDown}
-        className='bg-white/[0.02] border-b border-white/[0.02] p-4 flex justify-between items-center cursor-move select-none active:bg-white/[0.05] transition-colors group shrink-0'>
+        className='bg-white/[0.02] border-b border-cp-border p-4 flex justify-between items-center cursor-move select-none active:bg-white/[0.05] transition-colors group shrink-0'>
         <div className='flex items-center gap-2 text-cp-yellow'>
           <Terminal size={18} strokeWidth={2} />
           <span className='font-bold tracking-wider font-sans text-base'>

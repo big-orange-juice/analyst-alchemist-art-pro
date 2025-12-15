@@ -61,29 +61,12 @@ export default function CapabilityModal({
     [md, output]
   );
 
-  const [selectionDate, setSelectionDate] = useState(() => {
-    const now = new Date();
-    const month = `${now.getMonth() + 1}`.padStart(2, '0');
-    const day = `${now.getDate()}`.padStart(2, '0');
-    return `${now.getFullYear()}-${month}-${day}`;
-  });
-  const [priceRange, setPriceRange] = useState<[number, number]>([10, 100]);
-  const [volumeMin, setVolumeMin] = useState(1000000);
-  const [ma5AboveMa20, setMa5AboveMa20] = useState(true);
-  const [rsiRange, setRsiRange] = useState<[number, number]>([30, 70]);
-  const [macdPositive, setMacdPositive] = useState(true);
-  const [peRatioMax, setPeRatioMax] = useState(30);
-  const [pbRatioMax, setPbRatioMax] = useState(5);
-  const [roeMin, setRoeMin] = useState(3);
-  const [debtRatioMax, setDebtRatioMax] = useState(60);
-  const [revenueGrowthMin, setRevenueGrowthMin] = useState(10);
-  const [netProfitMarginMin, setNetProfitMarginMin] = useState(10);
-  const [marketCapRange, setMarketCapRange] = useState<[number, number]>([
-    100, 10000
-  ]);
-  const [sectors, setSectors] = useState('消费,科技');
-  const [excludeSectors, setExcludeSectors] = useState('金融');
-  const [includeLLM, setIncludeLLM] = useState(true);
+  const INDUSTRY_OPTIONS = useMemo(() => ['科技', '消费', '医药'], []);
+  const THEME_OPTIONS = useMemo(() => ['AI', '新能源', '高股息'], []);
+  const [industry, setIndustry] = useState(INDUSTRY_OPTIONS[0]);
+  const [theme, setTheme] = useState(THEME_OPTIONS[0]);
+  const [userCustomInput, setUserCustomInput] = useState('');
+  const [needLlmAnalysis, setNeedLlmAnalysis] = useState(false);
 
   const formatStockAnalysisResponse = (data: Record<string, any>) => {
     if (!data) return '';
@@ -152,51 +135,6 @@ export default function CapabilityModal({
     return lines.join('\n\n');
   };
 
-  const formatStockSelectionResponse = (data: Record<string, any>) => {
-    if (!data) return '';
-    const lines: string[] = [];
-    lines.push(`# 智能选股 @ ${data.trading_date || ''}`);
-    if (typeof data.total_candidates !== 'undefined') {
-      lines.push(`**候选数**：${data.total_candidates}`);
-    }
-
-    if (Array.isArray(data.candidates) && data.candidates.length) {
-      lines.push('## 候选列表');
-      data.candidates.forEach((c: any, idx: number) => {
-        lines.push(`- ${idx + 1}. ${c.symbol || c.name || '未命名'}`);
-        if (c.reasoning) lines.push(`  - ${c.reasoning}`);
-        if (c.score) lines.push(`  - Score: ${c.score}`);
-      });
-    }
-
-    if (data.filters_applied) {
-      const f = data.filters_applied;
-      lines.push('## 筛选条件');
-      if (f.fundamental?.net_profit_margin_min !== undefined) {
-        lines.push(`- 净利率下限: ${f.fundamental.net_profit_margin_min}`);
-      }
-    }
-
-    if (data.llm_interpretation) {
-      lines.push('## LLM 解读');
-      lines.push(data.llm_interpretation);
-    }
-
-    if (data.macro_analysis) {
-      const m = data.macro_analysis;
-      lines.push('## 宏观分析');
-      lines.push(
-        `- 建议: ${m.recommendation || ''} (信心 ${m.confidence ?? ''})`
-      );
-      if (m.reasoning) lines.push(m.reasoning);
-      if (Array.isArray(m.key_factors)) {
-        m.key_factors.forEach((k: string) => lines.push(`- ${k}`));
-      }
-    }
-
-    return lines.join('\n\n');
-  };
-
   const handleExecute = async () => {
     setIsLoading(true);
 
@@ -220,12 +158,15 @@ export default function CapabilityModal({
       };
 
       try {
-        const data = await apiFetch('/api/stock-analysis', {
-          method: 'POST',
-          body: payload,
-          parseAs: 'json',
-          errorHandling: 'ignore'
-        });
+        const data = await apiFetch<Record<string, any>>(
+          '/api/stock-analysis',
+          {
+            method: 'POST',
+            body: payload,
+            parseAs: 'json',
+            errorHandling: 'ignore'
+          }
+        );
         setOutput(formatStockAnalysisResponse(data) || JSON.stringify(data));
       } catch (err) {
         const message = err instanceof Error ? err.message : '执行出错';
@@ -248,50 +189,26 @@ export default function CapabilityModal({
         setIsLoading(false);
         return;
       }
-
-      const payload = {
-        agent_id: agentId,
-        user_id: currentUser.id,
-        trading_date: selectionDate.replaceAll('-', ''),
-        filters: {
-          technical: {
-            price_range: priceRange,
-            volume_min: Number(volumeMin),
-            ma5_above_ma20: ma5AboveMa20,
-            rsi_range: rsiRange,
-            macd_positive: macdPositive
-          },
-          fundamental: {
-            pe_ratio_max: Number(peRatioMax),
-            pb_ratio_max: Number(pbRatioMax),
-            roe_min: Number(roeMin),
-            debt_ratio_max: Number(debtRatioMax),
-            revenue_growth_min: Number(revenueGrowthMin),
-            net_profit_margin_min: Number(netProfitMarginMin),
-            market_cap_range: marketCapRange
-          },
-          sector: {
-            sectors: sectors
-              .split(',')
-              .map((s) => s.trim())
-              .filter(Boolean),
-            exclude_sectors: excludeSectors
-              .split(',')
-              .map((s) => s.trim())
-              .filter(Boolean)
-          }
-        },
-        include_llm_interpretation: includeLLM
-      };
-
       try {
-        const data = await apiFetch('/api/stock-selection', {
-          method: 'POST',
-          body: payload,
-          parseAs: 'json',
-          errorHandling: 'ignore'
-        });
-        setOutput(formatStockSelectionResponse(data) || JSON.stringify(data));
+        const payload = {
+          agent_id: agentId,
+          user_id: currentUser.id,
+          industry,
+          theme,
+          user_custom_input: userCustomInput,
+          need_llm_analysis: needLlmAnalysis
+        };
+
+        const text = await apiFetch<string, typeof payload>(
+          '/api/research/stock-selection',
+          {
+            method: 'POST',
+            body: payload,
+            parseAs: 'text',
+            errorHandling: 'ignore'
+          }
+        );
+        setOutput(text);
       } catch (err) {
         const message = err instanceof Error ? err.message : '执行出错';
         onNotify?.('执行失败', message, 'error');
@@ -310,12 +227,12 @@ export default function CapabilityModal({
   };
 
   return (
-    <div className='fixed inset-0 z-50 flex items-center justify-center backdrop-blur-md bg-black/80 p-4 modal-animate'>
-      <div className='w-full md:max-w-6xl h-[85vh] glass-panel border border-white/[0.02] flex flex-col shadow-2xl'>
+    <div className='fixed inset-0 z-50 flex items-center justify-center backdrop-blur-xl bg-black/70 p-4 modal-animate'>
+      <div className='w-full md:max-w-6xl h-[85vh] glass-panel border border-cp-yellow/50 ring-1 ring-cp-yellow/20 flex flex-col shadow-2xl'>
         {/* Header */}
-        <div className='flex items-center justify-between p-6 bg-white/[0.02] border-b border-white/[0.02] shrink-0'>
+        <div className='flex items-center justify-between p-6 bg-white/[0.02] border-b border-cp-border shrink-0'>
           <div className='flex items-center gap-4'>
-            <div className='w-10 h-10 border border-white/[0.02] flex items-center justify-center text-cp-yellow bg-white/[0.02]'>
+            <div className='w-10 h-10 border border-cp-border flex items-center justify-center text-cp-yellow bg-white/[0.02]'>
               <Cpu size={20} strokeWidth={1.5} />
             </div>
             <div>
@@ -336,7 +253,7 @@ export default function CapabilityModal({
 
         <div className='relative flex-1 flex flex-col md:flex-row overflow-hidden bg-transparent'>
           {/* Input */}
-          <div className='w-full md:w-1/3 border-b md:border-b-0 md:border-r border-white/[0.02] p-6 flex flex-col bg-white/[0.02] hover-card m-2 gap-4 overflow-y-auto custom-scrollbar min-h-0'>
+          <div className='w-full md:w-1/3 border-b md:border-b-0 md:border-r border-cp-border p-6 flex flex-col bg-white/[0.02] hover-card m-2 gap-4 overflow-y-auto custom-scrollbar min-h-0'>
             <label className='text-cp-text-muted text-xs font-bold uppercase tracking-widest block'>
               {t('capability_modal.input_label')}
             </label>
@@ -383,269 +300,79 @@ export default function CapabilityModal({
                 </div>
               </div>
             ) : isStockSelection ? (
-              <div className='space-y-6'>
+              <div className='space-y-4'>
                 <div className='flex flex-col gap-2'>
                   <span className='text-xs text-cp-text-muted tracking-widest uppercase'>
-                    {t('capability_modal.trading_date') || '交易日'}
+                    行业
                   </span>
-                  <input
-                    type='date'
-                    value={selectionDate}
-                    onChange={(e) => setSelectionDate(e.target.value)}
-                    className='bg-black/40 border border-cp-border px-3 py-2 text-sm text-white focus:border-cp-yellow outline-none'
+                  <select
+                    value={industry}
+                    onChange={(e) => setIndustry(e.target.value)}
+                    className='bg-black/40 border border-cp-border px-3 py-2 text-sm text-white focus:border-cp-yellow outline-none'>
+                    {INDUSTRY_OPTIONS.map((opt) => (
+                      <option key={opt} value={opt}>
+                        {opt}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className='flex flex-col gap-2'>
+                  <span className='text-xs text-cp-text-muted tracking-widest uppercase'>
+                    主题
+                  </span>
+                  <select
+                    value={theme}
+                    onChange={(e) => setTheme(e.target.value)}
+                    className='bg-black/40 border border-cp-border px-3 py-2 text-sm text-white focus:border-cp-yellow outline-none'>
+                    {THEME_OPTIONS.map((opt) => (
+                      <option key={opt} value={opt}>
+                        {opt}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className='flex flex-col gap-2'>
+                  <span className='text-xs text-cp-text-muted tracking-widest uppercase'>
+                    用户输入内容
+                  </span>
+                  <textarea
+                    value={userCustomInput}
+                    onChange={(e) => setUserCustomInput(e.target.value)}
+                    placeholder='例如：偏好价值/成长，持有周期，风险偏好等'
+                    className='bg-black/40 border border-cp-border px-3 py-2 text-sm text-white focus:border-cp-yellow outline-none placeholder:text-cp-text-muted resize-none min-h-[196px]'
                   />
                 </div>
 
-                <div className='bg-black/20 p-3 space-y-3'>
-                  <div className='text-[11px] font-bold text-cp-yellow tracking-widest uppercase'>
-                    技术面
-                  </div>
-                  <div className='grid grid-cols-2 gap-3'>
-                    <div className='flex flex-col gap-2'>
-                      <span className='text-xs text-cp-text-muted tracking-widest uppercase'>
-                        价格区间
-                      </span>
-                      <div className='flex gap-2'>
-                        <input
-                          type='number'
-                          value={priceRange[0]}
-                          onChange={(e) =>
-                            setPriceRange([
-                              Number(e.target.value),
-                              priceRange[1]
-                            ])
-                          }
-                          className='bg-black/40 border border-cp-border px-3 py-2 text-sm text-white focus:border-cp-yellow outline-none w-full'
-                        />
-                        <input
-                          type='number'
-                          value={priceRange[1]}
-                          onChange={(e) =>
-                            setPriceRange([
-                              priceRange[0],
-                              Number(e.target.value)
-                            ])
-                          }
-                          className='bg-black/40 border border-cp-border px-3 py-2 text-sm text-white focus:border-cp-yellow outline-none w-full'
-                        />
-                      </div>
-                    </div>
+                <label className='flex items-center justify-between gap-3 bg-black/20 border border-cp-border px-3 py-2 hover:border-cp-yellow transition-colors select-none cursor-pointer'>
+                  <span className='text-xs text-cp-text-muted uppercase tracking-widest'>
+                    是否启用大模型分析
+                  </span>
 
-                    <div className='flex flex-col gap-2'>
-                      <span className='text-xs text-cp-text-muted tracking-widest uppercase'>
-                        成交量下限
-                      </span>
-                      <input
-                        type='number'
-                        value={volumeMin}
-                        onChange={(e) => setVolumeMin(Number(e.target.value))}
-                        className='bg-black/40 border border-cp-border px-3 py-2 text-sm text-white focus:border-cp-yellow outline-none'
-                      />
-                    </div>
-                  </div>
-
-                  <div className='grid grid-cols-2 gap-3'>
-                    <label className='flex items-center gap-2 text-xs text-cp-text-muted uppercase tracking-widest'>
-                      <input
-                        type='checkbox'
-                        checked={ma5AboveMa20}
-                        onChange={(e) => setMa5AboveMa20(e.target.checked)}
-                        className='accent-cp-yellow'
-                      />
-                      MA5 {'>'} MA20
-                    </label>
-
-                    <label className='flex items-center gap-2 text-xs text-cp-text-muted uppercase tracking-widest'>
-                      <input
-                        type='checkbox'
-                        checked={macdPositive}
-                        onChange={(e) => setMacdPositive(e.target.checked)}
-                        className='accent-cp-yellow'
-                      />
-                      MACD {'>'} 0
-                    </label>
-                  </div>
-
-                  <div className='flex flex-col gap-2'>
-                    <span className='text-xs text-cp-text-muted tracking-widest uppercase'>
-                      RSI 区间
-                    </span>
-                    <div className='flex gap-2'>
-                      <input
-                        type='number'
-                        value={rsiRange[0]}
-                        onChange={(e) =>
-                          setRsiRange([Number(e.target.value), rsiRange[1]])
-                        }
-                        className='bg-black/40 border border-cp-border px-3 py-2 text-sm text-white focus:border-cp-yellow outline-none w-full'
-                      />
-                      <input
-                        type='number'
-                        value={rsiRange[1]}
-                        onChange={(e) =>
-                          setRsiRange([rsiRange[0], Number(e.target.value)])
-                        }
-                        className='bg-black/40 border border-cp-border px-3 py-2 text-sm text-white focus:border-cp-yellow outline-none w-full'
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <div className='bg-black/20 p-3 space-y-3'>
-                  <div className='text-[11px] font-bold text-cp-yellow tracking-widest uppercase'>
-                    基本面
-                  </div>
-                  <div className='grid grid-cols-2 gap-3'>
-                    <div className='flex flex-col gap-2'>
-                      <span className='text-xs text-cp-text-muted tracking-widest uppercase'>
-                        PE 上限
-                      </span>
-                      <input
-                        type='number'
-                        value={peRatioMax}
-                        onChange={(e) => setPeRatioMax(Number(e.target.value))}
-                        className='bg-black/40 border border-cp-border px-3 py-2 text-sm text-white focus:border-cp-yellow outline-none'
-                      />
-                    </div>
-                    <div className='flex flex-col gap-2'>
-                      <span className='text-xs text-cp-text-muted tracking-widest uppercase'>
-                        PB 上限
-                      </span>
-                      <input
-                        type='number'
-                        value={pbRatioMax}
-                        onChange={(e) => setPbRatioMax(Number(e.target.value))}
-                        className='bg-black/40 border border-cp-border px-3 py-2 text-sm text-white focus:border-cp-yellow outline-none'
-                      />
-                    </div>
-                  </div>
-
-                  <div className='grid grid-cols-2 gap-3'>
-                    <div className='flex flex-col gap-2'>
-                      <span className='text-xs text-cp-text-muted tracking-widest uppercase'>
-                        ROE 下限(%)
-                      </span>
-                      <input
-                        type='number'
-                        value={roeMin}
-                        onChange={(e) => setRoeMin(Number(e.target.value))}
-                        className='bg-black/40 border border-cp-border px-3 py-2 text-sm text-white focus:border-cp-yellow outline-none'
-                      />
-                    </div>
-                    <div className='flex flex-col gap-2'>
-                      <span className='text-xs text-cp-text-muted tracking-widest uppercase'>
-                        负债率上限(%)
-                      </span>
-                      <input
-                        type='number'
-                        value={debtRatioMax}
-                        onChange={(e) =>
-                          setDebtRatioMax(Number(e.target.value))
-                        }
-                        className='bg-black/40 border border-cp-border px-3 py-2 text-sm text-white focus:border-cp-yellow outline-none'
-                      />
-                    </div>
-                  </div>
-
-                  <div className='grid grid-cols-2 gap-3'>
-                    <div className='flex flex-col gap-2'>
-                      <span className='text-xs text-cp-text-muted tracking-widest uppercase'>
-                        营收增速下限(%)
-                      </span>
-                      <input
-                        type='number'
-                        value={revenueGrowthMin}
-                        onChange={(e) =>
-                          setRevenueGrowthMin(Number(e.target.value))
-                        }
-                        className='bg-black/40 border border-cp-border px-3 py-2 text-sm text-white focus:border-cp-yellow outline-none'
-                      />
-                    </div>
-                    <div className='flex flex-col gap-2'>
-                      <span className='text-xs text-cp-text-muted tracking-widest uppercase'>
-                        净利率下限(%)
-                      </span>
-                      <input
-                        type='number'
-                        value={netProfitMarginMin}
-                        onChange={(e) =>
-                          setNetProfitMarginMin(Number(e.target.value))
-                        }
-                        className='bg-black/40 border border-cp-border px-3 py-2 text-sm text-white focus:border-cp-yellow outline-none'
-                      />
-                    </div>
-                  </div>
-
-                  <div className='flex flex-col gap-2'>
-                    <span className='text-xs text-cp-text-muted tracking-widest uppercase'>
-                      市值区间(亿元)
-                    </span>
-                    <div className='flex gap-2'>
-                      <input
-                        type='number'
-                        value={marketCapRange[0]}
-                        onChange={(e) =>
-                          setMarketCapRange([
-                            Number(e.target.value),
-                            marketCapRange[1]
-                          ])
-                        }
-                        className='bg-black/40 border border-cp-border px-3 py-2 text-sm text-white focus:border-cp-yellow outline-none w-full'
-                      />
-                      <input
-                        type='number'
-                        value={marketCapRange[1]}
-                        onChange={(e) =>
-                          setMarketCapRange([
-                            marketCapRange[0],
-                            Number(e.target.value)
-                          ])
-                        }
-                        className='bg-black/40 border border-cp-border px-3 py-2 text-sm text-white focus:border-cp-yellow outline-none w-full'
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <div className='bg-black/20 p-3 space-y-3'>
-                  <div className='text-[11px] font-bold text-cp-yellow tracking-widest uppercase'>
-                    行业
-                  </div>
-                  <div className='grid grid-cols-2 gap-3'>
-                    <div className='flex flex-col gap-2'>
-                      <span className='text-xs text-cp-text-muted tracking-widest uppercase'>
-                        行业包含 (逗号分隔)
-                      </span>
-                      <input
-                        type='text'
-                        value={sectors}
-                        onChange={(e) => setSectors(e.target.value)}
-                        className='bg-black/40 border border-cp-border px-3 py-2 text-sm text-white focus:border-cp-yellow outline-none'
-                      />
-                    </div>
-                    <div className='flex flex-col gap-2'>
-                      <span className='text-xs text-cp-text-muted tracking-widest uppercase'>
-                        行业排除 (逗号分隔)
-                      </span>
-                      <input
-                        type='text'
-                        value={excludeSectors}
-                        onChange={(e) => setExcludeSectors(e.target.value)}
-                        className='bg-black/40 border border-cp-border px-3 py-2 text-sm text-white focus:border-cp-yellow outline-none'
-                      />
-                    </div>
-                  </div>
-
-                  <label className='flex items-center gap-2 text-xs text-cp-text-muted uppercase tracking-widest'>
+                  <span className='relative inline-flex items-center'>
                     <input
                       type='checkbox'
-                      checked={includeLLM}
-                      onChange={(e) => setIncludeLLM(e.target.checked)}
-                      className='accent-cp-yellow'
+                      checked={needLlmAnalysis}
+                      onChange={(e) => setNeedLlmAnalysis(e.target.checked)}
+                      className='sr-only'
                     />
-                    包含 LLM 解读
-                  </label>
-                </div>
+                    <span
+                      className={`h-6 w-11 border border-cp-border transition-colors ${
+                        needLlmAnalysis
+                          ? 'bg-cp-yellow/20 border-cp-yellow'
+                          : 'bg-black/40'
+                      }`}
+                    />
+                    <span
+                      className={`absolute left-1 top-1 h-4 w-4 transition-transform ${
+                        needLlmAnalysis
+                          ? 'translate-x-5 bg-cp-yellow'
+                          : 'translate-x-0 bg-white/60'
+                      }`}
+                    />
+                  </span>
+                </label>
               </div>
             ) : (
               <textarea

@@ -20,10 +20,10 @@ export default function SeasonPassModal({
   const currentLevel = level;
 
   return (
-    <div className='fixed inset-0 z-[200] bg-black/95 backdrop-blur-xl flex items-center justify-center p-4 modal-animate'>
-      <div className='w-full max-w-6xl h-[85vh] glass-panel border border-white/[0.02] flex flex-col shadow-2xl relative overflow-hidden'>
+    <div className='fixed inset-0 z-[200] bg-black/70 backdrop-blur-xl flex items-center justify-center p-4 modal-animate'>
+      <div className='w-full max-w-6xl h-[85vh] glass-panel border border-cp-yellow/50 ring-1 ring-cp-yellow/20 flex flex-col shadow-2xl relative overflow-hidden'>
         {/* Header */}
-        <div className='flex items-center justify-between p-8 border-b border-white/[0.02] bg-white/[0.02] shrink-0 z-10'>
+        <div className='flex items-center justify-between p-8 border-b border-cp-border bg-white/[0.02] shrink-0 z-10'>
           <div className='flex items-center gap-6'>
             <div className='w-16 h-16 border-2 border-cp-yellow flex items-center justify-center bg-white/[0.02]'>
               <Crown size={32} className='text-cp-yellow' strokeWidth={1} />
@@ -39,7 +39,7 @@ export default function SeasonPassModal({
           </div>
           <button
             onClick={onClose}
-            className='w-12 h-12 border border-white/[0.02] flex items-center justify-center text-gray-500 hover:text-white transition-colors'>
+            className='w-12 h-12 border border-cp-border flex items-center justify-center text-gray-500 hover:text-white transition-colors'>
             <X size={24} />
           </button>
         </div>

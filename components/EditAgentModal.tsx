@@ -33,10 +33,10 @@ export default function EditAgentModal({
   const [name, setName] = useState(initialName);
 
   return (
-    <div className='fixed inset-0 z-[100] flex items-center justify-center backdrop-blur-md bg-black/90 p-4 modal-animate'>
-      <div className='w-full md:max-w-5xl h-[85vh] glass-panel border border-white/[0.02] flex flex-col shadow-2xl relative'>
+    <div className='fixed inset-0 z-[100] flex items-center justify-center backdrop-blur-xl bg-black/70 p-4 modal-animate'>
+      <div className='w-full md:max-w-5xl h-[85vh] glass-panel border border-cp-yellow/50 ring-1 ring-cp-yellow/20 flex flex-col shadow-2xl relative'>
         {/* Header */}
-        <div className='flex justify-between items-center p-6 border-b border-white/[0.02] bg-white/[0.02] shrink-0'>
+        <div className='flex justify-between items-center p-6 border-b border-cp-border bg-white/[0.02] shrink-0'>
           <div className='flex items-center gap-3'>
             <User className='text-cp-yellow' size={24} strokeWidth={1.5} />
             <div>
@@ -62,7 +62,7 @@ export default function EditAgentModal({
               type='text'
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className='w-full bg-transparent border-b border-white/[0.02] p-4 text-center text-xl font-mono text-cp-yellow focus:border-cp-yellow focus:outline-none hover-card'
+              className='w-full bg-transparent border-b border-cp-border p-4 text-center text-xl font-mono text-cp-yellow focus:border-cp-yellow focus:outline-none hover-card'
               placeholder={copy.placeholder}
             />
             <button

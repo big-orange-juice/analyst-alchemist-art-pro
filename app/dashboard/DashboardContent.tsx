@@ -287,7 +287,7 @@ export default function DashboardContent() {
   useEffect(() => {
     let cancelled = false;
 
-    apiFetch<StockActivity[]>('/api/v2/stock-activities', {
+    apiFetch<StockActivity[]>('/api/stock-activities', {
       unauthorizedHandling: 'ignore'
     })
       .then((data) => {
@@ -605,7 +605,7 @@ export default function DashboardContent() {
     }
 
     try {
-      await apiFetch('/api/v2/stock-activities/tasks', {
+      await apiFetch('/api/stock-activities/tasks', {
         method: 'POST',
         body: { activity_id: activityId },
         errorHandling: 'ignore'

@@ -65,7 +65,7 @@ export default function LoginScreen({ onLogin, onClose }: LoginScreenProps) {
   useEffect(() => {
     let cancelled = false;
 
-    apiFetch<StockActivity[]>('/api/v2/stock-activities', {
+    apiFetch<StockActivity[]>('/api/stock-activities', {
       unauthorizedHandling: 'ignore'
     })
       .then((data) => {
@@ -125,7 +125,7 @@ export default function LoginScreen({ onLogin, onClose }: LoginScreenProps) {
 
   return (
     <div className='fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-md p-4 modal-animate'>
-      <div className='relative w-full max-w-4xl flex flex-col md:flex-row shadow-2xl glass-panel border border-white/[0.02]'>
+      <div className='relative w-full max-w-4xl flex flex-col md:flex-row shadow-2xl glass-panel border border-cp-border ring-1 ring-cp-yellow/10'>
         <button
           onClick={onClose}
           className='absolute top-4 right-4 text-gray-500 hover:text-cp-yellow z-50 transition-colors'>
@@ -133,7 +133,7 @@ export default function LoginScreen({ onLogin, onClose }: LoginScreenProps) {
         </button>
 
         {/* Left Side - Artistic Branding */}
-        <div className='w-full md:w-5/12 bg-white/[0.02] p-10 flex flex-col justify-between relative overflow-hidden border-b md:border-b-0 md:border-r border-white/[0.02] hover-card m-1'>
+        <div className='w-full md:w-5/12 bg-white/[0.02] p-10 flex flex-col justify-between relative overflow-hidden border-b md:border-b-0 md:border-r border-cp-border hover-card m-1'>
           <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-5"></div>
 
           <div className='relative z-10'>
@@ -152,7 +152,7 @@ export default function LoginScreen({ onLogin, onClose }: LoginScreenProps) {
           </div>
 
           <div className='relative z-10 hidden md:block'>
-            <div className='py-4 border-t border-white/[0.02]'>
+            <div className='py-4 border-t border-cp-border'>
               <div className='text-xs text-cp-yellow font-bold uppercase tracking-widest mb-2'>
                 {t('login.season_name')}
               </div>

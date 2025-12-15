@@ -353,7 +353,7 @@ export default function CreateAgentModal({
 
     try {
       setIsSubmitting(true);
-      const result = await apiFetch<any, typeof payload>('/api/v2/agents', {
+      const result = await apiFetch<any, typeof payload>('/api/agents', {
         method: 'POST',
         body: payload,
         errorHandling: 'ignore'
@@ -427,12 +427,12 @@ export default function CreateAgentModal({
   const isConfigValid = () => !!selectedPresetId && !!selectedPersonaId;
 
   return (
-    <div className='fixed inset-0 z-[100] bg-black/90 backdrop-blur-md flex items-center justify-center p-4 modal-animate'>
-      <div className='w-full md:max-w-5xl h-[85vh] glass-panel border border-white/[0.02] flex flex-col shadow-2xl relative'>
+    <div className='fixed inset-0 z-[100] bg-black/70 backdrop-blur-xl flex items-center justify-center p-4 modal-animate'>
+      <div className='w-full md:max-w-5xl h-[85vh] glass-panel border border-cp-yellow/50 ring-1 ring-cp-yellow/20 flex flex-col shadow-2xl relative'>
         {/* Header */}
-        <div className='flex justify-between items-center p-6 border-b border-white/[0.02] bg-white/[0.02] shrink-0'>
+        <div className='flex justify-between items-center p-6 border-b border-cp-border bg-white/[0.02] shrink-0'>
           <div className='flex items-center gap-4'>
-            <div className='w-10 h-10 border border-white/[0.02] flex items-center justify-center text-cp-yellow bg-white/[0.02]'>
+            <div className='w-10 h-10 border border-cp-border flex items-center justify-center text-cp-yellow bg-white/[0.02]'>
               <Cpu size={20} strokeWidth={1.5} />
             </div>
             <div>

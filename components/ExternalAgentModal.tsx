@@ -20,12 +20,12 @@ export default function ExternalAgentModal({
   const { t } = useLanguage();
 
   return (
-    <div className='fixed inset-0 z-[80] flex items-center justify-center backdrop-blur-md bg-black/80 p-4 modal-animate'>
-      <div className='w-full max-w-4xl h-[80vh] glass-panel border border-white/[0.02] flex flex-col shadow-2xl relative'>
+    <div className='fixed inset-0 z-[80] flex items-center justify-center backdrop-blur-xl bg-black/70 p-4 modal-animate'>
+      <div className='w-full max-w-4xl h-[80vh] glass-panel border border-cp-yellow/50 ring-1 ring-cp-yellow/20 flex flex-col shadow-2xl relative'>
         {/* Header */}
-        <div className='flex items-center justify-between p-6 border-b border-white/[0.02] bg-white/[0.02] shrink-0'>
+        <div className='flex items-center justify-between p-6 border-b border-cp-border bg-white/[0.02] shrink-0'>
           <div className='flex items-center gap-6'>
-            <div className='w-12 h-12 border border-white/[0.02] flex items-center justify-center text-cp-yellow bg-white/[0.02]'>
+            <div className='w-12 h-12 border border-cp-border flex items-center justify-center text-cp-yellow bg-white/[0.02]'>
               <Hexagon size={24} strokeWidth={1.5} />
             </div>
             <div>
@@ -54,7 +54,7 @@ export default function ExternalAgentModal({
         {/* Body */}
         <div className='flex flex-1 overflow-hidden'>
           {/* Sidebar Tabs - Clean List */}
-          <div className='w-64 bg-white/[0.02] border-r border-white/[0.02] flex flex-col py-4 shrink-0'>
+          <div className='w-64 bg-white/[0.02] border-r border-cp-border flex flex-col py-4 shrink-0'>
             {Object.values(AgentCapability).map((cap) => {
               const details = AGENT_CAPABILITY_DETAILS[cap];
               const label = t(details.labelKey);
