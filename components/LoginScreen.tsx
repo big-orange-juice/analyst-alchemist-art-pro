@@ -125,7 +125,7 @@ export default function LoginScreen({ onLogin, onClose }: LoginScreenProps) {
 
   return (
     <div className='fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-md p-4 modal-animate'>
-      <div className='relative w-full max-w-4xl flex flex-col md:flex-row shadow-2xl glass-panel border border-cp-border ring-1 ring-cp-yellow/10'>
+      <div className='relative w-full max-w-4xl flex flex-col md:flex-row shadow-2xl glass-panel border-2 border-cp-yellow ring-1 ring-cp-yellow'>
         <button
           onClick={onClose}
           className='absolute top-4 right-4 text-gray-500 hover:text-cp-yellow z-50 transition-colors'>

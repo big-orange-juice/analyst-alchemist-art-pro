@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Terminal, X, Move, Trash2 } from 'lucide-react';
+import { Terminal, Trash2, Move, X, Send } from 'lucide-react';
 import type { ChatMessage } from '@/types';
 import { useLanguage } from '@/lib/useLanguage';
 
@@ -168,7 +168,7 @@ export default function ChatWidget({ isOpen, onClose }: ChatWidgetProps) {
         left: windowWidth >= 768 ? `${position.x}px` : '0',
         top: windowWidth >= 768 ? `${position.y}px` : '0'
       }}
-      className='fixed md:w-[450px] md:h-[600px] w-full h-full glass-panel border border-cp-border ring-1 ring-cp-yellow/10 flex flex-col z-[999] shadow-[0_10px_40px_rgba(0,0,0,0.6)] animate-in fade-in duration-200'>
+      className='fixed md:w-[450px] md:h-[600px] w-full h-full glass-panel border-2 border-cp-yellow ring-1 ring-cp-yellow flex flex-col z-[999] shadow-[0_10px_40px_rgba(0,0,0,0.6)] animate-in fade-in duration-200'>
       {/* Header - Draggable Area */}
       <div
         onMouseDown={handleMouseDown}

@@ -34,7 +34,7 @@ export default function EditAgentModal({
 
   return (
     <div className='fixed inset-0 z-[100] flex items-center justify-center backdrop-blur-xl bg-black/70 p-4 modal-animate'>
-      <div className='w-full md:max-w-5xl h-[85vh] glass-panel border border-cp-yellow/50 ring-1 ring-cp-yellow/20 flex flex-col shadow-2xl relative'>
+      <div className='w-full md:max-w-5xl h-[85vh] glass-panel border-2 border-cp-yellow ring-1 ring-cp-yellow flex flex-col shadow-2xl relative'>
         {/* Header */}
         <div className='flex justify-between items-center p-6 border-b border-cp-border bg-white/[0.02] shrink-0'>
           <div className='flex items-center gap-3'>

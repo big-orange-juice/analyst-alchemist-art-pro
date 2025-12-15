@@ -24,6 +24,7 @@ import {
   useMarketDataStore
 } from '@/store';
 
+import { AgentCapability } from '@/types';
 import type {
   AgentStats,
   AgentModule,
@@ -50,6 +51,7 @@ import ArticleModal from '@/components/ArticleModal';
 import NotificationHistoryModal from '@/components/NotificationHistoryModal';
 import { ApiError, apiFetch } from '@/lib/http';
 import EquityChart from '@/components/EquityChart';
+import ArticleAnalysisModal from '@/components/ArticleAnalysisModal';
 
 type StockActivity = {
   id: number | string;
@@ -236,6 +238,7 @@ export default function DashboardContent() {
 
   // Local state
   const [isEditAgentModalOpen, setIsEditAgentModalOpen] = useState(false);
+  const [isArticleAnalysisOpen, setIsArticleAnalysisOpen] = useState(false);
   const [userRank, setUserRank] = useState<number | null>(null);
   const [userProfit, setUserProfit] = useState<string | null>(null);
   const [hoveredAgent, setHoveredAgent] = useState<string | null>(null);
@@ -257,8 +260,10 @@ export default function DashboardContent() {
 
   // Check for login param on load
   useEffect(() => {
-    if (searchParams.get('login') === 'true') setIsLoginModalOpen(true);
-  }, [searchParams, setIsLoginModalOpen]);
+    if (searchParams.get('login') === 'true' && !currentUser) {
+      setIsLoginModalOpen(true);
+    }
+  }, [currentUser, searchParams, setIsLoginModalOpen]);
 
   // Apply theme
   useEffect(() => {
@@ -463,6 +468,20 @@ export default function DashboardContent() {
     };
     setCurrentUser(newUser);
     setIsLoginModalOpen(false);
+
+    // 登录成功后清理 URL 上的 login=true，避免刷新反复触发登录弹窗
+    if (typeof window !== 'undefined') {
+      try {
+        const url = new URL(window.location.href);
+        if (url.searchParams.get('login') === 'true') {
+          url.searchParams.delete('login');
+          window.history.replaceState({}, '', url.toString());
+        }
+      } catch {
+        // ignore
+      }
+    }
+
     notify(
       t.notifications.auth.title,
       t.notifications.auth.message.replace('{name}', incoming.username),
@@ -772,7 +791,7 @@ export default function DashboardContent() {
           {/* Tab Content */}
           <div className='flex-1 overflow-hidden min-h-0'>
             {activeSideTab === 'MY_AGENT' ? (
-              <div className='h-full min-h-0 custom-scrollbar p-4'>
+              <div className='h-full min-h-0 custom-scrollbar p-4 overflow-y-auto'>
                 {agentName ? (
                   <AgentPartyFrame
                     agentName={agentName}
@@ -794,7 +813,13 @@ export default function DashboardContent() {
                         setIsJoinCompetitionModalOpen(true);
                       }
                     }}
-                    onSelectCapability={(cap) => setSelectedCapability(cap)}
+                    onSelectCapability={(cap) => {
+                      if (cap === AgentCapability.ARTICLE_WRITING) {
+                        setIsArticleAnalysisOpen(true);
+                        return;
+                      }
+                      setSelectedCapability(cap);
+                    }}
                     onEditCapability={(cap) => setEditingCapability(cap)}
                     onEditAgent={() => setIsEditAgentModalOpen(true)}
                     onOpenChat={() => setIsChatOpen(true)}
@@ -961,6 +986,16 @@ export default function DashboardContent() {
           notifications={notificationHistory}
           onClose={() => setIsNotifHistoryOpen(false)}
           onClear={clearHistory}
+        />
+      )}
+
+      {isArticleAnalysisOpen && (
+        <ArticleAnalysisModal
+          agentId={agentId}
+          userId={currentUser?.id ? String(currentUser.id) : null}
+          language={language}
+          onClose={() => setIsArticleAnalysisOpen(false)}
+          onNotify={notify}
         />
       )}
     </div>

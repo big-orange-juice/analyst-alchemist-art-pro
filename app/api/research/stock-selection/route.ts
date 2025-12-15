@@ -78,6 +78,12 @@ export async function POST(req: Request) {
       );
     }
 
+    // Prefer JSON for structured UI rendering, but tolerate plain text.
+    const okJson = tryParseJson(text);
+    if (okJson != null) {
+      return NextResponse.json(okJson, { status: res.status });
+    }
+
     return new Response(text, {
       status: res.status,
       headers: {

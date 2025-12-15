@@ -12,23 +12,62 @@
   --cp-border: rgba(255, 255, 255, 0.12);
   --cp-text: #f4f1ea;
   --cp-text-muted: #a7adb8;
-  --cp-yellow: #d1b46a;
+  --cp-yellow: #c6a357;
   --cp-cyan: #7ea7c4;
   --cp-red: #b35d5d;
+
+  /* Frosted / Glass primitives (theme-driven) */
+  --cp-glass-bg: rgba(255, 255, 255, 0.02);
+  --cp-glass-border: rgba(255, 255, 255, 0.04);
+  --cp-glass-bg-hover: rgba(255, 255, 255, 0.05);
+  --cp-glass-border-hover: rgba(255, 255, 255, 0.1);
+  --cp-hover-bg: rgba(255, 255, 255, 0.02);
+
+  /* Skill matrix surfaces */
+  --cp-skill-board-bg-a: rgba(10, 10, 10, 0.95);
+  --cp-skill-board-bg-b: rgba(26, 26, 26, 0.85);
+  --cp-skill-board-border: rgba(255, 255, 255, 0.05);
+  --cp-skill-board-shadow: inset 0 0 40px rgba(0, 0, 0, 0.55);
+  --cp-skill-grid-line: rgba(255, 255, 255, 0.04);
+  --cp-skill-cell-bg: rgba(5, 5, 5, 0.9);
+  --cp-skill-cell-border: rgba(255, 255, 255, 0.04);
+  --cp-skill-cell-shadow: inset 0 0 25px rgba(0, 0, 0, 0.35);
+  --cp-skill-icon-border: rgba(255, 255, 255, 0.08);
+  --cp-skill-icon-bg: rgba(0, 0, 0, 0.75);
+  --cp-skill-icon-shadow: inset 0 0 15px rgba(0, 0, 0, 0.45);
 }
 
 html.light-mode {
-  --cp-black: #f8f5ef;
-  --cp-dark: #efe9de;
-  --cp-dim: #e5dfd4;
-  --cp-deep: #dbd2c4;
-  --cp-gray: #8f8b82;
-  --cp-border: rgba(0, 0, 0, 0.08);
-  --cp-text: #1f1e22;
-  --cp-text-muted: #55534a;
-  --cp-yellow: #c49a42;
-  --cp-cyan: #5a7a8a;
-  --cp-red: #8f3d3d;
+  /* Gilded matte light theme (warm parchment + antique gold) */
+  --cp-black: #fbf7ef;
+  --cp-dark: #f3ede1;
+  --cp-dim: #ece4d6;
+  --cp-deep: #e2d7c5;
+  --cp-gray: #7c776e;
+  --cp-border: rgba(71, 54, 28, 0.14);
+  --cp-text: #1b1915;
+  --cp-text-muted: #5f584d;
+  --cp-yellow: #b88a24;
+  --cp-cyan: #3b6d7b;
+  --cp-red: #8b3a3a;
+
+  --cp-glass-bg: rgba(255, 255, 255, 0.62);
+  --cp-glass-border: rgba(71, 54, 28, 0.1);
+  --cp-glass-bg-hover: rgba(255, 255, 255, 0.72);
+  --cp-glass-border-hover: rgba(71, 54, 28, 0.16);
+  --cp-hover-bg: rgba(0, 0, 0, 0.03);
+
+  --cp-skill-board-bg-a: rgba(255, 255, 255, 0.78);
+  --cp-skill-board-bg-b: rgba(243, 237, 225, 0.92);
+  --cp-skill-board-border: rgba(71, 54, 28, 0.12);
+  --cp-skill-board-shadow: inset 0 0 32px rgba(71, 54, 28, 0.12);
+  --cp-skill-grid-line: rgba(71, 54, 28, 0.08);
+  --cp-skill-cell-bg: rgba(255, 255, 255, 0.66);
+  --cp-skill-cell-border: rgba(71, 54, 28, 0.1);
+  --cp-skill-cell-shadow: inset 0 0 18px rgba(71, 54, 28, 0.08);
+  --cp-skill-icon-border: rgba(71, 54, 28, 0.12);
+  --cp-skill-icon-bg: rgba(255, 255, 255, 0.72);
+  --cp-skill-icon-shadow: inset 0 0 14px rgba(71, 54, 28, 0.08);
 }
 
 body {
@@ -100,48 +139,46 @@ h6 {
 }
 
 /* Glassmorphism Utilities */
-.glass-panel {
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(255, 255, 255, 0.02);
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-  backdrop-filter: blur(12px);
-}
+@layer components {
+  .glass-panel {
+    background: var(--cp-glass-bg);
+    border: 1px solid var(--cp-glass-border);
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    backdrop-filter: blur(12px);
+  }
 
-.glass-header {
-  background: linear-gradient(
-    to bottom,
-    rgba(255, 255, 255, 0.02),
-    transparent
-  );
-  border-bottom: 1px solid rgba(255, 255, 255, 0.02);
-}
+  .glass-header {
+    background: linear-gradient(to bottom, var(--cp-glass-bg), transparent);
+    border-bottom: 1px solid var(--cp-glass-border);
+  }
 
-.glass-item {
-  background-color: rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(255, 255, 255, 0.02);
-  transition: all 0.3s ease;
-}
+  .glass-item {
+    background-color: var(--cp-glass-bg);
+    border: 1px solid var(--cp-glass-border);
+    transition: all 0.3s ease;
+  }
 
-.glass-item:hover {
-  background-color: rgba(255, 255, 255, 0.05);
-}
+  .glass-item:hover {
+    background-color: var(--cp-glass-bg-hover);
+  }
 
-.glass-button {
-  background-color: rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  backdrop-filter: blur(8px);
-  transition: all 0.3s ease;
-}
+  .glass-button {
+    background-color: var(--cp-glass-bg);
+    border: 1px solid var(--cp-glass-border);
+    backdrop-filter: blur(8px);
+    transition: all 0.3s ease;
+  }
 
-.glass-button:hover {
-  background-color: rgba(255, 255, 255, 0.05);
-  border-color: rgba(255, 255, 255, 0.1);
-}
+  .glass-button:hover {
+    background-color: var(--cp-glass-bg-hover);
+    border-color: var(--cp-glass-border-hover);
+  }
 
-.glass-button-active {
-  background-color: rgba(255, 255, 255, 0.05);
-  border-color: rgba(255, 255, 255, 0.1);
-  color: var(--cp-text);
+  .glass-button-active {
+    background-color: var(--cp-glass-bg-hover);
+    border-color: var(--cp-glass-border-hover);
+    color: var(--cp-text);
+  }
 }
 
 /* Text Utilities */
@@ -213,7 +250,7 @@ h6 {
 .btn-outline:hover {
   border-color: var(--cp-yellow);
   color: var(--cp-text);
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--cp-hover-bg);
 }
 
 /* Tabs - Bottom Border Only */
@@ -257,8 +294,8 @@ h6 {
   border: 1px solid transparent;
 }
 .hover-card:hover {
-  background-color: rgba(255, 255, 255, 0.02);
-  border-color: rgba(255, 255, 255, 0.1);
+  background-color: var(--cp-hover-bg);
+  border-color: var(--cp-glass-border-hover);
 }
 
 /* Corner system */
@@ -288,11 +325,11 @@ h6 {
   padding: 1px;
   background: linear-gradient(
     145deg,
-    rgba(10, 10, 10, 0.95),
-    rgba(26, 26, 26, 0.85)
+    var(--cp-skill-board-bg-a),
+    var(--cp-skill-board-bg-b)
   );
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.55);
+  border: 1px solid var(--cp-skill-board-border);
+  box-shadow: var(--cp-skill-board-shadow);
 }
 .skill-matrix-board::after {
   content: '';
@@ -301,10 +338,10 @@ h6 {
   pointer-events: none;
   background-image: linear-gradient(
       0deg,
-      rgba(255, 255, 255, 0.04) 1px,
+      var(--cp-skill-grid-line) 1px,
       transparent 1px
     ),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+    linear-gradient(90deg, var(--cp-skill-grid-line) 1px, transparent 1px);
   background-size: 60px 60px;
   opacity: 0.15;
 }
@@ -313,15 +350,15 @@ h6 {
   z-index: 1;
 }
 .skill-matrix-cell {
-  background: rgba(5, 5, 5, 0.9);
-  border: 1px solid rgba(255, 255, 255, 0.04);
+  background: var(--cp-skill-cell-bg);
+  border: 1px solid var(--cp-skill-cell-border);
   min-height: 140px;
   padding: 18px;
   display: flex;
   flex-direction: column;
   gap: 12px;
   transition: border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
-  box-shadow: inset 0 0 25px rgba(0, 0, 0, 0.35);
+  box-shadow: var(--cp-skill-cell-shadow);
 }
 .skill-matrix-cell:hover {
   border-color: rgba(197, 160, 89, 0.7);
@@ -331,12 +368,12 @@ h6 {
 .skill-matrix-icon {
   width: 44px;
   height: 44px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(0, 0, 0, 0.75);
+  border: 1px solid var(--cp-skill-icon-border);
+  background: var(--cp-skill-icon-bg);
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.45);
+  box-shadow: var(--cp-skill-icon-shadow);
   transition: border-color 0.2s ease, color 0.2s ease;
 }
 .skill-matrix-cell:hover .skill-matrix-icon {

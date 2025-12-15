@@ -46,7 +46,7 @@ export default function CompetitionJoinModal({
 
   return (
     <div className='fixed inset-0 z-[150] flex items-center justify-center bg-black/70 backdrop-blur-xl p-4 modal-animate'>
-      <div className='w-full max-w-3xl glass-panel border border-cp-yellow/50 ring-1 ring-cp-yellow/20 shadow-2xl flex flex-col relative'>
+      <div className='w-full max-w-3xl glass-panel border-2 border-cp-yellow ring-1 ring-cp-yellow shadow-2xl flex flex-col relative'>
         <button
           onClick={onClose}
           className='absolute top-6 right-6 text-gray-500 hover:text-white transition-colors z-10'>

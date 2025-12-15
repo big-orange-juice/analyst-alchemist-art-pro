@@ -7,8 +7,8 @@ import {
   Trash2,
   CheckCircle,
   AlertTriangle,
-  TrendingUp,
-  Info
+  Info,
+  TrendingUp
 } from 'lucide-react';
 import type { AppNotification } from '@/types';
 import { useLanguage } from '@/lib/useLanguage';
@@ -28,7 +28,7 @@ export default function NotificationHistoryModal({
   const copy = dictionary.notification_history;
   return (
     <div className='fixed inset-0 z-[100] flex items-center justify-center backdrop-blur-xl bg-black/70 p-4 modal-animate'>
-      <div className='w-full max-w-md glass-panel border border-cp-yellow/50 ring-1 ring-cp-yellow/20 flex flex-col shadow-[0_0_40px_rgba(0,0,0,0.5)] h-[600px] relative'>
+      <div className='w-full max-w-md glass-panel border-2 border-cp-yellow ring-1 ring-cp-yellow flex flex-col shadow-[0_0_40px_rgba(0,0,0,0.5)] h-[600px] relative'>
         {/* Header */}
         <div className='flex items-center justify-between p-4 border-b border-cp-border bg-white/[0.02] shrink-0'>
           <div className='flex items-center gap-2'>

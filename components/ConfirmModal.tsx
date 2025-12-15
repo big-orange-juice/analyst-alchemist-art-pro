@@ -24,7 +24,7 @@ export default function ConfirmModal({
 
   return (
     <div className='fixed inset-0 z-[200] flex items-center justify-center bg-black/70 backdrop-blur-xl modal-animate'>
-      <div className='w-full max-w-md glass-panel border border-cp-yellow/50 ring-1 ring-cp-yellow/20 shadow-[0_0_30px_rgba(212,175,55,0.1)] p-6 relative cp-clip'>
+      <div className='w-full max-w-md glass-panel border-2 border-cp-yellow ring-2 ring-cp-yellow shadow-[0_0_30px_rgba(212,175,55,0.1)] p-6 relative cp-clip'>
         <div className='flex items-center gap-3 mb-4 text-cp-yellow'>
           <AlertTriangle size={24} />
           <h3 className='text-lg font-bold font-oxanium uppercase tracking-wider'>

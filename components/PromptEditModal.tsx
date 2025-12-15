@@ -25,7 +25,7 @@ export default function PromptEditModal({
 
   return (
     <div className='fixed inset-0 z-[60] flex items-center justify-center backdrop-blur-xl bg-black/70 p-4 modal-animate'>
-      <div className='w-full max-w-4xl glass-panel border border-cp-yellow/50 ring-1 ring-cp-yellow/20 flex flex-col shadow-2xl h-[70vh]'>
+      <div className='w-full max-w-4xl glass-panel border-2 border-cp-yellow ring-1 ring-cp-yellow flex flex-col shadow-2xl h-[70vh]'>
         <div className='flex items-center justify-between p-6 bg-white/[0.02] border-b border-cp-border shrink-0'>
           <div className='flex items-center gap-3 text-cp-yellow'>
             <Settings size={20} strokeWidth={1.5} />
