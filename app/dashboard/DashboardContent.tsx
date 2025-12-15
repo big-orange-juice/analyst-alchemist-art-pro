@@ -42,7 +42,6 @@ import ChatWidget from '@/components/ChatWidget';
 import LoginScreen from '@/components/LoginScreen';
 import CreateAgentModal from '@/components/CreateAgentModal';
 import EditAgentModal from '@/components/EditAgentModal';
-import ConfirmModal from '@/components/ConfirmModal';
 import CompetitionJoinModal from '@/components/CompetitionJoinModal';
 import CapabilityModal from '@/components/CapabilityModal';
 import PromptEditModal from '@/components/PromptEditModal';
@@ -554,7 +553,8 @@ export default function DashboardContent() {
     try {
       await apiFetch(`/api/agents/${encodeURIComponent(agentId)}`, {
         method: 'DELETE',
-        parseAs: 'text'
+        parseAs: 'text',
+        errorHandling: 'ignore'
       });
     } catch (error) {
       const message =
@@ -607,7 +607,8 @@ export default function DashboardContent() {
     try {
       await apiFetch('/api/v2/stock-activities/tasks', {
         method: 'POST',
-        body: { activity_id: activityId }
+        body: { activity_id: activityId },
+        errorHandling: 'ignore'
       });
 
       setIsJoinedCompetition(true);
@@ -869,13 +870,6 @@ export default function DashboardContent() {
         </main>
       </div>
 
-      <ConfirmModal
-        isOpen={confirmModal.isOpen}
-        title={confirmModal.title}
-        message={confirmModal.message}
-        onConfirm={confirmModal.action}
-        onCancel={() => setConfirmModal({ ...confirmModal, isOpen: false })}
-      />
       {/* Notifications */}
       <NotificationSystem
         notifications={notifications}

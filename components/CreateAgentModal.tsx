@@ -355,7 +355,8 @@ export default function CreateAgentModal({
       setIsSubmitting(true);
       const result = await apiFetch<any, typeof payload>('/api/v2/agents', {
         method: 'POST',
-        body: payload
+        body: payload,
+        errorHandling: 'ignore'
       }).catch((err) => {
         if (err instanceof ApiError) {
           throw new Error(err.message || '创建 Agent 失败');

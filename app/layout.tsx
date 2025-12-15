@@ -7,6 +7,7 @@ import {
   Space_Grotesk
 } from 'next/font/google';
 import './globals.css';
+import GlobalConfirmModal from '@/components/GlobalConfirmModal';
 
 const spaceGrotesk = Space_Grotesk({
   subsets: ['latin'],
@@ -43,6 +44,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       <body
         className={`${spaceGrotesk.variable} ${notoSans.variable} ${notoSerif.variable} ${jetbrains.variable}`}>
         <div className='texture-overlay' />
+        <GlobalConfirmModal />
         {children}
       </body>
     </html>

@@ -222,7 +222,9 @@ export default function CapabilityModal({
       try {
         const data = await apiFetch('/api/stock-analysis', {
           method: 'POST',
-          body: payload
+          body: payload,
+          parseAs: 'json',
+          errorHandling: 'ignore'
         });
         setOutput(formatStockAnalysisResponse(data) || JSON.stringify(data));
       } catch (err) {
@@ -285,7 +287,9 @@ export default function CapabilityModal({
       try {
         const data = await apiFetch('/api/stock-selection', {
           method: 'POST',
-          body: payload
+          body: payload,
+          parseAs: 'json',
+          errorHandling: 'ignore'
         });
         setOutput(formatStockSelectionResponse(data) || JSON.stringify(data));
       } catch (err) {

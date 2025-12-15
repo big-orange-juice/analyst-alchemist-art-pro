@@ -17,6 +17,8 @@ export class ApiError<T = unknown> extends Error {
 
 type UnauthorizedHandling = 'notify' | 'ignore';
 
+type ErrorHandling = 'modal' | 'ignore';
+
 type ApiFetchOptions<TBody = unknown> = Omit<
   RequestInit,
   'body' | 'headers'
@@ -25,6 +27,7 @@ type ApiFetchOptions<TBody = unknown> = Omit<
   body?: TBody;
   parseAs?: 'json' | 'text';
   unauthorizedHandling?: UnauthorizedHandling;
+  errorHandling?: ErrorHandling;
 };
 
 const tryParseJson = (text: string) => {
@@ -46,8 +49,52 @@ const extractMessage = (data: any, fallback: string) => {
 declare global {
   interface Window {
     __aaUnauthorizedLastAt?: number;
+    __aaErrorLastAt?: number;
   }
 }
+
+const showErrorModal = async (message: string) => {
+  if (typeof window === 'undefined') return;
+
+  const now = Date.now();
+  const last = window.__aaErrorLastAt ?? 0;
+  if (now - last < 1000) return;
+  window.__aaErrorLastAt = now;
+
+  try {
+    const { useModalStore, useNotificationStore } = await import('@/store');
+    const modalState = useModalStore.getState();
+
+    // 如果当前已有确认弹窗，避免覆盖用户操作：降级为通知
+    if (modalState.confirmModal?.isOpen) {
+      try {
+        useNotificationStore
+          .getState()
+          .addNotification('请求失败', message, 'error');
+      } catch {
+        // ignore
+      }
+      return;
+    }
+
+    const close = () =>
+      useModalStore.getState().setConfirmModal({
+        isOpen: false,
+        title: '',
+        message: '',
+        action: () => {}
+      });
+
+    useModalStore.getState().setConfirmModal({
+      isOpen: true,
+      title: '请求失败',
+      message,
+      action: close
+    });
+  } catch {
+    // ignore
+  }
+};
 
 const handleUnauthorized = async () => {
   if (typeof window === 'undefined') return;
@@ -112,6 +159,7 @@ export async function apiFetch<T = unknown, TBody = unknown>(
     headers,
     parseAs = 'json',
     unauthorizedHandling = 'notify',
+    errorHandling = 'modal',
     ...init
   } = options;
 
@@ -140,12 +188,22 @@ export async function apiFetch<T = unknown, TBody = unknown>(
     }
   }
 
-  const res = await fetch(url, {
-    ...init,
-    headers: Object.keys(nextHeaders).length ? nextHeaders : undefined,
-    body: nextBody,
-    credentials: init.credentials ?? 'include'
-  });
+  let res: Response;
+  try {
+    res = await fetch(url, {
+      ...init,
+      headers: Object.keys(nextHeaders).length ? nextHeaders : undefined,
+      body: nextBody,
+      credentials: init.credentials ?? 'include'
+    });
+  } catch (err) {
+    if (errorHandling !== 'ignore') {
+      const message =
+        err instanceof Error ? err.message : '网络请求失败，请稍后重试';
+      void showErrorModal(message);
+    }
+    throw err;
+  }
 
   const text = await res.text();
   const maybeJson = tryParseJson(text);
@@ -156,6 +214,9 @@ export async function apiFetch<T = unknown, TBody = unknown>(
 
   if (!res.ok) {
     const message = extractMessage(maybeJson, text || '请求失败');
+    if (res.status !== 401 && errorHandling !== 'ignore') {
+      void showErrorModal(message);
+    }
     throw new ApiError(message, {
       status: res.status,
       data: maybeJson ?? undefined,

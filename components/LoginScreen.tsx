@@ -29,7 +29,8 @@ const authRegister = async (payload: {
     method: 'POST',
     body: payload,
     parseAs: 'text',
-    unauthorizedHandling: 'ignore'
+    unauthorizedHandling: 'ignore',
+    errorHandling: 'ignore'
   });
   return parseMaybeJson(text);
 };
@@ -39,7 +40,8 @@ const authLogin = async (payload: { username: string; password: string }) => {
     method: 'POST',
     body: payload,
     parseAs: 'text',
-    unauthorizedHandling: 'ignore'
+    unauthorizedHandling: 'ignore',
+    errorHandling: 'ignore'
   });
   return parseMaybeJson(text);
 };
