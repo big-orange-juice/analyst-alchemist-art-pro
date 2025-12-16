@@ -44,7 +44,7 @@ export const stock_activity_task_params = {
   en: {
     open_button: 'Params',
     title: 'Join Parameters',
-    subtitle: 'POST /api/v2/stock-activities/tasks',
+    subtitle: 'POST /api/stock-activities/tasks',
     required_hint: '* required',
 
     missing_ids: 'Missing activity info',

@@ -303,7 +303,7 @@ export default function ArticleAnalysisModal({
     setResultText('');
 
     try {
-      const res = await apiFetch<any>('/api/v2/research/article-analysis', {
+      const res = await apiFetch<any>('/api/research/article-analysis', {
         method: 'POST',
         body: payload,
         errorHandling: 'ignore'

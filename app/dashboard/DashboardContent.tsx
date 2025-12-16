@@ -211,6 +211,63 @@ export default function DashboardContent() {
     };
   }, []);
 
+  // After agent is resolved, check whether it has joined the running activity
+  useEffect(() => {
+    if (!agentId) return;
+    if (!currentActivity) return;
+    if (currentActivity?.status !== 'running') return;
+
+    const resolvedActivityId =
+      (currentActivity as any)?.id ?? (currentActivity as any)?.activity_id;
+    if (!resolvedActivityId) return;
+
+    const controller = new AbortController();
+    let cancelled = false;
+
+    apiFetch<any[]>(
+      `/api/research/stock-activities?activity_id=${encodeURIComponent(
+        String(resolvedActivityId)
+      )}`,
+      {
+        signal: controller.signal,
+        errorHandling: 'ignore'
+      }
+    )
+      .then((data) => {
+        if (cancelled) return;
+
+        const list = Array.isArray(data) ? data : [];
+
+        const hasAgentIdField = list.some((item) => {
+          const itemAgentId =
+            (item as any)?.agent_id ?? (item as any)?.agentId ?? null;
+          return itemAgentId != null;
+        });
+
+        const normalizedAgentId = String(agentId);
+        const joined = hasAgentIdField
+          ? list.some((item) => {
+              const itemAgentId =
+                (item as any)?.agent_id ?? (item as any)?.agentId ?? null;
+              if (itemAgentId == null) return false;
+              return String(itemAgentId) === normalizedAgentId;
+            })
+          : list.length > 0;
+
+        setIsJoinedCompetition(joined);
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        if (err instanceof DOMException && err.name === 'AbortError') return;
+        // keep existing UX: failure should not block the page
+      });
+
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
+  }, [agentId, currentActivity, setIsJoinedCompetition]);
+
   // Simulation interval
   useEffect(() => {
     if (rankingList.length === 0 || chartData.length === 0) return;
