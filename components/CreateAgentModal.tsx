@@ -157,14 +157,6 @@ export default function CreateAgentModal({
   const { t } = useLanguage();
   const tt = (key: string) => t(`create_agent_modal.${key}`);
 
-  useEffect(() => {
-    if (simStatus !== 'idle') return;
-    setSimLogs([
-      t('create_agent_modal.sim_log_ready'),
-      t('create_agent_modal.sim_log_pick')
-    ]);
-  }, [simStatus, t]);
-
   const { currentUser } = useUserStore();
   const { agentName, agentClass, agentId } = useAgentStore();
   const [step, setStep] = useState<CreationStep>('naming');
@@ -185,6 +177,14 @@ export default function CreateAgentModal({
     tt('sim_log_ready'),
     tt('sim_log_pick')
   ]);
+
+  useEffect(() => {
+    if (simStatus !== 'idle') return;
+    setSimLogs([
+      t('create_agent_modal.sim_log_ready'),
+      t('create_agent_modal.sim_log_pick')
+    ]);
+  }, [simStatus, t]);
   const [simResult, setSimResult] = useState<SimResultData | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [hasCreated, setHasCreated] = useState(false);

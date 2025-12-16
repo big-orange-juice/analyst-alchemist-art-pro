@@ -173,14 +173,14 @@ export const formatStockAnalysisResponse = (
   }
 
   if (data.technical_analysis) {
-    const t = data.technical_analysis;
+    const ta = data.technical_analysis;
     lines.push(`## ${t?.('capability_formatters.technical') ?? 'Technical'}`);
     const rec = t?.('capability_formatters.recommendation') ?? 'Recommendation';
     const conf = t?.('capability_formatters.confidence_short') ?? 'Conf';
     lines.push(
-      `- ${rec}: ${tA.recommendation || ''} (${conf} ${tA.confidence ?? ''})`
+      `- ${rec}: ${ta.recommendation || ''} (${conf} ${ta.confidence ?? ''})`
     );
-    if (tA.reasoning) lines.push(tA.reasoning);
+    if (ta.reasoning) lines.push(ta.reasoning);
   }
 
   if (data.fundamental_analysis) {
