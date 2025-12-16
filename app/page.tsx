@@ -2,9 +2,9 @@ import type { Metadata } from 'next';
 import LandingPage from './LandingPage';
 
 export const metadata: Metadata = {
-  title: 'Analyst Alchemist - Financial Intelligence Matrix',
+  title: 'Analyst Alchemist - Stock Assistant',
   description:
-    'Connect to the financial intelligence matrix. Deploy autonomous AI agents, backtest strategies in real-time, and compete for glory in the global algorithmic ladder.'
+    'A professional stock assistant for research and auto trading: backtests, risk metrics, and activity rankings.'
 };
 
 const fallbackPerformers = [

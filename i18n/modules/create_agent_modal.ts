@@ -5,7 +5,7 @@ export const create_agent_modal = {
     notify_missing_user_title: '缺少用户信息',
     notify_missing_user_desc: '请先登录以创建 Agent。',
     notify_create_success: '创建成功',
-    notify_create_success_desc: 'Agent 已成功创建并部署。',
+    notify_create_success_desc: '助手已创建并就绪。',
     notify_create_agent_failed_fallback: '创建 Agent 时出现错误',
 
     step_label: '步骤',
@@ -14,15 +14,15 @@ export const create_agent_modal = {
     existing_agent: '已有 Agent',
     existing_agent_flow: '流程',
 
-    step_naming: '初始化身份',
+    step_naming: '设置名称',
     step_preset: '工作流选择',
     step_configure: '人格选择',
     step_knowledge: '知识库接入',
     step_simulation: '回测模拟',
 
-    naming_title: '初始化唯一 ID',
-    naming_desc: '此名称将作为该智能体在 Matrix 网络中的唯一标识。',
-    naming_placeholder: '输入代号',
+    naming_title: '设置名称',
+    naming_desc: '此名称将作为该智能体在平台内的唯一标识。',
+    naming_placeholder: '输入名称',
     naming_next: '下一步: 选择工作流',
 
     preset_title: '选择工作流',
@@ -67,7 +67,7 @@ export const create_agent_modal = {
     stat_sharpe: '夏普比率',
 
     adjust_params: '调整参数',
-    finish_deploy: '完成部署',
+    finish_deploy: '完成创建',
 
     workflow_track_title: '赛道激进型',
     workflow_track_desc:
@@ -95,7 +95,7 @@ export const create_agent_modal = {
     persona_dividend_focus_title: '红利收益型',
     persona_dividend_focus_desc: '关注高股息赛道，追求稳定现金流',
 
-    persona_quantitative_title: '量化策略型',
+    persona_quantitative_title: '数据策略型',
     persona_quantitative_desc: '基于数据和模型，严格执行纪律',
 
     persona_momentum_trader_title: '趋势动量型',
@@ -113,7 +113,7 @@ export const create_agent_modal = {
     notify_missing_user_title: 'User required',
     notify_missing_user_desc: 'Please login before creating an agent.',
     notify_create_success: 'Created',
-    notify_create_success_desc: 'Agent created and deployed.',
+    notify_create_success_desc: 'Agent created and ready.',
     notify_create_agent_failed_fallback: 'Failed to create agent',
 
     step_label: 'Step',
@@ -129,8 +129,7 @@ export const create_agent_modal = {
     step_simulation: 'Backtest',
 
     naming_title: 'Initialize Unique ID',
-    naming_desc:
-      'This name will be the unique identifier in the Matrix network.',
+    naming_desc: 'This name will be the unique identifier on the platform.',
     naming_placeholder: 'Enter codename',
     naming_next: 'Next: Choose workflow',
 
@@ -205,7 +204,7 @@ export const create_agent_modal = {
     persona_dividend_focus_title: 'Dividend Income',
     persona_dividend_focus_desc: 'Dividend yield and stable cashflow',
 
-    persona_quantitative_title: 'Quantitative',
+    persona_quantitative_title: 'Data-Driven',
     persona_quantitative_desc: 'Model-driven, disciplined execution',
 
     persona_momentum_trader_title: 'Momentum',

@@ -1,16 +1,16 @@
 export const invite = {
   zh: {
     season: '活动招募',
-    intro: '部署您的 Agent 参与活动排位赛。',
-    login_create: '登录并创建 AGENT',
+    intro: '创建你的智能助手，参加活动排行榜。',
+    login_create: '登录并创建助手',
     title: '加入活动',
-    desc: '参与排位赛，与全网智能体同台竞技。'
+    desc: '参加活动，和其他参与者一起比拼策略表现。'
   },
   en: {
     season: 'ACTIVITY',
-    intro: 'Deploy your Agent to join the current activity ranked match.',
-    login_create: 'LOGIN & CREATE AGENT',
+    intro: 'Create your assistant and join the activity rankings.',
+    login_create: 'LOGIN & CREATE',
     title: 'JOIN ACTIVITY',
-    desc: 'Compete in ranked matches against agents network-wide.'
+    desc: 'Compete with others and see how your strategy performs.'
   }
 } as const;

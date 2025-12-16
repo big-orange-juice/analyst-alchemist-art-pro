@@ -28,7 +28,7 @@ export const stock_activity_task_params = {
     user_custom_input_label: '补充说明',
     user_custom_input_ph: '请输入补充说明（可选）',
 
-    need_llm_analysis_label: '需要大模型分析',
+    need_llm_analysis_label: '启用智能分析',
 
     stock_pool_limit_label: '股票池上限',
     stock_pool_limit_ph: '例如 10',
@@ -70,7 +70,7 @@ export const stock_activity_task_params = {
     user_custom_input_label: 'user_custom_input',
     user_custom_input_ph: 'Enter notes (optional)',
 
-    need_llm_analysis_label: 'need_llm_analysis',
+    need_llm_analysis_label: 'Enable AI analysis',
 
     stock_pool_limit_label: 'stock_pool_limit',
     stock_pool_limit_ph: 'e.g. 10',

@@ -2,9 +2,9 @@ export const stock_selection_panel = {
   zh: {
     industry_label: '行业',
     theme_label: '主题',
-    user_input_label: '用户输入内容',
-    user_input_ph: '例如：偏好价值/成长，持有周期，风险偏好等',
-    enable_llm: '是否启用大模型分析',
+    user_input_label: '补充说明',
+    user_input_ph: '例如：偏好价值/成长、打算持有多久、能承受多大回撤等',
+    enable_llm: '启用智能分析（可选）',
 
     parse_failed_title: '解析失败',
     parse_failed_desc: '返回内容不是有效 JSON，无法解析。',
@@ -38,10 +38,10 @@ export const stock_selection_panel = {
   en: {
     industry_label: 'Industry',
     theme_label: 'Theme',
-    user_input_label: 'User input',
+    user_input_label: 'Notes',
     user_input_ph:
-      'e.g. value/growth preference, holding horizon, risk profile',
-    enable_llm: 'Enable LLM analysis',
+      'e.g. value/growth preference, holding horizon, drawdown tolerance',
+    enable_llm: 'Enable AI analysis (optional)',
 
     parse_failed_title: 'Parse failed',
     parse_failed_desc: 'Response looks like JSON but is not valid JSON.',

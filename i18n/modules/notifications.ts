@@ -1,28 +1,28 @@
 export const notifications = {
   zh: {
     auth: {
-      title: '链接成功',
+      title: '登录成功',
       message: '欢迎回来，{name}。'
     },
     logout: {
-      title: '已断开',
-      message: '用户已安全退出。'
+      title: '已退出',
+      message: '已安全退出登录。'
     },
     agent_deployed: {
-      title: 'Agent 已部署',
-      message: '{name} 就绪。加入活动即可参赛。'
+      title: '助手已就绪',
+      message: '{name} 已准备好。加入活动即可参赛。'
     },
     agent_deleted: {
-      title: '销毁完成',
-      message: 'Agent 实例已移除。'
+      title: '删除完成',
+      message: '助手已删除。'
     },
     withdrawn: {
       title: '已退出活动',
-      message: '已离开赛场，历史成绩已归档。'
+      message: '已退出活动，历史成绩已保存。'
     },
     joined: {
       title: '成功参赛',
-      message: 'Agent 已进入活动池。'
+      message: '已加入活动。'
     },
     prompt_saved: {
       title: '配置已保存',
@@ -40,7 +40,7 @@ export const notifications = {
   },
   en: {
     auth: {
-      title: 'Authenticated',
+      title: 'Signed in',
       message: 'Welcome, {name}.'
     },
     logout: {
@@ -48,20 +48,20 @@ export const notifications = {
       message: 'User logged out securely.'
     },
     agent_deployed: {
-      title: 'Agent Deployed',
-      message: '{name} is ready. Join activity to compete.'
+      title: 'Agent Ready',
+      message: '{name} is ready. Join an activity to compete.'
     },
     agent_deleted: {
-      title: 'Destruction Complete',
-      message: 'Agent instance removed.'
+      title: 'Deleted',
+      message: 'Agent removed.'
     },
     withdrawn: {
       title: 'Withdrawn',
-      message: 'Exited competition. Records archived.'
+      message: 'Exited activity. Results saved.'
     },
     joined: {
-      title: 'Competition Joined',
-      message: 'Agent entered activity pool.'
+      title: 'Joined',
+      message: 'Joined the activity.'
     },
     prompt_saved: {
       title: 'Configuration Saved',

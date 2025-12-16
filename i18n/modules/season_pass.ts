@@ -9,7 +9,7 @@ export const season_pass = {
       missions_title: '每日任务',
       mission_trade: '成交额 10 万',
       mission_winrate: '胜率 55%',
-      mission_deploy: '部署 1 名 Agent',
+      mission_deploy: '创建 1 个助手',
       reward: '高级外观包',
       activate: '激活通行证',
       view: '查看全部挑战'
@@ -24,7 +24,7 @@ export const season_pass = {
       missions_title: 'Daily Missions',
       mission_trade: 'Trade Vol 100k',
       mission_winrate: 'Win Rate 55%',
-      mission_deploy: 'Deploy 1 Agent',
+      mission_deploy: 'Create 1 Agent',
       reward: 'Premium Skin Pack',
       activate: 'ACTIVATE PASS',
       view: 'VIEW ALL CHALLENGES'

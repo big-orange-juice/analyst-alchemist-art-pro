@@ -3,33 +3,32 @@ export const landing = {
     system_online: '系统在线',
     version: '版本 4.0 // 艺术重构',
     season_live: '活动进行中',
-    hero_title_1: '铸造你的',
-    hero_title_2: 'ALPHA AGENT',
+    hero_title_1: '打造你的',
+    hero_title_2: '智能助手',
     hero_desc:
-      '接入金融智能矩阵。部署自主 AI 代理，实时回测策略，在全网算法排位中争夺荣耀。',
-    init_system: '初始化系统',
-    link_identity: '链接身份',
-    continue_as: '继续身份',
-    enter: '进入系统',
-    resume: '继续身份',
+      '面向实战的智能投研与自动交易助手：策略回测、风险指标、活动榜单，一站搞定。',
+    init_system: '正在准备',
+    link_identity: '登录账号',
+    continue_as: '继续使用',
+    enter: '进入',
+    resume: '继续使用',
     top_performers: '表现最佳',
     features: {
-      strategy_title: '多因子策略矩阵',
+      strategy_title: '策略组合',
       strategy_desc:
-        '内置经典的量化因子库（动量、价值、波动率），支持通过自然语言组合生成全新的阿尔法策略。',
-      backtest_title: '机构级回测引擎',
+        '内置常用指标（动量、价值、波动率），也可以用一句话组合出你的策略思路。',
+      backtest_title: '回测工具',
       backtest_desc:
-        '基于 Tick 级历史数据，毫秒级仿真撮合，提供夏普比率、最大回撤等专业的绩效归因分析。',
-      community_title: '去中心化智库',
+        '用历史数据测一测策略表现，重点指标一目了然（收益、回撤、胜率等）。',
+      community_title: '活动排行榜',
       community_desc:
-        '加入全球排位赛，与顶尖的 Quant Agent 对抗。共享策略逻辑，获取活动奖励。',
-      security_title: '零信任安全架构',
-      security_desc:
-        '所有策略代码均在沙箱环境中运行。用户的私有数据与核心算法享有最高级别的加密保护。'
+        '参加活动，与其他智能助手同台比拼，看看你的策略能排第几。',
+      security_title: '数据安全',
+      security_desc: '策略运行在隔离环境中，私有数据与关键信息进行加密保护。'
     },
     buttons: {
-      start: '启动终端',
-      login: '接入系统',
+      start: '开始体验',
+      login: '登录 / 注册',
       docs: '开发文档'
     },
     footer: {
@@ -50,31 +49,31 @@ export const landing = {
     version: 'VERSION 4.0 // ARTISTIC REFORGE',
     season_live: 'ACTIVITY LIVE',
     hero_title_1: 'FORGE YOUR',
-    hero_title_2: 'ALPHA AGENT',
+    hero_title_2: 'STOCK ASSISTANT',
     hero_desc:
-      'Connect to the financial intelligence matrix. Deploy autonomous AI agents, backtest strategies in real-time, and compete for glory in the global algorithmic ladder.',
-    init_system: 'INITIALIZE SYSTEM',
-    link_identity: 'LINK IDENTITY',
-    continue_as: 'CONTINUE AS',
-    enter: 'ENTER SYSTEM',
-    resume: 'RESUME IDENTITY',
+      'A professional stock assistant for research and auto trading: backtests, risk metrics, and activity rankings.',
+    init_system: 'GET READY',
+    link_identity: 'SIGN IN',
+    continue_as: 'CONTINUE',
+    enter: 'ENTER',
+    resume: 'CONTINUE',
     top_performers: 'TOP PERFORMERS',
     features: {
-      strategy_title: 'Multi-Factor Matrix',
+      strategy_title: 'Strategy Builder',
       strategy_desc:
-        'Built-in classic quant factor libraries (Momentum, Value, Volatility), supporting NL-generated alpha strategies.',
-      backtest_title: 'Institutional Engine',
+        'Built-in common indicators (momentum, value, volatility). You can also describe a strategy in plain language.',
+      backtest_title: 'Backtest Tool',
       backtest_desc:
-        'Tick-level historical data, millisecond simulation matching, providing Sharpe ratio and max drawdown attribution.',
-      community_title: 'Decentralized Think Tank',
+        'Test your strategy on historical data and review key metrics (return, drawdown, win rate, etc.).',
+      community_title: 'Activity Rankings',
       community_desc:
-        'Join the global ladder and compete against top Quant Agents. Share logic and earn activity rewards.',
-      security_title: 'Zero Trust Architecture',
+        'Join activities and see how your assistant performs on the leaderboard.',
+      security_title: 'Data Security',
       security_desc:
-        'All strategy code runs in a sandbox environment. User private data and core algorithms enjoy top-level encryption.'
+        'Strategies run in an isolated sandbox. Private data and critical information are encrypted.'
     },
     buttons: {
-      start: 'START TERMINAL',
+      start: 'GET STARTED',
       login: 'ACCESS SYSTEM',
       docs: 'DOCUMENTS'
     },

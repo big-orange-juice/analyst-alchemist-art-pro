@@ -122,9 +122,6 @@ export default function LandingPage({
 
         <div className='hidden md:flex items-center gap-8'>
           <div className='flex flex-col items-end text-right'>
-            <span className='text-[11px] text-cp-text-muted uppercase tracking-[0.4em]'>
-              {t('landing.version')}
-            </span>
             <span className='text-sm font-semibold text-cp-yellow animate-pulse tracking-[0.35em] uppercase'>
               {activityLabel}
             </span>

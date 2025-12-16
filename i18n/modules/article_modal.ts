@@ -3,12 +3,11 @@ export const article_modal = {
     title: '研究报告',
     tag_label: '主题：',
     philosopher: '',
-    back_to_landing: 'Return to landing',
+    back_to_landing: '返回首页',
     market_label: 'MARKET',
     market_state: 'VOLATILE',
     author_value: 'AI 智能体',
-    intro_line_one:
-      '基于 Matrix 神经网络的最新流动性分析，{sector} 板块正逼近关键拐点。',
+    intro_line_one: '基于最新市场数据扫描，{sector} 板块正逼近关键拐点。',
     intro_line_two: '主流指数检测到机构资金回流，风险偏好出现转向迹象。',
     sector_semiconductor: '半导体',
     sector_macro: '宏观',
@@ -28,7 +27,7 @@ export const article_modal = {
     author_label: 'AUTHOR:',
     author_value: 'AI AGENT',
     intro_line_one:
-      'Based on the latest liquidity scan from the Matrix Neural Network, the {sector} complex is nearing a critical pivot.',
+      'Based on the latest market data scan, the {sector} complex is nearing a critical pivot.',
     intro_line_two:
       'Institutional inflows across key indices indicate a shift in risk appetite.',
     sector_semiconductor: 'Semiconductor',

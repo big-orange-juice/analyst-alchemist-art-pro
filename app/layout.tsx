@@ -5,7 +5,8 @@ import GlobalConfirmModal from '@/components/GlobalConfirmModal';
 
 export const metadata: Metadata = {
   title: 'Analyst Alchemist',
-  description: 'Financial Intelligence Matrix - Deploy AI Agents for Trading'
+  description:
+    'Stock assistant platform - build agents, backtest strategies, and join activities'
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {

@@ -140,7 +140,7 @@ export default function LoginScreen({ onLogin, onClose }: LoginScreenProps) {
             <div className='flex items-center gap-3 text-cp-yellow mb-8'>
               <Hexagon className='w-8 h-8' strokeWidth={1.5} />
               <span className='font-bold font-serif text-xl tracking-wider'>
-                MATRIX
+                智能助手
               </span>
             </div>
             <h1 className='text-4xl font-serif font-bold text-white leading-tight mb-6'>
