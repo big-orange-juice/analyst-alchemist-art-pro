@@ -138,6 +138,7 @@ const PERSONA_PRESETS: Record<
 
 interface SimResultData {
   duration: SimDuration;
+  labels: string[];
   equityCurve: number[];
 }
 
@@ -244,7 +245,49 @@ export default function CreateAgentModal({
     setUploadedFiles((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const startSimulation = () => {
+  const formatDateInput = (d: Date) => {
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+  };
+
+  const addDays = (d: Date, days: number) => {
+    const next = new Date(d);
+    next.setDate(next.getDate() + days);
+    return next;
+  };
+
+  const pollPnlCurve = async (id: string) => {
+    const maxAttempts = 60;
+    const intervalMs = 1000;
+
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      try {
+        const curve = await apiFetch<
+          Array<{ snapshot_date: string; cumulative_return_pct: number }>
+        >(`/api/backtests/${encodeURIComponent(id)}/pnl_curve`, {
+          method: 'GET',
+          errorHandling: 'ignore'
+        });
+
+        if (Array.isArray(curve) && curve.length > 0) return curve;
+      } catch {
+        // ignore and continue polling
+      }
+
+      await new Promise((r) => setTimeout(r, intervalMs));
+    }
+
+    return [] as Array<{
+      snapshot_date: string;
+      cumulative_return_pct: number;
+    }>;
+  };
+
+  const startSimulation = async () => {
+    if (simStatus === 'running') return;
+
     setSimStatus('running');
     setSimLogs([
       tt('sim_log_init'),
@@ -254,29 +297,66 @@ export default function CreateAgentModal({
     ]);
     setSimResult(null);
 
-    let count = 0;
-    const interval = setInterval(() => {
-      count++;
-      if (Math.random() > 0.6) {
-        setSimLogs((prev) => [
-          ...prev,
-          `${tt('sim_log_day')} ${count}: ${tt('sim_log_scanning')}`
-        ]);
-      }
-    }, 200);
+    const durationDays =
+      simDurationMode === '1w'
+        ? 7
+        : simDurationMode === '1m'
+        ? 30
+        : simDurationMode === '3m'
+        ? 90
+        : 365;
 
-    setTimeout(() => {
-      clearInterval(interval);
+    const end = new Date();
+    const start = addDays(end, -durationDays);
+
+    try {
+      const payload = {
+        activity_name: `${name || agentName || 'Agent'} 回测`,
+        description: '',
+        start_date: formatDateInput(start),
+        end_date: formatDateInput(end),
+        initial_capital: 100000,
+        time_granularity: 'daily',
+        status: 'draft'
+      };
+
+      const created = await apiFetch<{ id: string | number }, typeof payload>(
+        '/api/backtests',
+        {
+          method: 'POST',
+          body: payload,
+          errorHandling: 'ignore'
+        }
+      );
+
+      const id = created?.id != null ? String(created.id) : '';
+      if (!id) throw new Error('回测创建失败：缺少 id');
+
+      setSimLogs((prev) => [
+        ...prev,
+        `回测已创建: ${id}`,
+        '正在获取收益率曲线...'
+      ]);
+
+      const curve = await pollPnlCurve(id);
+      if (!curve.length) throw new Error('收益率曲线暂无数据（轮询超时）');
+
       setSimStatus('finished');
       setSimLogs((prev) => [...prev, tt('sim_log_done'), tt('sim_log_report')]);
       setSimResult({
         duration: simDurationMode,
-        equityCurve: Array.from(
-          { length: 30 },
-          (_, i) => 100 + Math.random() * 20 + i * 0.5
+        labels: curve.map((p) => String(p.snapshot_date ?? '')),
+        // EquityChart/系统展示通常以 100 为基准，这里也用 100+收益率% 便于一致渲染
+        equityCurve: curve.map(
+          (p) => 100 + Number(p.cumulative_return_pct ?? 0)
         )
       });
-    }, 2500);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : '回测执行失败';
+      setSimStatus('finished');
+      setSimLogs((prev) => [...prev, `回测失败: ${message}`]);
+      onNotify?.(tt('notify_create_failed'), message, 'error');
+    }
   };
 
   useEffect(() => {
@@ -328,7 +408,7 @@ export default function CreateAgentModal({
         grid: { top: 20, right: 10, bottom: 20, left: 40 },
         xAxis: {
           type: 'category',
-          data: simResult.equityCurve.map((_, i) => i),
+          data: simResult.labels,
           axisLine: { lineStyle: { color: 'rgba(255,255,255,0.1)' } },
           splitLine: { show: false }
         },
@@ -847,7 +927,7 @@ export default function CreateAgentModal({
                 <div className='mt-6'>
                   {simStatus === 'finished' ? (
                     <button
-                      onClick={startSimulation}
+                      onClick={() => void startSimulation()}
                       className='w-full py-4 border border-white/[0.02] text-cp-text-muted hover:text-white hover:border-cp-yellow transition-colors font-bold uppercase tracking-widest flex items-center justify-center gap-2'>
                       <RotateCcw size={18} /> {tt('sim_rerun')}
                     </button>
@@ -862,7 +942,7 @@ export default function CreateAgentModal({
                   {simStatus === 'idle' && (
                     <div className='absolute inset-0 flex items-center justify-center bg-black/40 z-20 backdrop-blur-sm'>
                       <button
-                        onClick={startSimulation}
+                        onClick={() => void startSimulation()}
                         className='group relative px-10 py-5 btn-gold text-lg shadow-[0_0_30px_rgba(197,160,89,0.3)] hover:scale-105 transition-transform'>
                         <div className='flex items-center gap-3'>
                           <Play size={24} fill='black' />

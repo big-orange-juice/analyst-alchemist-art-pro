@@ -9,14 +9,13 @@ import {
   BarChart2,
   Crosshair,
   Rewind,
-  FileText,
   Target
 } from 'lucide-react';
 import { useLanguage } from '@/lib/useLanguage';
 import { apiFetch } from '@/lib/http';
 import { AgentCapability, CapabilityHistoryEntry } from '@/types';
 
-type CapabilityFeedTab = 'ANALYSIS' | 'PICKING' | 'BACKTEST' | 'REPORT';
+type CapabilityFeedTab = 'ANALYSIS' | 'PICKING' | 'BACKTEST';
 
 const CAPABILITY_TAB_CONFIG: Record<
   CapabilityFeedTab,
@@ -34,13 +33,8 @@ const CAPABILITY_TAB_CONFIG: Record<
   },
   BACKTEST: {
     capability: AgentCapability.BACKTESTING,
-    labelKey: 'capabilities.BACKTESTING.label',
-    descKey: 'capabilities.BACKTESTING.desc'
-  },
-  REPORT: {
-    capability: AgentCapability.ARTICLE_WRITING,
-    labelKey: 'capabilities.ARTICLE_WRITING.label',
-    descKey: 'capabilities.ARTICLE_WRITING.desc'
+    labelKey: 'season_info_panel.history_backtest_label',
+    descKey: 'season_info_panel.history_backtest_desc'
   }
 };
 
@@ -74,7 +68,7 @@ export default function SeasonInfoPanel({
   const [activityLoading, setActivityLoading] = useState(false);
   const [activityError, setActivityError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<
-    'SEASON' | 'LOGS' | 'ANALYSIS' | 'PICKING' | 'BACKTEST' | 'REPORT'
+    'SEASON' | 'LOGS' | 'ANALYSIS' | 'PICKING' | 'BACKTEST'
   >('SEASON');
 
   const [logs, setLogs] = useState<
@@ -252,13 +246,6 @@ export default function SeasonInfoPanel({
                 activeTab === 'BACKTEST' ? 'active' : ''
               }`}>
               <Rewind size={12} /> {t(CAPABILITY_TAB_CONFIG.BACKTEST.labelKey)}
-            </button>
-            <button
-              onClick={() => setActiveTab('REPORT')}
-              className={`h-full type-eyebrow tab-item shrink-0 flex items-center gap-2 transition-colors hover:text-white ${
-                activeTab === 'REPORT' ? 'active' : ''
-              }`}>
-              <FileText size={12} /> {t(CAPABILITY_TAB_CONFIG.REPORT.labelKey)}
             </button>
           </>
         )}

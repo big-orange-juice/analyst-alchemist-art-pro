@@ -1,5 +1,7 @@
 export const season_info_panel = {
   zh: {
+    history_backtest_label: '历史回测',
+    history_backtest_desc: '查看历史回测记录与关键结果。',
     holdings_title: '实时持仓',
     holdings_delay: '数据延迟 3s',
     system_logs: '系统日志',
@@ -15,6 +17,8 @@ export const season_info_panel = {
     }
   },
   en: {
+    history_backtest_label: 'Backtest History',
+    history_backtest_desc: 'View historical backtest logs and key results.',
     holdings_title: 'LIVE HOLDINGS',
     holdings_delay: 'Data delayed 3s',
     system_logs: 'SYSTEM LOGS',

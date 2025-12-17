@@ -18,7 +18,6 @@ interface AgentPartyFrameProps {
   profit?: string;
   onToggleJoin?: () => void;
   onSelectCapability: (cap: AgentCapability) => void;
-  onEditCapability: (cap: AgentCapability) => void;
   onEditAgent?: () => void;
   onOpenChat: () => void;
   onDeleteAgent: () => void;
@@ -33,7 +32,6 @@ export default function AgentPartyFrame({
   profit,
   onToggleJoin,
   onSelectCapability,
-  onEditCapability,
   onEditAgent,
   onOpenChat,
   onDeleteAgent
@@ -65,7 +63,6 @@ export default function AgentPartyFrame({
           isJoined={isJoined}
           onRequestJoin={onToggleJoin}
           onSelectCapability={onSelectCapability}
-          onEditCapability={onEditCapability}
         />
 
         {/* Bottom Texture */}

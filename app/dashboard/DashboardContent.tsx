@@ -45,7 +45,6 @@ import CreateAgentModal from '@/components/CreateAgentModal';
 import EditAgentModal from '@/components/EditAgentModal';
 import CompetitionJoinModal from '@/components/CompetitionJoinModal';
 import CapabilityModal from '@/components/CapabilityModal';
-import PromptEditModal from '@/components/PromptEditModal';
 import ExternalAgentModal from '@/components/ExternalAgentModal';
 import ArticleModal from '@/components/ArticleModal';
 import NotificationHistoryModal from '@/components/NotificationHistoryModal';
@@ -79,7 +78,6 @@ export default function DashboardContent() {
     agentClass,
     setAgentRaw,
     agentStats,
-    customPrompts,
     isJoinedCompetition,
     setAgentName,
     setAgentClass,
@@ -87,7 +85,6 @@ export default function DashboardContent() {
     setAgentModules,
     setLastFetchedUserId,
     setAgentId,
-    updateCustomPrompt,
     setIsJoinedCompetition,
     clearAgent
   } = useAgentStore();
@@ -98,14 +95,12 @@ export default function DashboardContent() {
     highlightedAgent,
     inspectingAgent,
     selectedCapability,
-    editingCapability,
     setTheme,
     setActiveSideTab,
     setIsChatOpen,
     setHighlightedAgent,
     setInspectingAgent,
-    setSelectedCapability,
-    setEditingCapability
+    setSelectedCapability
   } = useUIStore();
   const {
     isLoginModalOpen,
@@ -639,20 +634,6 @@ export default function DashboardContent() {
     });
   };
 
-  const handleSavePrompt = (newPrompt: string) => {
-    if (!editingCapability) return;
-    updateCustomPrompt(editingCapability, newPrompt);
-    notify(
-      t.notifications.prompt_saved.title,
-      t.notifications.prompt_saved.message.replace(
-        '{capability}',
-        editingCapability
-      ),
-      'success'
-    );
-    setEditingCapability(null);
-  };
-
   const toggleTheme = () => {
     setTheme(theme === 'dark' ? 'light' : 'dark');
   };
@@ -794,7 +775,6 @@ export default function DashboardContent() {
                       }
                       setSelectedCapability(cap);
                     }}
-                    onEditCapability={(cap) => setEditingCapability(cap)}
                     onEditAgent={() => setIsEditAgentModalOpen(true)}
                     onOpenChat={() => setIsChatOpen(true)}
                     onDeleteAgent={() => {
@@ -926,18 +906,8 @@ export default function DashboardContent() {
       {selectedCapability && (
         <CapabilityModal
           capability={selectedCapability}
-          customPrompt={customPrompts[selectedCapability]}
           onClose={() => setSelectedCapability(null)}
           onNotify={notify}
-        />
-      )}
-
-      {editingCapability && (
-        <PromptEditModal
-          capability={editingCapability}
-          initialPrompt={customPrompts[editingCapability] || ''}
-          onSave={handleSavePrompt}
-          onClose={() => setEditingCapability(null)}
         />
       )}
 

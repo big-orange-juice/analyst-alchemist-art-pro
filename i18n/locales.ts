@@ -20,7 +20,6 @@ import { nav } from './modules/nav';
 import { notification_history } from './modules/notification_history';
 import { notification_system } from './modules/notification_system';
 import { notifications } from './modules/notifications';
-import { prompt_modal } from './modules/prompt_modal';
 import { ranking } from './modules/ranking';
 import { season_info_panel } from './modules/season_info_panel';
 import { season_pass } from './modules/season_pass';
@@ -42,7 +41,6 @@ export const translations = {
     capability_modal: capability_modal.zh,
     article_analysis_modal: articleAnalysisModal.zh,
     capability_history: capability_history.zh,
-    prompt_modal: prompt_modal.zh,
     external_agent: external_agent.zh,
     chat: chat.zh,
     article_modal: article_modal.zh,
@@ -75,7 +73,6 @@ export const translations = {
 
     article_analysis_modal: articleAnalysisModal.en,
     capability_history: capability_history.en,
-    prompt_modal: prompt_modal.en,
     external_agent: external_agent.en,
     chat: chat.en,
     article_modal: article_modal.en,

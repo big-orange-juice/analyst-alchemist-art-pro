@@ -7,8 +7,7 @@ import {
   Crosshair,
   PenTool,
   Rewind,
-  Search,
-  Settings
+  Search
 } from 'lucide-react';
 import { AgentCapability } from '@/types';
 import { useLanguage } from '@/lib/useLanguage';
@@ -17,14 +16,12 @@ interface AgentCapabilitiesListProps {
   isJoined?: boolean;
   onRequestJoin?: () => void;
   onSelectCapability: (cap: AgentCapability) => void;
-  onEditCapability: (cap: AgentCapability) => void;
 }
 
 export default function AgentCapabilitiesList({
   isJoined = false,
   onRequestJoin,
-  onSelectCapability,
-  onEditCapability
+  onSelectCapability
 }: AgentCapabilitiesListProps) {
   const { t } = useLanguage();
 
@@ -97,10 +94,9 @@ export default function AgentCapabilitiesList({
     [AgentCapability.ARTICLE_WRITING]: PenTool
   } as const;
 
-  const renderMember = (cap: AgentCapability, slotIndex: number) => {
+  const renderMember = (cap: AgentCapability) => {
     const label = t(`capabilities.${cap}.label`);
     const role = t(`capabilities.${cap}.role`);
-    const slotTag = String(slotIndex + 1).padStart(2, '0');
     const meta = capabilityMeta[cap];
     const Icon = iconByCap[cap];
 
@@ -142,19 +138,10 @@ export default function AgentCapabilitiesList({
             </div>
           </div>
 
-          <div className='flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity'>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onEditCapability(cap);
-              }}
-              className='p-1.5 text-cp-text-muted hover:text-white hover:bg-white/[0.05] rounded transition-colors'
-              title={t('agent_party.edit_prompt')}>
-              <Settings size={14} />
-            </button>
-            <button className='p-1.5 text-cp-text-muted hover:text-cp-yellow hover:bg-cp-yellow/10 rounded transition-colors'>
+          <div className='flex items-center gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity'>
+            <div className='p-1.5 text-cp-text-muted rounded transition-colors'>
               <ChevronRight size={14} />
-            </button>
+            </div>
           </div>
         </div>
 
@@ -185,19 +172,7 @@ export default function AgentCapabilitiesList({
                   退出参赛
                 </button>
               ) : null}
-
-              {isJoined ? (
-                <div className='w-28 h-1.5 rounded-full bg-white/[0.06] overflow-hidden border border-white/[0.08]'>
-                  <div className='h-full w-1/2 bg-cp-yellow/70 animate-pulse' />
-                </div>
-              ) : null}
             </div>
-          </div>
-        ) : null}
-
-        {!isAutoTrading ? (
-          <div className='relative z-10 mt-auto pt-2 flex items-center justify-end text-[10px] font-mono text-cp-text-muted/60 uppercase tracking-[0.2em]'>
-            <span>SKILL_{slotTag}</span>
           </div>
         ) : null}
       </div>
@@ -206,7 +181,7 @@ export default function AgentCapabilitiesList({
 
   return (
     <div className='grid grid-cols-1 flex-1 min-h-0 overflow-y-auto custom-scrollbar divide-y divide-white/[0.02]'>
-      {Object.values(AgentCapability).map((cap, idx) => renderMember(cap, idx))}
+      {Object.values(AgentCapability).map((cap) => renderMember(cap))}
     </div>
   );
 }
