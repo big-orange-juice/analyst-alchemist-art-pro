@@ -1,11 +1,16 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Copy, Cpu, Play, RotateCcw, Save, X } from 'lucide-react';
 import MarkdownIt from 'markdown-it';
 import { apiFetch, ApiError } from '@/lib/http';
 import { useLanguage } from '@/lib/useLanguage';
 import { copyToClipboard } from '@/lib/clipboard';
+import {
+  addRunHistory,
+  getRunHistory,
+  type RunHistoryItem
+} from '@/lib/runHistory';
 
 type ContentMode = 'url' | 'text' | 'file';
 
@@ -44,6 +49,12 @@ export default function ArticleAnalysisModal({
   onNotify
 }: ArticleAnalysisModalProps) {
   const { t } = useLanguage();
+
+  const historyKey = 'article-analysis';
+  const [activeLeftTab, setActiveLeftTab] = useState<'form' | 'history'>(
+    'form'
+  );
+  const [history, setHistory] = useState<RunHistoryItem[]>(() => []);
 
   const [mode, setMode] = useState<ContentMode>('url');
   const [url, setUrl] = useState('');
@@ -302,6 +313,9 @@ export default function ArticleAnalysisModal({
     setIsSubmitting(true);
     setResultText('');
 
+    let ok = false;
+    let finalOutput = '';
+
     try {
       const res = await apiFetch<any>('/api/research/article-analysis', {
         method: 'POST',
@@ -310,7 +324,9 @@ export default function ArticleAnalysisModal({
       });
 
       const formatted = formatResultToMarkdown(res);
-      setResultText(formatted || tt('empty_response'));
+      finalOutput = formatted || tt('empty_response');
+      setResultText(finalOutput);
+      ok = true;
       onNotify?.(tt('ok_title'), tt('ok_message'), 'success');
     } catch (err) {
       const message =
@@ -319,9 +335,31 @@ export default function ArticleAnalysisModal({
           : err instanceof Error
           ? err.message
           : tt('fail_title');
-      setResultText(message);
+      finalOutput = message;
+      setResultText(finalOutput);
       onNotify?.(tt('fail_title'), message, 'error');
     } finally {
+      const summaryParts = [
+        contentType ? `${tt('content_type')}:${contentType}` : '',
+        symbol.trim() ? `${tt('symbol')}:${symbol.trim()}` : '',
+        tradingDate.trim() ? `${tt('trading_date')}:${tradingDate.trim()}` : ''
+      ].filter(Boolean);
+
+      const next = addRunHistory(historyKey, {
+        ok,
+        summary: summaryParts.join('  ') || tt('title'),
+        input: {
+          mode,
+          content_type: contentType,
+          url: mode === 'url' ? url.trim() : undefined,
+          text_length: mode === 'text' ? String(text || '').length : undefined,
+          analysis_focus: focusList,
+          symbol: symbol.trim() || undefined,
+          trading_date: tradingDate.trim() || undefined
+        },
+        output: finalOutput
+      });
+      setHistory(next);
       setIsSubmitting(false);
     }
   };
@@ -336,6 +374,10 @@ export default function ArticleAnalysisModal({
       ok ? 'success' : 'error'
     );
   };
+
+  useEffect(() => {
+    setHistory(getRunHistory(historyKey));
+  }, []);
 
   return (
     <div className='fixed inset-0 z-50 flex items-center justify-center backdrop-blur-xl bg-black/70 p-4 modal-animate'>
@@ -365,216 +407,287 @@ export default function ArticleAnalysisModal({
 
         <div className='relative flex-1 flex flex-col md:flex-row overflow-hidden bg-transparent'>
           {/* Form */}
-          <div className='w-full md:w-1/3 border-b md:border-b-0 md:border-r border-cp-border p-6 flex flex-col bg-white/[0.02] hover-card m-2 gap-4 overflow-y-auto custom-scrollbar min-h-0'>
-            {!agentId || !userId ? (
-              <p className='text-cp-red text-xs'>{tt('missing_desc')}</p>
-            ) : null}
-
-            <label className='text-cp-text-muted text-xs font-bold uppercase tracking-widest block'>
-              {tt('input_label')}
-            </label>
-
+          <div className='w-full md:w-1/3 border-b md:border-b-0 md:border-r border-cp-border p-6 flex flex-col bg-white/[0.02] hover-card m-2 gap-4 min-h-0'>
             <div
               role='tablist'
               className='flex items-center gap-4 border-b border-cp-border'>
               <button
-                onClick={() => {
-                  setMode('url');
-                  setContentType('url');
-                }}
+                type='button'
+                onClick={() => setActiveLeftTab('form')}
                 role='tab'
-                aria-selected={mode === 'url'}
+                aria-selected={activeLeftTab === 'form'}
                 className={`px-3 py-2 text-[11px] font-bold uppercase tracking-widest transition-colors -mb-px border-b-2 ${
-                  mode === 'url'
+                  activeLeftTab === 'form'
                     ? 'border-cp-yellow text-cp-yellow'
                     : 'border-transparent text-cp-text-muted hover:text-white'
                 }`}>
-                {tt('mode_url')}
+                {tt('tab_form')}
               </button>
-
               <button
+                type='button'
                 onClick={() => {
-                  setMode('text');
-                  setContentType('text');
+                  setHistory(getRunHistory(historyKey));
+                  setActiveLeftTab('history');
                 }}
                 role='tab'
-                aria-selected={mode === 'text'}
+                aria-selected={activeLeftTab === 'history'}
                 className={`px-3 py-2 text-[11px] font-bold uppercase tracking-widest transition-colors -mb-px border-b-2 ${
-                  mode === 'text'
+                  activeLeftTab === 'history'
                     ? 'border-cp-yellow text-cp-yellow'
                     : 'border-transparent text-cp-text-muted hover:text-white'
                 }`}>
-                {tt('mode_text')}
-              </button>
-
-              <button
-                onClick={() => {
-                  setMode('file');
-                  setContentType((prev) =>
-                    prev === 'pdf' || prev === 'excel' || prev === 'image'
-                      ? prev
-                      : 'pdf'
-                  );
-                }}
-                role='tab'
-                aria-selected={mode === 'file'}
-                className={`px-3 py-2 text-[11px] font-bold uppercase tracking-widest transition-colors -mb-px border-b-2 ${
-                  mode === 'file'
-                    ? 'border-cp-yellow text-cp-yellow'
-                    : 'border-transparent text-cp-text-muted hover:text-white'
-                }`}>
-                {tt('mode_file')}
+                {tt('tab_history')}
               </button>
             </div>
 
-            <div className='grid grid-cols-1 gap-5'>
-              <div className='space-y-2'>
-                <label className='block text-cp-text-muted text-[11px] font-bold uppercase tracking-widest'>
-                  {tt('content_type')}
-                </label>
-                <select
-                  value={contentType}
-                  disabled={isContentTypeLocked}
-                  onChange={(e) =>
-                    setContentType(
-                      e.target.value as
-                        | 'url'
-                        | 'pdf'
-                        | 'excel'
-                        | 'image'
-                        | 'text'
-                    )
-                  }
-                  className={`w-full px-4 py-3 bg-black/40 border border-cp-border text-white font-mono text-xs outline-none focus:border-cp-yellow ${
-                    isContentTypeLocked
-                      ? 'text-cp-text-muted cursor-not-allowed'
-                      : 'cursor-pointer'
-                  }`}>
-                  <option value='url' className='bg-black text-white'>
-                    {tt('content_type_url')}
-                  </option>
-                  <option value='text' className='bg-black text-white'>
-                    {tt('content_type_text')}
-                  </option>
-                  <option value='pdf' className='bg-black text-white'>
-                    {tt('content_type_pdf')}
-                  </option>
-                  <option value='excel' className='bg-black text-white'>
-                    {tt('content_type_excel')}
-                  </option>
-                  <option value='image' className='bg-black text-white'>
-                    {tt('content_type_image')}
-                  </option>
-                </select>
-              </div>
-
-              {mode === 'url' ? (
-                <div className='space-y-2'>
-                  <label className='block text-cp-text-muted text-[11px] font-bold uppercase tracking-widest'>
-                    {tt('content_data')}
-                  </label>
-                  <input
-                    value={url}
-                    onChange={(e) => setUrl(e.target.value)}
-                    className='w-full px-4 py-3 bg-transparent border border-cp-border text-cp-text outline-none font-mono text-sm'
-                    placeholder={tt('url_ph')}
-                  />
-                </div>
-              ) : null}
-
-              {mode === 'text' ? (
-                <div className='space-y-2'>
-                  <label className='block text-cp-text-muted text-[11px] font-bold uppercase tracking-widest'>
-                    {tt('content_data')}
-                  </label>
-                  <textarea
-                    value={text}
-                    onChange={(e) => setText(e.target.value)}
-                    className='w-full min-h-[180px] px-4 py-3 bg-transparent border border-cp-border text-cp-text outline-none font-mono text-sm resize-y custom-scrollbar'
-                    placeholder={tt('text_ph')}
-                  />
-                </div>
-              ) : null}
-
-              {mode === 'file' ? (
-                <div className='space-y-2'>
-                  <label className='block text-cp-text-muted text-[11px] font-bold uppercase tracking-widest'>
-                    {tt('content_data')}
-                  </label>
-                  <div className='w-full px-4 py-3 bg-white/[0.01] border border-cp-border text-cp-text-muted font-mono text-xs outline-none cursor-not-allowed'>
-                    {tt('file_disabled')}
+            {activeLeftTab === 'history' ? (
+              <div className='flex-1 min-h-0 overflow-y-auto custom-scrollbar border border-cp-border bg-black/20 p-4'>
+                {!history.length ? (
+                  <div className='text-xs text-cp-text-muted'>
+                    {tt('history_empty')}
                   </div>
-                </div>
-              ) : null}
-
-              <div className='space-y-2'>
-                <label className='block text-cp-text-muted text-[11px] font-bold uppercase tracking-widest'>
-                  {tt('focus')}
-                </label>
-                <textarea
-                  value={analysisFocusRaw}
-                  onChange={(e) => setAnalysisFocusRaw(e.target.value)}
-                  className='w-full min-h-[90px] px-4 py-3 bg-transparent border border-cp-border text-cp-text outline-none font-mono text-sm resize-y custom-scrollbar'
-                  placeholder={tt('focus_ph')}
-                />
-                {focusList.length ? (
-                  <div className='text-[11px] text-cp-text-muted font-mono'>
-                    {focusList.map((f) => `#${f}`).join(' ')}
-                  </div>
-                ) : null}
-              </div>
-
-              <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
-                <div className='space-y-2'>
-                  <label className='block text-cp-text-muted text-[11px] font-bold uppercase tracking-widest'>
-                    {tt('symbol')}
-                  </label>
-                  <select
-                    value={symbol}
-                    onChange={(e) => setSymbol(e.target.value)}
-                    className='w-full px-4 py-3 bg-black/40 border border-cp-border text-white outline-none font-mono text-sm focus:border-cp-yellow'>
-                    {symbolOptions.map((opt) => (
-                      <option
-                        key={opt.value || '__empty__'}
-                        value={opt.value}
-                        className='bg-black text-white'>
-                        {tt(opt.labelKey)}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className='space-y-2'>
-                  <label className='block text-cp-text-muted text-[11px] font-bold uppercase tracking-widest'>
-                    {tt('trading_date')}
-                  </label>
-                  <select
-                    value={tradingDate}
-                    onChange={(e) => setTradingDate(e.target.value)}
-                    className='w-full px-4 py-3 bg-black/40 border border-cp-border text-white outline-none font-mono text-sm focus:border-cp-yellow'>
-                    {tradingDateOptions.map((d) => (
-                      <option
-                        key={d || '__empty__'}
-                        value={d}
-                        className='bg-black text-white'>
-                        {d || tt('not_set')}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <button
-                onClick={handleSubmit}
-                disabled={!canSubmit || isSubmitting}
-                className='w-full py-4 btn-gold flex items-center justify-center gap-2 disabled:opacity-50 mt-auto'>
-                {isSubmitting ? (
-                  <RotateCcw className='animate-spin' size={18} />
                 ) : (
-                  <Play size={18} />
+                  <div className='space-y-3'>
+                    {history.map((item) => (
+                      <div
+                        key={item.id}
+                        className='border border-cp-border bg-black/30 p-3 hover:border-cp-yellow transition-colors'>
+                        <div className='flex items-center justify-between gap-3'>
+                          <div className='text-[11px] text-cp-text-muted font-mono'>
+                            {new Date(item.ts).toLocaleString()}
+                          </div>
+                          <div
+                            className={`text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 border ${
+                              item.ok
+                                ? 'border-green-500/40 text-green-400'
+                                : 'border-cp-red/40 text-cp-red'
+                            }`}>
+                            {item.ok ? 'OK' : 'FAIL'}
+                          </div>
+                        </div>
+                        <div className='mt-2 text-sm text-cp-text'>
+                          {item.summary}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 )}
-                {tt('submit')}
-              </button>
-            </div>
+              </div>
+            ) : (
+              <>
+                <div className='flex-1 min-h-0 overflow-y-auto custom-scrollbar pr-1'>
+                  {!agentId || !userId ? (
+                    <p className='text-cp-red text-xs mb-3'>
+                      {tt('missing_desc')}
+                    </p>
+                  ) : null}
+
+                  <div
+                    role='tablist'
+                    className='flex items-center gap-4 border-b border-cp-border'>
+                    <button
+                      onClick={() => {
+                        setMode('url');
+                        setContentType('url');
+                      }}
+                      role='tab'
+                      aria-selected={mode === 'url'}
+                      className={`px-3 py-2 text-[11px] font-bold uppercase tracking-widest transition-colors -mb-px border-b-2 ${
+                        mode === 'url'
+                          ? 'border-cp-yellow text-cp-yellow'
+                          : 'border-transparent text-cp-text-muted hover:text-white'
+                      }`}>
+                      {tt('mode_url')}
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        setMode('text');
+                        setContentType('text');
+                      }}
+                      role='tab'
+                      aria-selected={mode === 'text'}
+                      className={`px-3 py-2 text-[11px] font-bold uppercase tracking-widest transition-colors -mb-px border-b-2 ${
+                        mode === 'text'
+                          ? 'border-cp-yellow text-cp-yellow'
+                          : 'border-transparent text-cp-text-muted hover:text-white'
+                      }`}>
+                      {tt('mode_text')}
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        setMode('file');
+                        setContentType((prev) =>
+                          prev === 'pdf' || prev === 'excel' || prev === 'image'
+                            ? prev
+                            : 'pdf'
+                        );
+                      }}
+                      role='tab'
+                      aria-selected={mode === 'file'}
+                      className={`px-3 py-2 text-[11px] font-bold uppercase tracking-widest transition-colors -mb-px border-b-2 ${
+                        mode === 'file'
+                          ? 'border-cp-yellow text-cp-yellow'
+                          : 'border-transparent text-cp-text-muted hover:text-white'
+                      }`}>
+                      {tt('mode_file')}
+                    </button>
+                  </div>
+
+                  <div className='grid grid-cols-1 gap-5 mt-4'>
+                    <div className='space-y-2'>
+                      <label className='block text-cp-text-muted text-[11px] font-bold uppercase tracking-widest'>
+                        {tt('content_type')}
+                      </label>
+                      <select
+                        value={contentType}
+                        disabled={isContentTypeLocked}
+                        onChange={(e) =>
+                          setContentType(
+                            e.target.value as
+                              | 'url'
+                              | 'pdf'
+                              | 'excel'
+                              | 'image'
+                              | 'text'
+                          )
+                        }
+                        className={`w-full px-4 py-3 bg-black/40 border border-cp-border text-white font-mono text-xs outline-none focus:border-cp-yellow ${
+                          isContentTypeLocked
+                            ? 'text-cp-text-muted cursor-not-allowed'
+                            : 'cursor-pointer'
+                        }`}>
+                        <option value='url' className='bg-black text-white'>
+                          {tt('content_type_url')}
+                        </option>
+                        <option value='text' className='bg-black text-white'>
+                          {tt('content_type_text')}
+                        </option>
+                        <option value='pdf' className='bg-black text-white'>
+                          {tt('content_type_pdf')}
+                        </option>
+                        <option value='excel' className='bg-black text-white'>
+                          {tt('content_type_excel')}
+                        </option>
+                        <option value='image' className='bg-black text-white'>
+                          {tt('content_type_image')}
+                        </option>
+                      </select>
+                    </div>
+
+                    {mode === 'url' ? (
+                      <div className='space-y-2'>
+                        <label className='block text-cp-text-muted text-[11px] font-bold uppercase tracking-widest'>
+                          {tt('content_data')}
+                        </label>
+                        <input
+                          value={url}
+                          onChange={(e) => setUrl(e.target.value)}
+                          className='w-full px-4 py-3 bg-transparent border border-cp-border text-cp-text outline-none font-mono text-sm'
+                          placeholder={tt('url_ph')}
+                        />
+                      </div>
+                    ) : null}
+
+                    {mode === 'text' ? (
+                      <div className='space-y-2'>
+                        <label className='block text-cp-text-muted text-[11px] font-bold uppercase tracking-widest'>
+                          {tt('content_data')}
+                        </label>
+                        <textarea
+                          value={text}
+                          onChange={(e) => setText(e.target.value)}
+                          className='w-full min-h-[180px] px-4 py-3 bg-transparent border border-cp-border text-cp-text outline-none font-mono text-sm resize-y custom-scrollbar'
+                          placeholder={tt('text_ph')}
+                        />
+                      </div>
+                    ) : null}
+
+                    {mode === 'file' ? (
+                      <div className='space-y-2'>
+                        <label className='block text-cp-text-muted text-[11px] font-bold uppercase tracking-widest'>
+                          {tt('content_data')}
+                        </label>
+                        <div className='w-full px-4 py-3 bg-white/[0.01] border border-cp-border text-cp-text-muted font-mono text-xs outline-none cursor-not-allowed'>
+                          {tt('file_disabled')}
+                        </div>
+                      </div>
+                    ) : null}
+
+                    <div className='space-y-2'>
+                      <label className='block text-cp-text-muted text-[11px] font-bold uppercase tracking-widest'>
+                        {tt('focus')}
+                      </label>
+                      <textarea
+                        value={analysisFocusRaw}
+                        onChange={(e) => setAnalysisFocusRaw(e.target.value)}
+                        className='w-full min-h-[90px] px-4 py-3 bg-transparent border border-cp-border text-cp-text outline-none font-mono text-sm resize-y custom-scrollbar'
+                        placeholder={tt('focus_ph')}
+                      />
+                      {focusList.length ? (
+                        <div className='text-[11px] text-cp-text-muted font-mono'>
+                          {focusList.map((f) => `#${f}`).join(' ')}
+                        </div>
+                      ) : null}
+                    </div>
+
+                    <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+                      <div className='space-y-2'>
+                        <label className='block text-cp-text-muted text-[11px] font-bold uppercase tracking-widest'>
+                          {tt('symbol')}
+                        </label>
+                        <select
+                          value={symbol}
+                          onChange={(e) => setSymbol(e.target.value)}
+                          className='w-full px-4 py-3 bg-black/40 border border-cp-border text-white outline-none font-mono text-sm focus:border-cp-yellow'>
+                          {symbolOptions.map((opt) => (
+                            <option
+                              key={opt.value || '__empty__'}
+                              value={opt.value}
+                              className='bg-black text-white'>
+                              {tt(opt.labelKey)}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className='space-y-2'>
+                        <label className='block text-cp-text-muted text-[11px] font-bold uppercase tracking-widest'>
+                          {tt('trading_date')}
+                        </label>
+                        <select
+                          value={tradingDate}
+                          onChange={(e) => setTradingDate(e.target.value)}
+                          className='w-full px-4 py-3 bg-black/40 border border-cp-border text-white outline-none font-mono text-sm focus:border-cp-yellow'>
+                          {tradingDateOptions.map((d) => (
+                            <option
+                              key={d || '__empty__'}
+                              value={d}
+                              className='bg-black text-white'>
+                              {d || tt('not_set')}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className='shrink-0 pt-4'>
+                  <button
+                    onClick={handleSubmit}
+                    disabled={!canSubmit || isSubmitting}
+                    className='w-full py-4 btn-gold flex items-center justify-center gap-2 disabled:opacity-50'>
+                    {isSubmitting ? (
+                      <RotateCcw className='animate-spin' size={18} />
+                    ) : (
+                      <Play size={18} />
+                    )}
+                    {tt('submit')}
+                  </button>
+                </div>
+              </>
+            )}
           </div>
 
           {/* Result */}

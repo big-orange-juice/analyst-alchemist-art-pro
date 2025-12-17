@@ -15,24 +15,30 @@ const tryParseJson = (text: string) => {
   }
 };
 
-export async function GET(
-  req: Request,
-  ctx: { params: Promise<{ id: string }> }
-) {
+export async function GET(req: Request) {
   try {
     const auth = await getAuthHeader(req);
     if (!auth) {
       return NextResponse.json({ message: '未登录' }, { status: 401 });
     }
 
-    const { id } = await ctx.params;
-    if (!id) {
-      return NextResponse.json({ message: '缺少参数：id' }, { status: 400 });
+    const { searchParams } = new URL(req.url);
+    const activityId =
+      searchParams.get('activity_id') ||
+      // backwards compatible
+      searchParams.get('backtest_id') ||
+      searchParams.get('id') ||
+      searchParams.get('backtestId');
+
+    if (!activityId) {
+      return NextResponse.json(
+        { message: '缺少参数：activity_id' },
+        { status: 400 }
+      );
     }
 
-    const target = backendURL(
-      `/api/v2/backtests/${encodeURIComponent(id)}/pnl_curve`
-    );
+    const target = backendURL('/api/v2/backtests/pnl_curve');
+    target.searchParams.set('activity_id', activityId);
 
     const res = await fetch(target.toString(), {
       method: 'GET',

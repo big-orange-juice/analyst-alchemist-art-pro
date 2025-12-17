@@ -5,6 +5,10 @@ export const articleAnalysisModal = {
 
     input_label: '输入',
 
+    tab_form: '文章分析',
+    tab_history: '分析历史',
+    history_empty: '暂无历史记录',
+
     mode_url: '在线链接',
     mode_text: '粘贴文本',
     mode_file: '文件上传',
@@ -90,6 +94,10 @@ export const articleAnalysisModal = {
     subtitle: 'The Analyst',
 
     input_label: 'Input',
+
+    tab_form: 'Article Analysis',
+    tab_history: 'Analysis History',
+    history_empty: 'No history yet',
 
     mode_url: 'Use online URL',
     mode_text: 'Paste plain text',

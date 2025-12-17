@@ -696,8 +696,8 @@ export default function DashboardContent() {
                 <span className='text-[10px] text-cp-text-muted tracking-widest uppercase'>
                   {t.app.operator_id}
                 </span>
-                <span className='text-sm font-mono text-cp-yellow'>
-                  {currentUser.username}
+                <span className='text-sm font-mono text-cp-yellow uppercase'>
+                  {String(currentUser.username || '').toUpperCase()}
                 </span>
               </div>
               <button

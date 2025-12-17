@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { Cpu } from 'lucide-react';
+import { useLanguage } from '@/lib/useLanguage';
 
 interface AgentSummaryHeaderProps {
   agentName: string;
@@ -12,6 +13,22 @@ export default function AgentSummaryHeader({
   agentName,
   agentClass
 }: AgentSummaryHeaderProps) {
+  const { t } = useLanguage();
+
+  const displayAgentName = String(agentName || '').toUpperCase();
+  const displayAgentClass = (() => {
+    switch (agentClass) {
+      case 'track_thinking':
+        return t('create_agent_modal.workflow_track_title');
+      case 'quant_thinking':
+        return t('create_agent_modal.workflow_quant_title');
+      case 'news_thinking':
+        return t('create_agent_modal.workflow_news_title');
+      default:
+        return agentClass;
+    }
+  })();
+
   return (
     <div className='shrink-0 p-6 relative overflow-hidden'>
       {/* Background Glow */}
@@ -37,11 +54,11 @@ export default function AgentSummaryHeader({
         <div className='min-w-0 flex-1 pt-1'>
           <div className='flex flex-wrap items-center justify-between gap-4'>
             <div className='min-w-0'>
-              <h3 className='text-white font-bold text-xl tracking-wide truncate flex items-center gap-2'>
-                {agentName}
+              <h3 className='text-white font-bold text-xl tracking-wide truncate flex items-center gap-2 uppercase'>
+                {displayAgentName}
               </h3>
               <p className='text-xs text-cp-cyan uppercase tracking-[0.3em] mt-1.5 font-medium'>
-                {agentClass}
+                {displayAgentClass}
               </p>
             </div>
           </div>

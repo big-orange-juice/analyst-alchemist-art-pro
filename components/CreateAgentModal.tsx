@@ -158,6 +158,21 @@ export default function CreateAgentModal({
   const { t } = useLanguage();
   const tt = (key: string) => t(`create_agent_modal.${key}`);
 
+  const mountedRef = useRef(true);
+
+  const getWorkflowLabel = (workflowId: string) => {
+    switch (workflowId) {
+      case 'track_thinking':
+        return tt('workflow_track_title');
+      case 'quant_thinking':
+        return tt('workflow_quant_title');
+      case 'news_thinking':
+        return tt('workflow_news_title');
+      default:
+        return workflowId;
+    }
+  };
+
   const { currentUser } = useUserStore();
   const { agentName, agentClass, agentId } = useAgentStore();
   const [step, setStep] = useState<CreationStep>('naming');
@@ -186,6 +201,13 @@ export default function CreateAgentModal({
       t('create_agent_modal.sim_log_pick')
     ]);
   }, [simStatus, t]);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
   const [simResult, setSimResult] = useState<SimResultData | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [hasCreated, setHasCreated] = useState(false);
@@ -258,20 +280,48 @@ export default function CreateAgentModal({
     return next;
   };
 
+  type BacktestPnlCurvePoint = {
+    snapshot_date: string;
+    cumulative_return_pct: number;
+    [k: string]: unknown;
+  };
+
+  type BacktestPnlCurveResponse = {
+    activity?: {
+      status?: string;
+      [k: string]: unknown;
+    };
+    points?: BacktestPnlCurvePoint[];
+    [k: string]: unknown;
+  };
+
   const pollPnlCurve = async (id: string) => {
-    const maxAttempts = 60;
-    const intervalMs = 1000;
+    const intervalMs = 10000;
 
-    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    while (mountedRef.current) {
       try {
-        const curve = await apiFetch<
-          Array<{ snapshot_date: string; cumulative_return_pct: number }>
-        >(`/api/backtests/${encodeURIComponent(id)}/pnl_curve`, {
-          method: 'GET',
-          errorHandling: 'ignore'
-        });
+        const result = await apiFetch<BacktestPnlCurveResponse>(
+          `/api/backtests/pnl_curve?activity_id=${encodeURIComponent(id)}`,
+          {
+            method: 'GET',
+            errorHandling: 'ignore'
+          }
+        );
 
-        if (Array.isArray(curve) && curve.length > 0) return curve;
+        const points = Array.isArray(result?.points) ? result.points : [];
+        if (points.length > 0) {
+          setSimResult({
+            duration: simDurationMode,
+            labels: points.map((p) => String(p.snapshot_date ?? '')),
+            equityCurve: points.map(
+              (p) => 100 + Number(p.cumulative_return_pct ?? 0)
+            )
+          });
+        }
+
+        if (result?.activity?.status === 'closed') {
+          return { done: true, points };
+        }
       } catch {
         // ignore and continue polling
       }
@@ -279,10 +329,7 @@ export default function CreateAgentModal({
       await new Promise((r) => setTimeout(r, intervalMs));
     }
 
-    return [] as Array<{
-      snapshot_date: string;
-      cumulative_return_pct: number;
-    }>;
+    return null;
   };
 
   const startSimulation = async () => {
@@ -338,8 +385,10 @@ export default function CreateAgentModal({
         '正在获取收益率曲线...'
       ]);
 
-      const curve = await pollPnlCurve(id);
-      if (!curve.length) throw new Error('收益率曲线暂无数据（轮询超时）');
+      const polled = await pollPnlCurve(id);
+      if (!polled) return;
+
+      const curve = polled.points;
 
       setSimStatus('finished');
       setSimLogs((prev) => [...prev, tt('sim_log_done'), tt('sim_log_report')]);
@@ -351,6 +400,10 @@ export default function CreateAgentModal({
           (p) => 100 + Number(p.cumulative_return_pct ?? 0)
         )
       });
+
+      if (!curve.length) {
+        setSimLogs((prev) => [...prev, '回测已完成，但暂无收益率曲线数据']);
+      }
     } catch (err) {
       const message = err instanceof Error ? err.message : '回测执行失败';
       setSimStatus('finished');
@@ -585,7 +638,7 @@ export default function CreateAgentModal({
                   <span className='text-white'>{existingAgent.agent_name}</span>{' '}
                   · {tt('existing_agent_flow')}{' '}
                   <span className='text-cp-yellow font-mono'>
-                    {existingAgent.workflow_id}
+                    {getWorkflowLabel(existingAgent.workflow_id)}
                   </span>{' '}
                 </div>
               )}
