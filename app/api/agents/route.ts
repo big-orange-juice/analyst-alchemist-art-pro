@@ -57,9 +57,7 @@ export async function POST(req: Request) {
     const isV2Create =
       agentName.trim() && workflowId.trim() && personaId.trim();
 
-    const target = isV2Create
-      ? backendUrl('/api/v2/agents')
-      : backendUrl('agents');
+    const target = isV2Create ? backendUrl('/agents') : backendUrl('agents');
 
     if (isV2Create) {
       const res = await fetch(target, {

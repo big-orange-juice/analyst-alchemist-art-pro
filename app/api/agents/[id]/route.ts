@@ -11,7 +11,7 @@ export async function DELETE(
     return NextResponse.json({ message: '缺少 agent id' }, { status: 400 });
   }
 
-  const target = backendUrl(`/api/v1/agents/${encodeURIComponent(id)}`);
+  const target = backendUrl(`agents/${encodeURIComponent(id)}`);
   const auth = await getAuthHeader(_req);
   const res = await fetch(target, {
     method: 'DELETE',

@@ -15,33 +15,13 @@ import { useLanguage } from '@/lib/useLanguage';
 import { apiFetch } from '@/lib/http';
 import { AgentCapability, CapabilityHistoryEntry } from '@/types';
 
-type CapabilityFeedTab = 'ANALYSIS' | 'PICKING' | 'BACKTEST';
-
-const CAPABILITY_TAB_CONFIG: Record<
-  CapabilityFeedTab,
-  { capability: AgentCapability; labelKey: string; descKey: string }
-> = {
-  ANALYSIS: {
-    capability: AgentCapability.STOCK_ANALYSIS,
-    labelKey: 'capabilities.STOCK_ANALYSIS.label',
-    descKey: 'capabilities.STOCK_ANALYSIS.desc'
-  },
-  PICKING: {
-    capability: AgentCapability.STRATEGY_PICKING,
-    labelKey: 'capabilities.STRATEGY_PICKING.label',
-    descKey: 'capabilities.STRATEGY_PICKING.desc'
-  },
-  BACKTEST: {
-    capability: AgentCapability.BACKTESTING,
-    labelKey: 'season_info_panel.history_backtest_label',
-    descKey: 'season_info_panel.history_backtest_desc'
-  }
-};
-
 interface SeasonInfoPanelProps {
   agentName: string | null;
   isJoined?: boolean;
   onOpenPass?: () => void;
+  activity?: StockActivity | null;
+  activityLoading?: boolean;
+  activityError?: string | null;
 }
 
 type StockActivity = {
@@ -60,16 +40,31 @@ type StockActivity = {
 export default function SeasonInfoPanel({
   agentName,
   isJoined = false,
-  onOpenPass
+  onOpenPass,
+  activity: activityProp,
+  activityLoading: activityLoadingProp,
+  activityError: activityErrorProp
 }: SeasonInfoPanelProps) {
   const { t, get, language } = useLanguage();
   const tt = useCallback((key: string) => t(`season_info_panel.${key}`), [t]);
-  const [activity, setActivity] = useState<StockActivity | null>(null);
-  const [activityLoading, setActivityLoading] = useState(false);
-  const [activityError, setActivityError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<
-    'SEASON' | 'LOGS' | 'ANALYSIS' | 'PICKING' | 'BACKTEST'
-  >('SEASON');
+  const [activityState, setActivityState] = useState<StockActivity | null>(
+    null
+  );
+  const [activityLoadingState, setActivityLoadingState] = useState(false);
+  const [activityErrorState, setActivityErrorState] = useState<string | null>(
+    null
+  );
+
+  const activity = activityProp !== undefined ? activityProp : activityState;
+  const activityLoading =
+    activityLoadingProp !== undefined
+      ? activityLoadingProp
+      : activityLoadingState;
+  const activityError =
+    activityErrorProp !== undefined ? activityErrorProp : activityErrorState;
+  const [activeTab, setActiveTab] = useState<'SEASON' | 'LOGS' | 'REVIEW'>(
+    'SEASON'
+  );
 
   const [logs, setLogs] = useState<
     {
@@ -97,9 +92,18 @@ export default function SeasonInfoPanel({
 
   // Fetch current activity from API
   useEffect(() => {
+    // If parent provides activity state, do not duplicate fetching.
+    if (
+      activityProp !== undefined ||
+      activityLoadingProp !== undefined ||
+      activityErrorProp !== undefined
+    ) {
+      return;
+    }
+
     let aborted = false;
-    setActivityLoading(true);
-    setActivityError(null);
+    setActivityLoadingState(true);
+    setActivityErrorState(null);
 
     apiFetch<StockActivity[]>('/api/stock-activities', {
       unauthorizedHandling: 'ignore'
@@ -110,24 +114,26 @@ export default function SeasonInfoPanel({
         const running = list
           .filter((a) => a?.status === 'running')
           .sort((a, b) => (b.index_sort ?? 0) - (a.index_sort ?? 0));
-        setActivity((running[0] ?? list[0] ?? null) as StockActivity | null);
+        setActivityState(
+          (running[0] ?? list[0] ?? null) as StockActivity | null
+        );
       })
       .catch((err) => {
         if (aborted) return;
         const message =
           err instanceof Error ? err.message : t('activity_panel.fetch_failed');
-        setActivityError(message);
-        setActivity(null);
+        setActivityErrorState(message);
+        setActivityState(null);
       })
       .finally(() => {
         if (aborted) return;
-        setActivityLoading(false);
+        setActivityLoadingState(false);
       });
 
     return () => {
       aborted = true;
     };
-  }, []);
+  }, [activityErrorProp, activityLoadingProp, activityProp, t]);
 
   // Auto-switch tabs based on status
   useEffect(() => {
@@ -185,23 +191,15 @@ export default function SeasonInfoPanel({
     }
   }, [agentName, isJoined, language, tt]);
 
-  const capabilityFeedTabs = Object.keys(
-    CAPABILITY_TAB_CONFIG
-  ) as CapabilityFeedTab[];
-  const isCapabilityFeedTab = (
-    tab: typeof activeTab
-  ): tab is CapabilityFeedTab =>
-    capabilityFeedTabs.includes(tab as CapabilityFeedTab);
   const capabilityHistory =
     (get('capability_history') as
       | Partial<Record<AgentCapability, CapabilityHistoryEntry[]>>
       | undefined) ?? {};
-  const activeFeedConfig = isCapabilityFeedTab(activeTab)
-    ? CAPABILITY_TAB_CONFIG[activeTab]
-    : null;
-  const activeFeedEntries: CapabilityHistoryEntry[] = activeFeedConfig
-    ? capabilityHistory[activeFeedConfig.capability] ?? []
-    : [];
+  const reviewEntries: CapabilityHistoryEntry[] = [
+    ...(capabilityHistory[AgentCapability.STOCK_ANALYSIS] ?? []),
+    ...(capabilityHistory[AgentCapability.STRATEGY_PICKING] ?? []),
+    ...(capabilityHistory[AgentCapability.BACKTESTING] ?? [])
+  ];
 
   return (
     <div className='w-full h-full flex flex-col bg-transparent text-xs'>
@@ -225,27 +223,11 @@ export default function SeasonInfoPanel({
               <Terminal size={12} /> {t('activity_panel.tab_logs')}
             </button>
             <button
-              onClick={() => setActiveTab('ANALYSIS')}
+              onClick={() => setActiveTab('REVIEW')}
               className={`h-full type-eyebrow tab-item shrink-0 flex items-center gap-2 transition-colors hover:text-white ${
-                activeTab === 'ANALYSIS' ? 'active' : ''
+                activeTab === 'REVIEW' ? 'active' : ''
               }`}>
-              <BarChart2 size={12} />{' '}
-              {t(CAPABILITY_TAB_CONFIG.ANALYSIS.labelKey)}
-            </button>
-            <button
-              onClick={() => setActiveTab('PICKING')}
-              className={`h-full type-eyebrow tab-item shrink-0 flex items-center gap-2 transition-colors hover:text-white ${
-                activeTab === 'PICKING' ? 'active' : ''
-              }`}>
-              <Crosshair size={12} />{' '}
-              {t(CAPABILITY_TAB_CONFIG.PICKING.labelKey)}
-            </button>
-            <button
-              onClick={() => setActiveTab('BACKTEST')}
-              className={`h-full type-eyebrow tab-item shrink-0 flex items-center gap-2 transition-colors hover:text-white ${
-                activeTab === 'BACKTEST' ? 'active' : ''
-              }`}>
-              <Rewind size={12} /> {t(CAPABILITY_TAB_CONFIG.BACKTEST.labelKey)}
+              <Target size={12} /> {t('season_info_panel.history_review_label')}
             </button>
           </>
         )}
@@ -433,15 +415,15 @@ export default function SeasonInfoPanel({
           </div>
         )}
 
-        {activeFeedConfig && (
+        {activeTab === 'REVIEW' && (
           <div className='flex flex-col h-full min-h-0 bg-transparent'>
             <div className='flex flex-wrap items-start justify-between gap-3 p-6 border-b border-white/[0.02] bg-white/[0.02]'>
               <div>
                 <div className='type-eyebrow text-cp-text'>
-                  {t(activeFeedConfig.labelKey)}
+                  {t('season_info_panel.history_review_label')}
                 </div>
                 <p className='text-sm text-cp-text-muted mt-2 max-w-xl leading-relaxed'>
-                  {t(activeFeedConfig.descKey)}
+                  {t('season_info_panel.history_review_desc')}
                 </p>
               </div>
               <div className='text-right'>
@@ -456,8 +438,8 @@ export default function SeasonInfoPanel({
               </div>
             </div>
             <div className='flex-1 overflow-y-auto custom-scrollbar p-6 space-y-3 bg-transparent'>
-              {activeFeedEntries.length ? (
-                activeFeedEntries.map((entry, idx) => (
+              {reviewEntries.length ? (
+                reviewEntries.map((entry, idx) => (
                   <div
                     key={`${entry.time}-${entry.tag}-${idx}`}
                     className='border border-white/[0.05] bg-white/[0.02] p-4 hover:border-cp-yellow/30 transition-colors'>

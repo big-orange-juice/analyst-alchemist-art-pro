@@ -1,16 +1,12 @@
 'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Copy, Cpu, Play, RotateCcw, Save, X } from 'lucide-react';
 import MarkdownIt from 'markdown-it';
 import { apiFetch, ApiError } from '@/lib/http';
 import { useLanguage } from '@/lib/useLanguage';
 import { copyToClipboard } from '@/lib/clipboard';
-import {
-  addRunHistory,
-  getRunHistory,
-  type RunHistoryItem
-} from '@/lib/runHistory';
+import type { RunHistoryItem } from '@/lib/runHistory';
 
 type ContentMode = 'url' | 'text' | 'file';
 
@@ -49,8 +45,6 @@ export default function ArticleAnalysisModal({
   onNotify
 }: ArticleAnalysisModalProps) {
   const { t } = useLanguage();
-
-  const historyKey = 'article-analysis';
   const [activeLeftTab, setActiveLeftTab] = useState<'form' | 'history'>(
     'form'
   );
@@ -67,6 +61,64 @@ export default function ArticleAnalysisModal({
   const [analysisFocusRaw, setAnalysisFocusRaw] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [resultText, setResultText] = useState<string>('');
+
+  const mapServerHistory = (raw: unknown): RunHistoryItem[] => {
+    const list = Array.isArray(raw) ? raw : [];
+    return list
+      .map((x: any, i: number) => {
+        const tsRaw = x?.ts ?? x?.created_at ?? x?.createdAt ?? x?.updated_at;
+        const ts =
+          typeof tsRaw === 'number'
+            ? tsRaw
+            : typeof tsRaw === 'string'
+            ? Date.parse(tsRaw) || Date.now()
+            : Date.now();
+        const id =
+          typeof x?.id === 'string'
+            ? x.id
+            : typeof x?.uuid === 'string'
+            ? x.uuid
+            : `${ts}-${i}`;
+        const ok =
+          typeof x?.ok === 'boolean'
+            ? x.ok
+            : typeof x?.success === 'boolean'
+            ? x.success
+            : true;
+        const summary =
+          typeof x?.summary === 'string'
+            ? x.summary
+            : typeof x?.title === 'string'
+            ? x.title
+            : typeof x?.symbol === 'string'
+            ? `${tt('symbol')}:${x.symbol}`
+            : tt('title');
+        const output =
+          typeof x?.output === 'string'
+            ? x.output
+            : typeof x?.result === 'string'
+            ? x.result
+            : undefined;
+        const item: RunHistoryItem = { id, ts, ok, summary };
+        if (output) item.output = output;
+        if (x?.input !== undefined) item.input = x.input;
+        return item;
+      })
+      .filter((x) => Boolean(x?.id));
+  };
+
+  const refreshHistory = async () => {
+    try {
+      const data = await apiFetch<any>('/api/research/article-analysis/list', {
+        method: 'GET',
+        errorHandling: 'ignore'
+      });
+      const mapped = mapServerHistory(data);
+      setHistory(mapped);
+    } catch {
+      setHistory([]);
+    }
+  };
 
   const md = useMemo(() => new MarkdownIt({ linkify: true, breaks: true }), []);
   const renderedOutput = useMemo(
@@ -339,27 +391,6 @@ export default function ArticleAnalysisModal({
       setResultText(finalOutput);
       onNotify?.(tt('fail_title'), message, 'error');
     } finally {
-      const summaryParts = [
-        contentType ? `${tt('content_type')}:${contentType}` : '',
-        symbol.trim() ? `${tt('symbol')}:${symbol.trim()}` : '',
-        tradingDate.trim() ? `${tt('trading_date')}:${tradingDate.trim()}` : ''
-      ].filter(Boolean);
-
-      const next = addRunHistory(historyKey, {
-        ok,
-        summary: summaryParts.join('  ') || tt('title'),
-        input: {
-          mode,
-          content_type: contentType,
-          url: mode === 'url' ? url.trim() : undefined,
-          text_length: mode === 'text' ? String(text || '').length : undefined,
-          analysis_focus: focusList,
-          symbol: symbol.trim() || undefined,
-          trading_date: tradingDate.trim() || undefined
-        },
-        output: finalOutput
-      });
-      setHistory(next);
       setIsSubmitting(false);
     }
   };
@@ -374,10 +405,6 @@ export default function ArticleAnalysisModal({
       ok ? 'success' : 'error'
     );
   };
-
-  useEffect(() => {
-    setHistory(getRunHistory(historyKey));
-  }, []);
 
   return (
     <div className='fixed inset-0 z-50 flex items-center justify-center backdrop-blur-xl bg-black/70 p-4 modal-animate'>
@@ -426,7 +453,7 @@ export default function ArticleAnalysisModal({
               <button
                 type='button'
                 onClick={() => {
-                  setHistory(getRunHistory(historyKey));
+                  void refreshHistory();
                   setActiveLeftTab('history');
                 }}
                 role='tab'

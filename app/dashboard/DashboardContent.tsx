@@ -66,6 +66,13 @@ type StockActivity = {
   index_sort?: number;
 };
 
+type ActivityIsRunningResponse = {
+  activity_id?: string;
+  user_id?: string;
+  is_running?: boolean;
+  [k: string]: unknown;
+};
+
 export default function DashboardContent() {
   const searchParams = useSearchParams();
   const loginParam = searchParams.get('login');
@@ -138,6 +145,8 @@ export default function DashboardContent() {
   const [currentActivity, setCurrentActivity] = useState<StockActivity | null>(
     null
   );
+  const [activityLoading, setActivityLoading] = useState(false);
+  const [activityError, setActivityError] = useState<string | null>(null);
 
   const t = translations[language];
   const notify = useCallback(
@@ -185,6 +194,9 @@ export default function DashboardContent() {
   useEffect(() => {
     let cancelled = false;
 
+    setActivityLoading(true);
+    setActivityError(null);
+
     apiFetch<StockActivity[]>('/api/stock-activities', {
       unauthorizedHandling: 'ignore'
     })
@@ -196,21 +208,29 @@ export default function DashboardContent() {
           .sort((a, b) => (b.index_sort ?? 0) - (a.index_sort ?? 0));
         setCurrentActivity(running[0] ?? list[0] ?? null);
       })
-      .catch(() => {
+      .catch((err) => {
         if (cancelled) return;
+        const message =
+          err instanceof Error
+            ? err.message
+            : t.activity_panel?.fetch_failed ?? 'Fetch failed';
+        setActivityError(message);
         setCurrentActivity(null);
+      })
+      .finally(() => {
+        if (cancelled) return;
+        setActivityLoading(false);
       });
 
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [t.activity_panel?.fetch_failed]);
 
-  // After agent is resolved, check whether it has joined the running activity
+  // After agent is resolved, query user activity status
   useEffect(() => {
     if (!agentId) return;
     if (!currentActivity) return;
-    if (currentActivity?.status !== 'running') return;
 
     const resolvedActivityId =
       (currentActivity as any)?.id ?? (currentActivity as any)?.activity_id;
@@ -219,8 +239,8 @@ export default function DashboardContent() {
     const controller = new AbortController();
     let cancelled = false;
 
-    apiFetch<any[]>(
-      `/api/research/stock-activities?activity_id=${encodeURIComponent(
+    apiFetch<ActivityIsRunningResponse>(
+      `/api/stock-activities/is-running?activity_id=${encodeURIComponent(
         String(resolvedActivityId)
       )}`,
       {
@@ -231,24 +251,8 @@ export default function DashboardContent() {
       .then((data) => {
         if (cancelled) return;
 
-        const list = Array.isArray(data) ? data : [];
-
-        const hasAgentIdField = list.some((item) => {
-          const itemAgentId =
-            (item as any)?.agent_id ?? (item as any)?.agentId ?? null;
-          return itemAgentId != null;
-        });
-
-        const normalizedAgentId = String(agentId);
-        const joined = hasAgentIdField
-          ? list.some((item) => {
-              const itemAgentId =
-                (item as any)?.agent_id ?? (item as any)?.agentId ?? null;
-              if (itemAgentId == null) return false;
-              return String(itemAgentId) === normalizedAgentId;
-            })
-          : list.length > 0;
-
+        // 以 is_running 为准：true=参赛中，false=未参赛
+        const joined = Boolean(data?.is_running);
         setIsJoinedCompetition(joined);
       })
       .catch((err) => {
@@ -523,6 +527,32 @@ export default function DashboardContent() {
       return;
     }
 
+    // 如果比赛进行中，必须先退赛才能销毁 agent
+    try {
+      const activityId =
+        (currentActivity as any)?.id ?? (currentActivity as any)?.activity_id;
+      if (activityId) {
+        const status = await apiFetch<ActivityIsRunningResponse>(
+          `/api/stock-activities/is-running?activity_id=${encodeURIComponent(
+            String(activityId)
+          )}`,
+          { errorHandling: 'ignore' }
+        );
+
+        if (status?.is_running === true) {
+          notify(
+            t.notifications.delete_failed.title,
+            t.notifications.delete_failed.must_withdraw_first,
+            'warning'
+          );
+          setConfirmModal({ ...confirmModal, isOpen: false });
+          return;
+        }
+      }
+    } catch {
+      // ignore：保持原有删除流程（后端仍会兜底）
+    }
+
     try {
       await apiFetch(`/api/agents/${encodeURIComponent(agentId)}`, {
         method: 'DELETE',
@@ -619,19 +649,49 @@ export default function DashboardContent() {
     }
   };
 
-  const handleWithdraw = () => {
-    setIsJoinedCompetition(false);
-    notify(
-      t.notifications.withdrawn.title,
-      t.notifications.withdrawn.message,
-      'info'
-    );
-    setConfirmModal({
-      isOpen: false,
-      title: '',
-      message: '',
-      action: () => {}
-    });
+  const handleWithdraw = async () => {
+    const activityId =
+      (currentActivity as any)?.id ?? (currentActivity as any)?.activity_id;
+    if (!activityId) {
+      notify(
+        t.notifications.withdraw_failed.title,
+        t.notifications.withdraw_failed.missing_activity_id,
+        'error'
+      );
+      return;
+    }
+
+    try {
+      await apiFetch('/api/stock-activities/withdraw', {
+        method: 'POST',
+        body: {
+          activity_id: String(activityId)
+        },
+        errorHandling: 'ignore'
+      });
+
+      setIsJoinedCompetition(false);
+      notify(
+        t.notifications.withdrawn.title,
+        t.notifications.withdrawn.message,
+        'info'
+      );
+      setConfirmModal({
+        isOpen: false,
+        title: '',
+        message: '',
+        action: () => {}
+      });
+    } catch (err) {
+      const msg =
+        err instanceof ApiError
+          ? err.message
+          : err instanceof Error
+          ? err.message
+          : t.notifications.withdraw_failed.generic_error;
+      notify(t.notifications.withdraw_failed.title, msg, 'error');
+      setConfirmModal({ ...confirmModal, isOpen: false });
+    }
   };
 
   const toggleTheme = () => {
@@ -762,7 +822,7 @@ export default function DashboardContent() {
                           isOpen: true,
                           title: t.confirm_modal.withdraw_title,
                           message: t.confirm_modal.withdraw_message,
-                          action: handleWithdraw
+                          action: () => void handleWithdraw()
                         });
                       } else {
                         setIsJoinCompetitionModalOpen(true);
@@ -844,6 +904,9 @@ export default function DashboardContent() {
             <SeasonInfoPanel
               agentName={agentName}
               isJoined={isJoinedCompetition}
+              activity={currentActivity}
+              activityLoading={activityLoading}
+              activityError={activityError}
             />
           </div>
         </main>

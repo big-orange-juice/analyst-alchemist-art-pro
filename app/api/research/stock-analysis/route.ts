@@ -16,7 +16,7 @@ export async function POST(req: Request) {
 
     const auth = await getAuthHeader(req);
 
-    const res = await fetch(backendUrl('/api/v2/research/stock-analysis'), {
+    const res = await fetch(backendUrl('/research/stock-analysis'), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

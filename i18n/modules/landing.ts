@@ -11,7 +11,7 @@ export const landing = {
     link_identity: '登录账号',
     continue_as: '继续使用',
     enter: '进入',
-    resume: '继续使用',
+    other: '其他账号',
     top_performers: '表现最佳',
     features: {
       strategy_title: '策略组合',
@@ -56,7 +56,7 @@ export const landing = {
     link_identity: 'SIGN IN',
     continue_as: 'CONTINUE',
     enter: 'ENTER',
-    resume: 'CONTINUE',
+    other: 'OTHER ACCOUNT',
     top_performers: 'TOP PERFORMERS',
     features: {
       strategy_title: 'Strategy Builder',

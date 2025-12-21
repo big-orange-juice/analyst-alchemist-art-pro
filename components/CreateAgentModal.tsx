@@ -158,6 +158,9 @@ export default function CreateAgentModal({
   const { t } = useLanguage();
   const tt = (key: string) => t(`create_agent_modal.${key}`);
 
+  // 暂时不需要创建流程最后一步「回测模拟」
+  const ENABLE_SIMULATION_STEP = false;
+
   const mountedRef = useRef(true);
 
   const getWorkflowLabel = (workflowId: string) => {
@@ -490,8 +493,8 @@ export default function CreateAgentModal({
 
   const submitAgentCreation = async (goToSimulation: boolean) => {
     if (hasCreated || !selectedPresetId || !selectedPersonaId) {
-      if (goToSimulation) setStep('simulation');
-      return;
+      if (goToSimulation && ENABLE_SIMULATION_STEP) setStep('simulation');
+      return hasCreated;
     }
     if (!selectedPreset) {
       onNotify?.(
@@ -499,7 +502,7 @@ export default function CreateAgentModal({
         tt('notify_invalid_workflow'),
         'error'
       );
-      return;
+      return false;
     }
 
     if (!currentUser) {
@@ -508,7 +511,7 @@ export default function CreateAgentModal({
         tt('notify_missing_user_desc'),
         'error'
       );
-      return;
+      return false;
     }
 
     const payload = {
@@ -547,15 +550,25 @@ export default function CreateAgentModal({
         tt('notify_create_success_desc'),
         'success'
       );
-      if (goToSimulation) setStep('simulation');
+      if (goToSimulation && ENABLE_SIMULATION_STEP) setStep('simulation');
+      return true;
     } catch (error) {
       const message =
         error instanceof Error
           ? error.message
           : tt('notify_create_agent_failed_fallback');
       onNotify?.(tt('notify_create_failed'), message, 'error');
+      return false;
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleFinishFromKnowledge = async () => {
+    const ok = await submitAgentCreation(true);
+    if (!ok) return;
+    if (!ENABLE_SIMULATION_STEP) {
+      onClose();
     }
   };
 
@@ -917,13 +930,13 @@ export default function CreateAgentModal({
                 </button>
                 <div className='flex gap-4'>
                   <button
-                    onClick={() => submitAgentCreation(true)}
+                    onClick={() => void handleFinishFromKnowledge()}
                     disabled={isSubmitting}
                     className='px-8 py-3 btn-outline text-cp-text-muted hover:text-white disabled:opacity-50 disabled:cursor-not-allowed'>
                     {isSubmitting ? tt('creating') : tt('skip')}
                   </button>
                   <button
-                    onClick={() => submitAgentCreation(true)}
+                    onClick={() => void handleFinishFromKnowledge()}
                     disabled={isSubmitting}
                     className='px-12 py-3 btn-gold flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed'>
                     {isSubmitting ? tt('creating') : tt('finish_upload')}{' '}
@@ -934,8 +947,8 @@ export default function CreateAgentModal({
             </div>
           )}
 
-          {/* STEP 5: SIMULATION */}
-          {step === 'simulation' && (
+          {/* STEP 5: SIMULATION (disabled) */}
+          {ENABLE_SIMULATION_STEP && step === 'simulation' && (
             <div className='flex-1 flex flex-col md:flex-row bg-transparent animate-in fade-in slide-in-from-right-8'>
               <div className='w-full md:w-1/3 border-r border-white/[0.02] p-6 flex flex-col bg-white/[0.02]'>
                 <div className='mb-6'>
@@ -1053,7 +1066,7 @@ export default function CreateAgentModal({
             </div>
           )}
 
-          {step === 'simulation' && (
+          {ENABLE_SIMULATION_STEP && step === 'simulation' && (
             <div className='p-4 border-t border-white/[0.02] bg-white/[0.02] flex justify-between items-center shrink-0'>
               <button
                 onClick={() => setStep('knowledge')}

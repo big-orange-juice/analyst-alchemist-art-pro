@@ -2,11 +2,6 @@ import { NextResponse } from 'next/server';
 import { getAuthHeader } from '@/lib/serverAuth';
 import { backendURL } from '@/lib/serverBackend';
 
-type DetailError = {
-  detail?: Array<{ loc?: unknown; msg?: string; type?: string }>;
-  message?: string;
-};
-
 const tryParseJson = (text: string) => {
   try {
     return JSON.parse(text);
@@ -22,23 +17,11 @@ export async function GET(req: Request) {
       return NextResponse.json({ message: '未登录' }, { status: 401 });
     }
 
-    const { searchParams } = new URL(req.url);
-    const activityId =
-      searchParams.get('activity_id') ||
-      // backwards compatible
-      searchParams.get('backtest_id') ||
-      searchParams.get('id') ||
-      searchParams.get('backtestId');
-
-    if (!activityId) {
-      return NextResponse.json(
-        { message: '缺少参数：activity_id' },
-        { status: 400 }
-      );
-    }
-
-    const target = backendURL('/backtests/pnl_curve');
-    target.searchParams.set('activity_id', activityId);
+    const incoming = new URL(req.url);
+    const target = backendURL('/research/stock-selection/list');
+    incoming.searchParams.forEach((value, key) => {
+      target.searchParams.set(key, value);
+    });
 
     const res = await fetch(target.toString(), {
       method: 'GET',
@@ -58,11 +41,10 @@ export async function GET(req: Request) {
       );
     }
 
-    if (maybe) return NextResponse.json(maybe, { status: res.status });
+    if (maybe != null) return NextResponse.json(maybe, { status: res.status });
     return new Response(text, { status: res.status });
   } catch (err) {
     const message = err instanceof Error ? err.message : '未知错误';
-    const body: DetailError = { message };
-    return NextResponse.json(body, { status: 500 });
+    return NextResponse.json({ message }, { status: 500 });
   }
 }

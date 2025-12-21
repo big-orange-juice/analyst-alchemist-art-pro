@@ -171,7 +171,7 @@ export default function LandingPage({
               <button
                 onClick={handleLogin}
                 className='px-10 py-4 btn-outline text-sm font-semibold tracking-[0.45em] flex items-center gap-2'>
-                {t('landing.resume')} <ChevronRight size={18} />
+                {t('landing.other')} <ChevronRight size={18} />
               </button>
             </>
           )}

@@ -3,7 +3,7 @@ import { backendUrl } from '@/lib/serverBackend';
 
 export async function GET() {
   try {
-    const target = backendUrl('/api/v2/stock-activities');
+    const target = backendUrl('stock-activities');
     const res = await fetch(target, { method: 'GET' });
 
     const text = await res.text();

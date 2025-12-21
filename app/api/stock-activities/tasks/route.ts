@@ -50,7 +50,7 @@ export async function POST(req: Request) {
       );
     }
 
-    const target = backendUrl('/api/v2/stock-activities/tasks');
+    const target = backendUrl('/stock-activities/tasks');
     const res = await fetch(target, {
       method: 'POST',
       headers: {

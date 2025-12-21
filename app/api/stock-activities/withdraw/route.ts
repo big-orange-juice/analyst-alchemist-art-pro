@@ -7,6 +7,10 @@ type DetailError = {
   message?: string;
 };
 
+type WithdrawPayload = {
+  activity_id: string;
+};
+
 const tryParseJson = (text: string) => {
   try {
     return JSON.parse(text);
@@ -15,36 +19,34 @@ const tryParseJson = (text: string) => {
   }
 };
 
-export async function GET(req: Request) {
+export async function POST(req: Request) {
   try {
     const auth = await getAuthHeader(req);
     if (!auth) {
       return NextResponse.json({ message: '未登录' }, { status: 401 });
     }
 
-    const { searchParams } = new URL(req.url);
-    const activityId =
-      searchParams.get('activity_id') ||
-      // backwards compatible
-      searchParams.get('backtest_id') ||
-      searchParams.get('id') ||
-      searchParams.get('backtestId');
+    const payload = (await req.json()) as Partial<WithdrawPayload>;
+    const activityId = (payload as any)?.activity_id;
 
-    if (!activityId) {
+    if (activityId === undefined || activityId === null || activityId === '') {
       return NextResponse.json(
         { message: '缺少参数：activity_id' },
         { status: 400 }
       );
     }
 
-    const target = backendURL('/backtests/pnl_curve');
-    target.searchParams.set('activity_id', activityId);
+    const target = backendURL('stock-activities/withdraw');
 
     const res = await fetch(target.toString(), {
-      method: 'GET',
+      method: 'POST',
       headers: {
+        'Content-Type': 'application/json',
         Authorization: auth
-      }
+      },
+      body: JSON.stringify({
+        activity_id: String(activityId)
+      })
     });
 
     const text = await res.text();

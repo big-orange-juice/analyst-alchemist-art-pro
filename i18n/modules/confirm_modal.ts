@@ -1,6 +1,6 @@
 export const confirm_modal = {
   zh: {
-    execute: '确认执行',
+    execute: '确认',
     logout_title: '退出登录',
     logout_message: '确认退出登录？',
     delete_agent_title: '确认删除',
@@ -9,7 +9,7 @@ export const confirm_modal = {
     withdraw_message: '确认退出？你将停止获取积分，排名会被冻结。'
   },
   en: {
-    execute: 'Confirm Action',
+    execute: 'Confirm',
     logout_title: 'Log out',
     logout_message: 'Are you sure you want to log out?',
     delete_agent_title: 'Confirm Delete',

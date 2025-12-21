@@ -90,8 +90,6 @@ export default function BacktestPanel({
   );
   const [endDate, setEndDate] = useState(formatDateInput(today));
   const [initialCapital, setInitialCapital] = useState(100000);
-  const [timeGranularity, setTimeGranularity] = useState<'daily'>('daily');
-  const [status, setStatus] = useState<'draft'>('draft');
 
   useEffect(() => {
     mountedRef.current = true;
@@ -150,9 +148,7 @@ export default function BacktestPanel({
         description,
         start_date: startDate,
         end_date: endDate,
-        initial_capital: Number(initialCapital) || 100000,
-        time_granularity: timeGranularity,
-        status
+        initial_capital: Number(initialCapital) || 100000
       };
 
       const created = await apiFetch<{ id: string | number }, typeof payload>(
@@ -204,9 +200,7 @@ export default function BacktestPanel({
           description,
           start_date: startDate,
           end_date: endDate,
-          initial_capital: initialCapital,
-          time_granularity: timeGranularity,
-          status
+          initial_capital: initialCapital
         },
         output: finalOutput
       });
@@ -339,32 +333,6 @@ export default function BacktestPanel({
                 onChange={(e) => setInitialCapital(Number(e.target.value))}
                 className='bg-black/40 border border-cp-border px-3 py-2 text-sm text-white focus:border-cp-yellow outline-none'
               />
-            </div>
-
-            <div className='flex flex-col gap-2'>
-              <span className='text-xs text-cp-text-muted tracking-widest uppercase'>
-                time_granularity
-              </span>
-              <select
-                value={timeGranularity}
-                onChange={(e) => setTimeGranularity(e.target.value as 'daily')}
-                disabled
-                className='bg-black/40 border border-cp-border px-3 py-2 text-sm text-white focus:border-cp-yellow outline-none disabled:opacity-60'>
-                <option value='daily'>daily</option>
-              </select>
-            </div>
-
-            <div className='flex flex-col gap-2'>
-              <span className='text-xs text-cp-text-muted tracking-widest uppercase'>
-                status
-              </span>
-              <select
-                value={status}
-                onChange={(e) => setStatus(e.target.value as 'draft')}
-                disabled
-                className='bg-black/40 border border-cp-border px-3 py-2 text-sm text-white focus:border-cp-yellow outline-none disabled:opacity-60'>
-                <option value='draft'>draft</option>
-              </select>
             </div>
             <div className='border border-cp-border bg-black/20 p-3 text-[11px] text-cp-text-muted'>
               执行后将在右侧展示收益率曲线。

@@ -27,7 +27,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ message: '请求体无效' }, { status: 400 });
     }
 
-    const target = backendURL('/api/v2/backtests');
+    const target = backendURL('/backtests');
 
     const res = await fetch(target.toString(), {
       method: 'POST',

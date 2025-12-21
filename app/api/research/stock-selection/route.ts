@@ -49,8 +49,7 @@ export async function POST(req: Request) {
 
     const auth = await getAuthHeader(req);
 
-    // Upstream remains /api/v2/...; only our Next.js route path removes /v2.
-    const target = backendUrl('/api/v2/research/stock-selection');
+    const target = backendUrl('/research/stock-selection');
     const res = await fetch(target, {
       method: 'POST',
       headers: {

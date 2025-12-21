@@ -4,11 +4,7 @@ import { useState } from 'react';
 import { Play, RotateCcw } from 'lucide-react';
 import { useLanguage } from '@/lib/useLanguage';
 import { apiFetch } from '@/lib/http';
-import {
-  addRunHistory,
-  getRunHistory,
-  type RunHistoryItem
-} from '@/lib/runHistory';
+import type { RunHistoryItem } from '@/lib/runHistory';
 import { useAgentStore, useUserStore } from '@/store';
 import { AppNotification } from '@/types';
 import {
@@ -37,12 +33,57 @@ export default function StockAnalysisPanel({
   const { t, get, language } = useLanguage();
   const agentId = useAgentStore((s) => s.agentId);
   const currentUser = useUserStore((s) => s.currentUser);
-
-  const historyKey = 'stock-analysis';
   const [activeTab, setActiveTab] = useState<'form' | 'history'>('form');
-  const [history, setHistory] = useState<RunHistoryItem[]>(() =>
-    typeof window === 'undefined' ? [] : getRunHistory(historyKey)
-  );
+  const [history, setHistory] = useState<RunHistoryItem[]>(() => []);
+
+  const mapServerHistory = (raw: unknown): RunHistoryItem[] => {
+    const list = Array.isArray(raw) ? raw : [];
+    return list
+      .map((x: any, i: number) => {
+        const tsRaw = x?.ts ?? x?.created_at ?? x?.createdAt ?? x?.updated_at;
+        const ts =
+          typeof tsRaw === 'number'
+            ? tsRaw
+            : typeof tsRaw === 'string'
+            ? Date.parse(tsRaw) || Date.now()
+            : Date.now();
+        const id =
+          typeof x?.id === 'string'
+            ? x.id
+            : typeof x?.uuid === 'string'
+            ? x.uuid
+            : `${ts}-${i}`;
+        const ok =
+          typeof x?.ok === 'boolean'
+            ? x.ok
+            : typeof x?.success === 'boolean'
+            ? x.success
+            : true;
+        const summary =
+          typeof x?.summary === 'string'
+            ? x.summary
+            : typeof x?.symbol === 'string'
+            ? `${t('capability_modal.stock_symbol')}:${x.symbol}`
+            : t('capability_modal.execute');
+        const item: RunHistoryItem = { id, ts, ok, summary };
+        if (typeof x?.output === 'string') item.output = x.output;
+        if (x?.input !== undefined) item.input = x.input;
+        return item;
+      })
+      .filter((x) => Boolean(x?.id));
+  };
+
+  const refreshHistory = async () => {
+    try {
+      const data = await apiFetch<any>('/api/research/stock-analysis/list', {
+        method: 'GET',
+        errorHandling: 'ignore'
+      });
+      setHistory(mapServerHistory(data));
+    } catch {
+      setHistory([]);
+    }
+  };
 
   const symbolOptions =
     (get('stock_analysis_panel.symbol_options') as Array<{
@@ -127,27 +168,7 @@ export default function StockAnalysisPanel({
       finalOutput = message;
       setOutput(finalOutput);
     } finally {
-      const summaryParts = [
-        stockSymbol
-          ? `${t('capability_modal.stock_symbol')}:${stockSymbol}`
-          : '',
-        tradingDate
-          ? `${t('capability_modal.trading_date')}:${tradingDate}`
-          : ''
-      ].filter(Boolean);
-      const summary = summaryParts.join('  ');
-
-      const next = addRunHistory(historyKey, {
-        ok,
-        summary: summary || t('capability_modal.execute'),
-        input: {
-          symbol: stockSymbol,
-          trading_date: tradingDate,
-          news_source: newsSource
-        },
-        output: finalOutput
-      });
-      setHistory(next);
+      // 历史记录由服务端持久化与查询，不再使用本地缓存。
       setIsLoading(false);
     }
   };
@@ -172,7 +193,7 @@ export default function StockAnalysisPanel({
         <button
           type='button'
           onClick={() => {
-            setHistory(getRunHistory(historyKey));
+            void refreshHistory();
             setActiveTab('history');
           }}
           role='tab'

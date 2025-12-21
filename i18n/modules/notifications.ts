@@ -20,6 +20,11 @@ export const notifications = {
       title: '已退出活动',
       message: '已退出活动，历史成绩已保存。'
     },
+    withdraw_failed: {
+      title: '退赛失败',
+      missing_activity_id: '缺少活动ID',
+      generic_error: '退赛时出现错误'
+    },
     joined: {
       title: '成功参赛',
       message: '已加入活动。'
@@ -35,6 +40,7 @@ export const notifications = {
     delete_failed: {
       title: '删除失败',
       missing_agent_id: '未找到当前 Agent 的 ID。',
+      must_withdraw_first: '必须先退赛才能销毁agent',
       generic_error: '删除 Agent 时出现错误'
     }
   },
@@ -59,6 +65,11 @@ export const notifications = {
       title: 'Withdrawn',
       message: 'Exited activity. Results saved.'
     },
+    withdraw_failed: {
+      title: 'Withdraw Failed',
+      missing_activity_id: 'Missing activity id',
+      generic_error: 'An error occurred while withdrawing'
+    },
     joined: {
       title: 'Joined',
       message: 'Joined the activity.'
@@ -74,6 +85,7 @@ export const notifications = {
     delete_failed: {
       title: 'Delete Failed',
       missing_agent_id: 'Missing current Agent ID.',
+      must_withdraw_first: 'You must withdraw before deleting the agent.',
       generic_error: 'An error occurred while deleting the Agent'
     }
   }

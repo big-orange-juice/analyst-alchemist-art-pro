@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getAuthHeader } from '@/lib/serverAuth';
-import { backendUrl } from '@/lib/serverBackend';
+import { backendURL } from '@/lib/serverBackend';
 
 const tryParseJson = (text: string) => {
   try {
@@ -10,44 +10,37 @@ const tryParseJson = (text: string) => {
   }
 };
 
-export async function POST(req: Request) {
+export async function GET(req: Request) {
   try {
-    const payload = await req.json();
+    const incoming = new URL(req.url);
+
+    const target = backendURL('/base-data/sw-industries');
+    incoming.searchParams.forEach((value, key) => {
+      target.searchParams.set(key, value);
+    });
 
     const auth = await getAuthHeader(req);
 
-    const res = await fetch(backendUrl('/research/article-analysis'), {
-      method: 'POST',
+    const res = await fetch(target.toString(), {
+      method: 'GET',
       headers: {
-        'Content-Type': 'application/json',
         ...(auth ? { Authorization: auth } : {})
-      },
-      body: JSON.stringify(payload)
+      }
     });
 
     const text = await res.text();
+    const maybe = tryParseJson(text);
 
     if (!res.ok) {
-      const maybe = tryParseJson(text);
       if (maybe) return NextResponse.json(maybe, { status: res.status });
-
       return NextResponse.json(
         { message: text || '请求失败' },
         { status: res.status }
       );
     }
 
-    const okJson = tryParseJson(text);
-    if (okJson != null) {
-      return NextResponse.json(okJson, { status: res.status });
-    }
-
-    return new Response(text, {
-      status: res.status,
-      headers: {
-        'Content-Type': 'text/plain; charset=utf-8'
-      }
-    });
+    if (maybe != null) return NextResponse.json(maybe, { status: res.status });
+    return new Response(text, { status: res.status });
   } catch (err) {
     const message = err instanceof Error ? err.message : '未知错误';
     return NextResponse.json({ message }, { status: 500 });

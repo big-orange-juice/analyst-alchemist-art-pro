@@ -23,13 +23,7 @@ export async function GET(req: Request) {
     }
 
     const { searchParams } = new URL(req.url);
-    const activityId =
-      searchParams.get('activity_id') ||
-      // backwards compatible
-      searchParams.get('backtest_id') ||
-      searchParams.get('id') ||
-      searchParams.get('backtestId');
-
+    const activityId = searchParams.get('activity_id');
     if (!activityId) {
       return NextResponse.json(
         { message: '缺少参数：activity_id' },
@@ -37,7 +31,7 @@ export async function GET(req: Request) {
       );
     }
 
-    const target = backendURL('/backtests/pnl_curve');
+    const target = backendURL('stock-activities/is-running');
     target.searchParams.set('activity_id', activityId);
 
     const res = await fetch(target.toString(), {

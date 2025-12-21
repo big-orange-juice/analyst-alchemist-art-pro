@@ -9,7 +9,7 @@ export const create_agent_modal = {
     notify_create_agent_failed_fallback: '创建 Agent 时出现错误',
 
     step_label: '步骤',
-    step_of: ' / 05',
+    step_of: ' / 04',
 
     existing_agent: '已有 Agent',
     existing_agent_flow: '流程',
@@ -117,7 +117,7 @@ export const create_agent_modal = {
     notify_create_agent_failed_fallback: 'Failed to create agent',
 
     step_label: 'Step',
-    step_of: ' / 05',
+    step_of: ' / 04',
 
     existing_agent: 'Existing agent',
     existing_agent_flow: 'Workflow',
