@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useMemo, useState } from 'react';
-import { Copy, Cpu, Play, RotateCcw, Save, X } from 'lucide-react';
+import { Copy, Cpu, Play, RotateCcw, X } from 'lucide-react';
 import MarkdownIt from 'markdown-it';
 import { apiFetch, ApiError } from '@/lib/http';
 import { useLanguage } from '@/lib/useLanguage';
@@ -778,13 +778,6 @@ export default function ArticleAnalysisModal({
               ) : (
                 <span className='text-gray-600 italic'>{tt('waiting')}</span>
               )}
-            </div>
-
-            <div className='mt-6 flex justify-end'>
-              <button className='px-6 py-3 btn-outline text-xs flex items-center gap-2'>
-                <Save size={16} />
-                {t('common.save')}
-              </button>
             </div>
           </div>
         </div>

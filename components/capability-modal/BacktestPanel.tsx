@@ -86,7 +86,7 @@ export default function BacktestPanel({
     `自动创建于 ${defaultTimestamp}`
   );
   const [startDate, setStartDate] = useState(
-    formatDateInput(addDays(today, -30))
+    formatDateInput(addDays(today, -1))
   );
   const [endDate, setEndDate] = useState(formatDateInput(today));
   const [initialCapital, setInitialCapital] = useState(100000);
@@ -165,7 +165,13 @@ export default function BacktestPanel({
         throw new Error('回测创建失败：缺少 id');
       }
 
-      finalOutput = `回测已创建\n\n- id: ${id}\n\n正在拉取收益率曲线...`;
+      onNotify?.(
+        '回测已开始',
+        '回测可能需要较长时间，无需一直等待；你可以先操作其他功能，结果生成后会自动更新到这里。',
+        'info'
+      );
+
+      finalOutput = `回测已创建\n\n- id: ${id}\n\n提示：回测可能需要较长时间，无需一直等待；你可以先操作其他功能，结果生成后会自动更新收益率曲线。\n\n正在拉取收益率曲线...`;
       setOutput(finalOutput);
 
       const polled = await pollPnlCurve(id);

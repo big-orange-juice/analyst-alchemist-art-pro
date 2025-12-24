@@ -2,6 +2,38 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAuthHeader } from '@/lib/serverAuth';
 import { backendUrl } from '@/lib/serverBackend';
 
+export async function GET(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params;
+  if (!id) {
+    return NextResponse.json({ message: '缺少 agent id' }, { status: 400 });
+  }
+
+  const target = backendUrl(`agents/${encodeURIComponent(id)}`);
+  const auth = await getAuthHeader(req);
+  const res = await fetch(target, {
+    method: 'GET',
+    headers: auth ? { Authorization: auth } : undefined
+  });
+  const text = await res.text();
+
+  if (!res.ok) {
+    return NextResponse.json(
+      { message: text || '请求失败' },
+      { status: res.status }
+    );
+  }
+
+  try {
+    const data = JSON.parse(text);
+    return NextResponse.json(data, { status: res.status });
+  } catch (_) {
+    return new Response(text, { status: res.status });
+  }
+}
+
 export async function DELETE(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }

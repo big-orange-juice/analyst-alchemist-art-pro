@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Terminal,
   Crown,
@@ -35,6 +35,40 @@ type StockActivity = {
   end_date?: string;
   initial_capital?: string;
   index_sort?: number;
+};
+
+type HoldingsLatestItem = {
+  stock_code?: string;
+  stock_name?: string;
+  quantity?: number;
+  latest_price?: number;
+  profit_loss_pct?: number;
+};
+
+type HoldingsLatestResponse = {
+  items?: HoldingsLatestItem[];
+};
+
+const formatYMD = (d: Date) => {
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+};
+
+const toPct = (raw: unknown) => {
+  const n = typeof raw === 'number' ? raw : Number(raw);
+  if (!Number.isFinite(n)) return 0;
+  // If backend returns ratio like 0.12, display 12; otherwise keep as-is.
+  if (Math.abs(n) <= 1) return n * 100;
+  return n;
+};
+
+const formatCountdown = (sec: number) => {
+  const safe = Math.max(0, Math.floor(sec));
+  const mm = String(Math.floor(safe / 60)).padStart(2, '0');
+  const ss = String(safe % 60).padStart(2, '0');
+  return `${mm}:${ss}`;
 };
 
 export default function SeasonInfoPanel({
@@ -78,17 +112,123 @@ export default function SeasonInfoPanel({
     { code: string; name: string; volume: number; price: number; pnl: number }[]
   >([]);
 
-  // Fetch holdings from API
-  useEffect(() => {
-    apiFetch('/api/holdings')
-      .then((data) => {
-        const list = Array.isArray(data) ? data : [];
-        setHoldings(list as any);
-      })
-      .catch(() => {
-        setHoldings([]);
-      });
+  const [holdingsLoading, setHoldingsLoading] = useState(false);
+  const holdingsTimerRef = useRef<number | null>(null);
+  const holdingsFetchSeqRef = useRef(0);
+  const holdingsNextAtRef = useRef<number | null>(null);
+  const [holdingsCountdownSec, setHoldingsCountdownSec] = useState<
+    number | null
+  >(null);
+
+  const clearHoldingsTimer = useCallback(() => {
+    if (holdingsTimerRef.current != null) {
+      window.clearTimeout(holdingsTimerRef.current);
+      holdingsTimerRef.current = null;
+    }
+    holdingsNextAtRef.current = null;
+    setHoldingsCountdownSec(null);
   }, []);
+
+  // Real-time countdown updater
+  useEffect(() => {
+    const id = window.setInterval(() => {
+      const nextAt = holdingsNextAtRef.current;
+      if (nextAt == null) {
+        setHoldingsCountdownSec(null);
+        return;
+      }
+
+      const remainingMs = nextAt - Date.now();
+      const remainingSec = Math.max(0, Math.ceil(remainingMs / 1000));
+      setHoldingsCountdownSec(remainingSec);
+    }, 250);
+
+    return () => {
+      window.clearInterval(id);
+    };
+  }, []);
+
+  const fetchHoldingsLatest = useCallback(
+    async (opts?: { resetTimer?: boolean }) => {
+      const resetTimer = opts?.resetTimer ?? false;
+
+      const activityIdRaw = activity?.id;
+      if (activityIdRaw === undefined || activityIdRaw === null) return;
+
+      const activityId = String(activityIdRaw);
+      const priceDate = formatYMD(new Date());
+
+      if (resetTimer) {
+        clearHoldingsTimer();
+        holdingsNextAtRef.current = Date.now() + 60_000;
+        setHoldingsCountdownSec(60);
+        holdingsTimerRef.current = window.setTimeout(() => {
+          void fetchHoldingsLatest({ resetTimer: true });
+        }, 60_000);
+      }
+
+      const seq = (holdingsFetchSeqRef.current += 1);
+      setHoldingsLoading(true);
+
+      try {
+        const url = `/api/stock-activities/holdings/latest?activity_id=${encodeURIComponent(
+          activityId
+        )}&price_date=${encodeURIComponent(priceDate)}`;
+
+        const data = await apiFetch<HoldingsLatestResponse>(url, {
+          method: 'GET',
+          errorHandling: 'ignore'
+        });
+
+        if (seq !== holdingsFetchSeqRef.current) return;
+
+        const list = Array.isArray((data as any)?.items)
+          ? (data as any).items
+          : [];
+
+        const mapped = (list as HoldingsLatestItem[])
+          .map((x) => {
+            const code = typeof x?.stock_code === 'string' ? x.stock_code : '';
+            const name =
+              typeof x?.stock_name === 'string' ? x.stock_name : code;
+            const volume =
+              typeof x?.quantity === 'number'
+                ? x.quantity
+                : Number(x?.quantity) || 0;
+            const price =
+              typeof x?.latest_price === 'number'
+                ? x.latest_price
+                : Number(x?.latest_price) || 0;
+            const pnl = toPct(x?.profit_loss_pct);
+            return { code, name, volume, price, pnl };
+          })
+          .filter((x) => Boolean(x.code));
+
+        setHoldings(mapped);
+      } catch {
+        if (seq !== holdingsFetchSeqRef.current) return;
+        setHoldings([]);
+      } finally {
+        if (seq === holdingsFetchSeqRef.current) {
+          setHoldingsLoading(false);
+        }
+      }
+    },
+    [activity?.id, clearHoldingsTimer]
+  );
+
+  // Live holdings: fetch immediately, then refresh every 1 minute.
+  // Manual "Fetch now" triggers an immediate request and resets the timer.
+  useEffect(() => {
+    // Only start after activity is known.
+    if (activity?.id === undefined || activity?.id === null) return;
+
+    void fetchHoldingsLatest({ resetTimer: true });
+
+    return () => {
+      clearHoldingsTimer();
+    };
+  }, [activity?.id, clearHoldingsTimer, fetchHoldingsLatest]);
 
   // Fetch current activity from API
   useEffect(() => {
@@ -340,10 +480,31 @@ export default function SeasonInfoPanel({
           <div className='flex h-full min-h-0 bg-transparent'>
             {/* Left Column: Holdings */}
             <div className='w-[35%] border-r border-white/[0.02] flex flex-col bg-white/[0.01]'>
-              <div className='h-8 flex items-center px-3 border-b border-white/[0.02] bg-white/[0.02] shrink-0'>
+              <div className='h-8 flex items-center justify-between px-3 border-b border-white/[0.02] bg-white/[0.02] shrink-0 gap-3'>
                 <span className='type-eyebrow flex items-center gap-2'>
                   <Target size={10} /> {tt('holdings_title')}
                 </span>
+
+                <div className='flex items-center gap-2 shrink-0'>
+                  <button
+                    type='button'
+                    onClick={() =>
+                      void fetchHoldingsLatest({ resetTimer: true })
+                    }
+                    disabled={holdingsLoading || !activity?.id}
+                    className='px-2 py-1 rounded border border-cp-yellow/40 text-cp-yellow bg-cp-yellow/5 hover:bg-cp-yellow/10 hover:border-cp-yellow/70 transition-colors type-mono text-[10px] font-bold tracking-widest disabled:opacity-50 disabled:cursor-not-allowed'
+                    aria-label={tt('holdings_fetch_now')}>
+                    {holdingsLoading
+                      ? tt('holdings_fetching')
+                      : tt('holdings_fetch_now')}
+                  </button>
+
+                  {holdingsCountdownSec != null && (
+                    <span className='type-mono text-[10px] text-cp-text-muted tabular-nums'>
+                      {formatCountdown(holdingsCountdownSec)}
+                    </span>
+                  )}
+                </div>
               </div>
               <div className='flex-1 overflow-y-auto custom-scrollbar'>
                 {holdings.map((h) => (
@@ -359,7 +520,7 @@ export default function SeasonInfoPanel({
                           h.pnl >= 0 ? 'text-cp-yellow' : 'text-cp-red'
                         }`}>
                         {h.pnl >= 0 ? '+' : ''}
-                        {h.pnl}%
+                        {h.pnl.toFixed(2)}%
                       </span>
                     </div>
                     <div className='flex justify-between items-center text-[10px] text-cp-text-muted type-mono'>

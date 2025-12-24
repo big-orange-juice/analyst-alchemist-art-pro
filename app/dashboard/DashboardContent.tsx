@@ -83,9 +83,11 @@ export default function DashboardContent() {
     agentId,
     agentName,
     agentClass,
+    agentRaw,
     setAgentRaw,
     agentStats,
     isJoinedCompetition,
+    lastFetchedUserId,
     setAgentName,
     setAgentClass,
     setAgentStats,
@@ -938,17 +940,45 @@ export default function DashboardContent() {
         />
       )}
 
-      {isEditAgentModalOpen && agentName && (
+      {isEditAgentModalOpen && agentName && agentId && (
         <EditAgentModal
-          initialName={agentName}
-          initialClass={agentClass}
-          initialStats={agentStats}
-          initialPrompt=''
-          onSave={(name, cls, stats, modules) => {
-            setAgentName(name);
-            setAgentClass(cls);
-            setAgentStats(stats);
-            setAgentModules(modules);
+          agentId={String(agentId)}
+          userId={String(currentUser?.id ?? lastFetchedUserId ?? '')}
+          agentName={agentName}
+          personaId={String(
+            (agentRaw as any)?.persona_id ?? (agentRaw as any)?.personaId ?? ''
+          )}
+          initialPersonaParameters={
+            ((agentRaw as any)?.persona_parameters ??
+              (agentRaw as any)?.personaParameters ??
+              null) as Record<string, unknown> | null
+          }
+          onSave={async (personaParameters) => {
+            try {
+              await apiFetch('/api/agents/persona-parameters', {
+                method: 'PUT',
+                body: {
+                  agent_id: agentId,
+                  persona_parameters: personaParameters
+                },
+                errorHandling: 'ignore'
+              });
+
+              setAgentRaw({
+                ...(agentRaw ?? {}),
+                persona_parameters: personaParameters
+              });
+
+              notify('保存成功', '参数已更新', 'success');
+            } catch (error) {
+              const message =
+                error instanceof ApiError
+                  ? error.message
+                  : error instanceof Error
+                  ? error.message
+                  : '请求失败';
+              notify('保存失败', message, 'error');
+            }
           }}
           onClose={() => setIsEditAgentModalOpen(false)}
         />

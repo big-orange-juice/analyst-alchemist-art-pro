@@ -69,19 +69,19 @@ export const create_agent_modal = {
     adjust_params: '调整参数',
     finish_deploy: '完成创建',
 
-    workflow_track_title: '赛道激进型',
+    workflow_track_title: '赛道思维',
     workflow_track_desc:
       '追求高成长赛道，愿意承担高风险。30-40岁，有一定投资经验。',
     workflow_track_prompt:
       '你是一名赛道激进型投资者，追求高成长赛道机会，愿意承担更高波动风险。',
 
-    workflow_quant_title: '稳健价值型',
+    workflow_quant_title: '量价思维',
     workflow_quant_desc:
       '偏好成熟赛道龙头，低估值高分红。45-60岁，投资经验丰富。',
     workflow_quant_prompt:
       '你是一名稳健价值型投资者，偏好成熟龙头与高分红资产，重视安全边际与现金流。',
 
-    workflow_news_title: '红利收益型',
+    workflow_news_title: '消息思维',
     workflow_news_desc: '关注高股息赛道，追求稳定现金流。50岁以上，接近退休。',
     workflow_news_prompt:
       '你是一名红利收益型投资者，关注高股息资产与稳定现金流，强调长期持有与回撤控制。',
@@ -95,7 +95,7 @@ export const create_agent_modal = {
     persona_dividend_focus_title: '红利收益型',
     persona_dividend_focus_desc: '关注高股息赛道，追求稳定现金流',
 
-    persona_quantitative_title: '数据策略型',
+    persona_quantitative_title: '量化策略型',
     persona_quantitative_desc: '基于数据和模型，严格执行纪律',
 
     persona_momentum_trader_title: '趋势动量型',
@@ -177,18 +177,18 @@ export const create_agent_modal = {
     adjust_params: 'Adjust',
     finish_deploy: 'Finish Deploy',
 
-    workflow_track_title: 'Aggressive Growth',
+    workflow_track_title: 'Track Thinking',
     workflow_track_desc: 'Chase high-growth themes with higher risk tolerance.',
     workflow_track_prompt:
       'You are an aggressive growth investor focused on high-growth opportunities and willing to accept higher volatility.',
 
-    workflow_quant_title: 'Defensive Value',
+    workflow_quant_title: 'Price-Volume Thinking',
     workflow_quant_desc:
       'Prefer established leaders with valuation discipline and dividends.',
     workflow_quant_prompt:
       'You are a defensive value investor who favors mature leaders and dividend-paying assets, emphasizing margin of safety and cashflow.',
 
-    workflow_news_title: 'Dividend Income',
+    workflow_news_title: 'News Thinking',
     workflow_news_desc:
       'Focus on dividend yield and stable cashflow for the long term.',
     workflow_news_prompt:
@@ -204,7 +204,7 @@ export const create_agent_modal = {
     persona_dividend_focus_title: 'Dividend Income',
     persona_dividend_focus_desc: 'Dividend yield and stable cashflow',
 
-    persona_quantitative_title: 'Data-Driven',
+    persona_quantitative_title: 'Quantitative',
     persona_quantitative_desc: 'Model-driven, disciplined execution',
 
     persona_momentum_trader_title: 'Momentum',

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Copy, Save } from 'lucide-react';
+import { Copy } from 'lucide-react';
 import MarkdownIt from 'markdown-it';
 import { useLanguage } from '@/lib/useLanguage';
 import { copyToClipboard } from '@/lib/clipboard';
@@ -93,9 +93,6 @@ export default function BacktestOutputPanel({
                 : copyStatus === 'fail'
                 ? t('common.copy_failed')
                 : t('common.copy')}
-            </button>
-            <button className='px-6 py-3 btn-outline text-xs flex items-center gap-2'>
-              <Save size={16} /> {t('capability_modal.save')}
             </button>
           </div>
         </div>

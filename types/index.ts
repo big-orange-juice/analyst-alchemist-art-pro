@@ -91,6 +91,48 @@ export interface CapabilityHistoryEntry {
   detail: string;
 }
 
+export interface StockActivityHoldingsLatestMaster {
+  id: string;
+  activity_id: string;
+  user_id: string;
+  agent_id: string;
+  snapshot_date: string;
+  status: string;
+  cash: number;
+  total_market_value: number;
+  total_cost: number;
+  profit_loss: number;
+  profit_loss_pct: number;
+  total_value: number;
+  holdings_count: number;
+}
+
+export interface StockActivityHoldingsLatestItem {
+  id: string;
+  position_id: string;
+  activity_id: string;
+  user_id: string;
+  agent_id: string;
+  snapshot_date: string;
+  stock_code: string;
+  stock_name: string;
+  quantity: number;
+  avg_cost: number;
+  latest_price: number;
+  market_value: number;
+  cost: number;
+  profit_loss: number;
+  profit_loss_pct: number;
+}
+
+export interface StockActivityHoldingsLatestResponse {
+  activity_id: string;
+  user_id: string;
+  price_date: string;
+  masters: StockActivityHoldingsLatestMaster[];
+  items: StockActivityHoldingsLatestItem[];
+}
+
 export const AGENT_CAPABILITY_DETAILS: Record<
   AgentCapability,
   { icon: string; labelKey: string; descKey: string; roleKey: string }
