@@ -6,9 +6,6 @@ import {
   Crown,
   TrendingUp,
   ChevronRight,
-  BarChart2,
-  Crosshair,
-  Rewind,
   Target
 } from 'lucide-react';
 import { useLanguage } from '@/lib/useLanguage';

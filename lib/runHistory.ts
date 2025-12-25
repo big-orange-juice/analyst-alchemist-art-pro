@@ -5,6 +5,8 @@ export type RunHistoryItem = {
   summary: string;
   input?: unknown;
   output?: string;
+  // 可选：当历史接口已直接返回结构化详情（与发起请求返回一致）时，直接挂在这里
+  outputData?: unknown;
 };
 
 const STORAGE_PREFIX = 'capability_run_history:';
@@ -41,6 +43,7 @@ const normalizeArray = (value: unknown): RunHistoryItem[] => {
 
       if (item.input !== undefined) next.input = item.input;
       if (typeof item.output === 'string') next.output = item.output;
+      if (item.outputData !== undefined) next.outputData = item.outputData;
 
       return next;
     })
@@ -73,7 +76,8 @@ export const addRunHistory = (
     ok: item.ok,
     summary: item.summary,
     input: item.input,
-    output: item.output
+    output: item.output,
+    outputData: item.outputData
   };
 
   const merged = [next, ...existing].slice(0, MAX_ITEMS);

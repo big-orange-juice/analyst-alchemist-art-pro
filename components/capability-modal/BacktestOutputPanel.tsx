@@ -1,8 +1,7 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Copy } from 'lucide-react';
-import MarkdownIt from 'markdown-it';
 import { useLanguage } from '@/lib/useLanguage';
 import { copyToClipboard } from '@/lib/clipboard';
 import type { ChartDataPoint } from '@/types';
@@ -23,9 +22,6 @@ export default function BacktestOutputPanel({
 
   const [copyStatus, setCopyStatus] = useState<'idle' | 'ok' | 'fail'>('idle');
   const resetTimerRef = useRef<number | null>(null);
-
-  const md = useMemo(() => new MarkdownIt({ linkify: true, breaks: true }), []);
-  const renderedOutput = useMemo(() => md.render(output || ''), [md, output]);
 
   useEffect(() => {
     return () => {

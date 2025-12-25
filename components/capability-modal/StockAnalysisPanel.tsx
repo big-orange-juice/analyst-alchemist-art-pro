@@ -59,18 +59,76 @@ export default function StockAnalysisPanel({
             : typeof x?.success === 'boolean'
             ? x.success
             : true;
-        const summary =
-          typeof x?.summary === 'string'
-            ? x.summary
-            : typeof x?.symbol === 'string'
-            ? `${t('capability_modal.stock_symbol')}:${x.symbol}`
-            : t('capability_modal.execute');
+        const stockName = typeof x?.stock_name === 'string' ? x.stock_name : '';
+        const stockCode = typeof x?.stock_code === 'string' ? x.stock_code : '';
+        const recommendation =
+          typeof x?.recommendation === 'string' ? x.recommendation : '';
+
+        const baseTitle =
+          stockName && stockCode
+            ? `${stockName} (${stockCode})`
+            : stockName ||
+              stockCode ||
+              (typeof x?.symbol === 'string'
+                ? `${t('capability_modal.stock_symbol')}:${x.symbol}`
+                : t('capability_modal.execute'));
+
+        // 列表不展示详情：只保留股票名称（时间已在上方显示）
+        const summary = baseTitle;
         const item: RunHistoryItem = { id, ts, ok, summary };
-        if (typeof x?.output === 'string') item.output = x.output;
+
+        // 详情优先取 analysis_result，以保证“历史渲染 = 发起渲染”的数据结构一致
+        if (x?.analysis_result && typeof x.analysis_result === 'object') {
+          item.outputData = {
+            ...(x.analysis_result as Record<string, unknown>),
+            stock_name: stockName,
+            stock_code: stockCode,
+            recommendation
+          };
+        } else {
+          const rawOutput = x?.output ?? x?.result ?? x?.detail ?? undefined;
+          if (typeof rawOutput === 'string') item.output = rawOutput;
+          else if (rawOutput !== undefined) item.outputData = rawOutput;
+          else item.outputData = x;
+        }
         if (x?.input !== undefined) item.input = x.input;
         return item;
       })
       .filter((x) => Boolean(x?.id));
+  };
+
+  const applyHistoryOutput = (item: RunHistoryItem) => {
+    // 历史记录里已带详情（与发起请求返回一致）：直接用 formatter 渲染
+    if (item.outputData !== undefined) {
+      const mdText =
+        formatStockAnalysisResponse(item.outputData as Record<string, any>, {
+          t,
+          language
+        }) || t('stock_selection_panel.unable_format');
+      setOutput(mdText);
+      return;
+    }
+
+    const raw = typeof item.output === 'string' ? item.output : '';
+    if (!raw.trim()) return;
+
+    const maybeJson = tryParseJsonText(raw);
+    if (maybeJson != null) {
+      const mdText =
+        formatStockAnalysisResponse(maybeJson as Record<string, any>, {
+          t,
+          language
+        }) || t('stock_selection_panel.unable_format');
+      setOutput(mdText);
+      return;
+    }
+
+    if (looksLikeJsonText(raw)) {
+      setOutput(raw);
+      return;
+    }
+
+    setOutput(raw);
   };
 
   const refreshHistory = async () => {
@@ -100,7 +158,6 @@ export default function StockAnalysisPanel({
   const handleExecute = async () => {
     setIsLoading(true);
 
-    let ok = false;
     let finalOutput = '';
 
     if (!agentId || !currentUser?.id) {
@@ -134,13 +191,16 @@ export default function StockAnalysisPanel({
 
       const maybeJson = tryParseJsonText(text);
       if (maybeJson != null) {
+        const normalized = {
+          ...(maybeJson as Record<string, any>),
+          stock_code: stockSymbol
+        };
         finalOutput =
-          formatStockAnalysisResponse(maybeJson as Record<string, any>, {
+          formatStockAnalysisResponse(normalized, {
             t,
             language
           }) || t('stock_selection_panel.unable_format');
         setOutput(finalOutput);
-        ok = true;
       } else if (looksLikeJsonText(text)) {
         const message = t('stock_selection_panel.parse_failed_desc');
         onNotify?.(
@@ -153,7 +213,6 @@ export default function StockAnalysisPanel({
       } else {
         finalOutput = text || t('stock_selection_panel.empty_response');
         setOutput(finalOutput);
-        ok = true;
       }
     } catch (err) {
       const message =
@@ -216,9 +275,11 @@ export default function StockAnalysisPanel({
           ) : (
             <div className='space-y-3'>
               {history.map((item) => (
-                <div
+                <button
                   key={item.id}
-                  className='border border-cp-border bg-black/30 p-3 hover:border-cp-yellow transition-colors'>
+                  type='button'
+                  onClick={() => applyHistoryOutput(item)}
+                  className='w-full text-left cursor-pointer border border-cp-border bg-black/30 p-3 hover:border-cp-yellow transition-colors'>
                   <div className='flex items-center justify-between gap-3'>
                     <div className='text-[11px] text-cp-text-muted font-mono'>
                       {new Date(item.ts).toLocaleString()}
@@ -235,7 +296,7 @@ export default function StockAnalysisPanel({
                   <div className='mt-2 text-sm text-cp-text'>
                     {item.summary}
                   </div>
-                </div>
+                </button>
               ))}
             </div>
           )}

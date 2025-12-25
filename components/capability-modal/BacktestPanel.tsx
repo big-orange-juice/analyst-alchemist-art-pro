@@ -4,11 +4,6 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Play, RotateCcw } from 'lucide-react';
 import { apiFetch } from '@/lib/http';
 import { useLanguage } from '@/lib/useLanguage';
-import {
-  addRunHistory,
-  getRunHistory,
-  type RunHistoryItem
-} from '@/lib/runHistory';
 import type { AppNotification, ChartDataPoint } from '@/types';
 
 export type PnlCurvePoint = {
@@ -23,6 +18,29 @@ type BacktestPnlCurveResponse = {
     [k: string]: unknown;
   };
   points?: PnlCurvePoint[];
+  [k: string]: unknown;
+};
+
+type BacktestHistoryItem = {
+  id?: string;
+  activity_id?: string;
+  activity_name?: string;
+  description?: string;
+  status?: string;
+  start_date?: string;
+  end_date?: string;
+  created_at?: string;
+  updated_at?: string;
+  points?: PnlCurvePoint[];
+  items?: unknown;
+  [k: string]: unknown;
+};
+
+type BacktestHistoryResponse = {
+  page?: number;
+  page_size?: number;
+  total?: number;
+  items?: BacktestHistoryItem[];
   [k: string]: unknown;
 };
 
@@ -71,9 +89,13 @@ export default function BacktestPanel({
   const { t } = useLanguage();
   const mountedRef = useRef(true);
 
-  const historyKey = 'backtest';
   const [activeTab, setActiveTab] = useState<'form' | 'history'>('form');
-  const [history, setHistory] = useState<RunHistoryItem[]>(() => []);
+  const [history, setHistory] = useState<BacktestHistoryItem[]>(() => []);
+  const [historyPage, setHistoryPage] = useState(1);
+  const [historyPageSize] = useState(20);
+  const [historyTotal, setHistoryTotal] = useState<number | null>(null);
+  const [isHistoryLoading, setIsHistoryLoading] = useState(false);
+  const historyListRef = useRef<HTMLDivElement | null>(null);
 
   const now = useMemo(() => new Date(), []);
   const today = now;
@@ -93,11 +115,126 @@ export default function BacktestPanel({
 
   useEffect(() => {
     mountedRef.current = true;
-    setHistory(getRunHistory(historyKey));
     return () => {
       mountedRef.current = false;
     };
   }, []);
+
+  const toChartData = (points: PnlCurvePoint[]): ChartDataPoint[] => {
+    return points.map((p) => ({
+      time: String(p.snapshot_date ?? ''),
+      pnl: 100 + Number(p.cumulative_return_pct ?? 0)
+    }));
+  };
+
+  const fetchHistoryPage = async (page: number) => {
+    setIsHistoryLoading(true);
+    try {
+      const res = await apiFetch<BacktestHistoryResponse>(
+        `/api/backtests/history?page=${encodeURIComponent(
+          String(page)
+        )}&page_size=${encodeURIComponent(String(historyPageSize))}`,
+        { method: 'GET', errorHandling: 'ignore' }
+      );
+
+      const items = Array.isArray(res?.items) ? res.items : [];
+      const total =
+        typeof res?.total === 'number'
+          ? res.total
+          : typeof (res as any)?.count === 'number'
+          ? (res as any).count
+          : null;
+      setHistoryTotal(total);
+
+      setHistory((prev) => {
+        if (page <= 1) return items;
+        const merged = [...prev, ...items];
+        const seen = new Set<string>();
+        return merged.filter((x, idx) => {
+          const key =
+            typeof x?.id === 'string'
+              ? x.id
+              : typeof (x as any)?.activity_id === 'string'
+              ? String((x as any).activity_id)
+              : `idx:${idx}`;
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        });
+      });
+    } catch {
+      if (page <= 1) setHistory([]);
+    } finally {
+      setIsHistoryLoading(false);
+    }
+  };
+
+  const refreshHistory = async () => {
+    setHistoryPage(1);
+    setHistoryTotal(null);
+    await fetchHistoryPage(1);
+  };
+
+  const canLoadMore = () => {
+    if (isHistoryLoading) return false;
+    if (historyTotal == null) return true;
+    return history.length < historyTotal;
+  };
+
+  const handleHistoryScroll = () => {
+    const el = historyListRef.current;
+    if (!el) return;
+    if (!canLoadMore()) return;
+
+    const thresholdPx = 120;
+    const remaining = el.scrollHeight - el.scrollTop - el.clientHeight;
+    if (remaining > thresholdPx) return;
+
+    const nextPage = historyPage + 1;
+    setHistoryPage(nextPage);
+    void fetchHistoryPage(nextPage);
+  };
+
+  const applyHistoryItem = async (item: BacktestHistoryItem) => {
+    const rawPoints = Array.isArray(item?.points)
+      ? item.points
+      : Array.isArray((item as any)?.items)
+      ? ((item as any).items as unknown[])
+          .map((x) => x as any as PnlCurvePoint)
+          .filter((p) => p && typeof p === 'object')
+      : [];
+
+    if (rawPoints.length) {
+      setChartData(toChartData(rawPoints));
+      setOutput(
+        `回测历史\n\n- ${
+          item.activity_name || item.id || 'Backtest'
+        }\n- points: ${rawPoints.length}`
+      );
+      return;
+    }
+
+    // 若后端 history 暂未包含 points，降级用已有 pnl_curve 接口拉曲线
+    const id =
+      typeof item?.id === 'string'
+        ? item.id
+        : typeof (item as any)?.activity_id === 'string'
+        ? String((item as any).activity_id)
+        : '';
+    if (!id) return;
+
+    try {
+      const result = await apiFetch<BacktestPnlCurveResponse>(
+        `/api/backtests/pnl_curve?activity_id=${encodeURIComponent(id)}`,
+        { method: 'GET', errorHandling: 'ignore' }
+      );
+      const points = Array.isArray(result?.points) ? result.points : [];
+      setChartData(toChartData(points));
+      setOutput(`回测历史\n\n- id: ${id}\n- points: ${points.length}`);
+    } catch {
+      // ignore
+    }
+  };
 
   const pollPnlCurve = async (id: string) => {
     const intervalMs = 10000;
@@ -114,11 +251,7 @@ export default function BacktestPanel({
 
         const points = Array.isArray(result?.points) ? result.points : [];
         if (points.length > 0) {
-          const chart: ChartDataPoint[] = points.map((p) => ({
-            time: String(p.snapshot_date ?? ''),
-            pnl: 100 + Number(p.cumulative_return_pct ?? 0)
-          }));
-          setChartData(chart);
+          setChartData(toChartData(points));
         }
 
         if (result?.activity?.status === 'closed') {
@@ -139,7 +272,6 @@ export default function BacktestPanel({
     setOutput('');
     setChartData([]);
 
-    let ok = false;
     let finalOutput = '';
 
     try {
@@ -183,12 +315,10 @@ export default function BacktestPanel({
       if (curve.length > 0) {
         finalOutput = `回测完成\n\n- id: ${id}\n- points: ${curve.length}`;
         setOutput(finalOutput);
-        ok = true;
         onNotify?.('回测完成', '已生成收益率曲线', 'success');
       } else {
         finalOutput = `回测完成\n\n- id: ${id}\n- points: 0`;
         setOutput(finalOutput);
-        ok = true;
         onNotify?.('回测完成', '暂无收益率曲线数据', 'warning');
       }
     } catch (err) {
@@ -197,20 +327,6 @@ export default function BacktestPanel({
       setOutput(finalOutput);
       onNotify?.('回测失败', message, 'error');
     } finally {
-      const summary = `${activityName || '回测'}  ${startDate}~${endDate}`;
-      const next = addRunHistory(historyKey, {
-        ok,
-        summary,
-        input: {
-          activity_name: activityName,
-          description,
-          start_date: startDate,
-          end_date: endDate,
-          initial_capital: initialCapital
-        },
-        output: finalOutput
-      });
-      setHistory(next);
       setIsLoading(false);
     }
   };
@@ -235,7 +351,7 @@ export default function BacktestPanel({
         <button
           type='button'
           onClick={() => {
-            setHistory(getRunHistory(historyKey));
+            void refreshHistory();
             setActiveTab('history');
           }}
           role='tab'
@@ -250,7 +366,10 @@ export default function BacktestPanel({
       </div>
 
       {activeTab === 'history' ? (
-        <div className='flex-1 min-h-0 overflow-y-auto custom-scrollbar border border-cp-border bg-black/20 p-4'>
+        <div
+          ref={historyListRef}
+          onScroll={handleHistoryScroll}
+          className='flex-1 min-h-0 overflow-y-auto custom-scrollbar border border-cp-border bg-black/20 p-4'>
           {!history.length ? (
             <div className='text-xs text-cp-text-muted'>
               {t('capability_modal.history_empty')}
@@ -258,27 +377,55 @@ export default function BacktestPanel({
           ) : (
             <div className='space-y-3'>
               {history.map((item) => (
-                <div
-                  key={item.id}
-                  className='border border-cp-border bg-black/30 p-3 hover:border-cp-yellow transition-colors'>
+                <button
+                  key={
+                    (typeof item?.id === 'string' && item.id) ||
+                    (typeof (item as any)?.activity_id === 'string' &&
+                      String((item as any).activity_id)) ||
+                    JSON.stringify(item)
+                  }
+                  type='button'
+                  onClick={() => void applyHistoryItem(item)}
+                  className='w-full text-left cursor-pointer border border-cp-border bg-black/30 p-3 hover:border-cp-yellow transition-colors'>
                   <div className='flex items-center justify-between gap-3'>
                     <div className='text-[11px] text-cp-text-muted font-mono'>
-                      {new Date(item.ts).toLocaleString()}
+                      {item.created_at
+                        ? new Date(String(item.created_at)).toLocaleString()
+                        : item.updated_at
+                        ? new Date(String(item.updated_at)).toLocaleString()
+                        : ''}
                     </div>
                     <div
                       className={`text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 border ${
-                        item.ok
+                        item.status === 'closed'
                           ? 'border-green-500/40 text-green-400'
-                          : 'border-cp-red/40 text-cp-red'
+                          : 'border-cp-border text-cp-text-muted'
                       }`}>
-                      {item.ok ? 'OK' : 'FAIL'}
+                      {String(item.status ?? '').toUpperCase() || '—'}
                     </div>
                   </div>
                   <div className='mt-2 text-sm text-cp-text'>
-                    {item.summary}
+                    {item.activity_name ||
+                      item.description ||
+                      item.id ||
+                      'Backtest'}
                   </div>
-                </div>
+                </button>
               ))}
+
+              {isHistoryLoading && (
+                <div className='text-xs text-cp-text-muted pt-2'>
+                  {t('capability_modal.loading') || '加载中...'}
+                </div>
+              )}
+
+              {!isHistoryLoading &&
+                historyTotal != null &&
+                history.length >= historyTotal && (
+                  <div className='text-xs text-cp-text-muted pt-2'>
+                    {t('capability_modal.history_end') || '已加载全部'}
+                  </div>
+                )}
             </div>
           )}
         </div>

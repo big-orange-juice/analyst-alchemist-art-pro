@@ -964,8 +964,10 @@ export default function DashboardContent() {
                 errorHandling: 'ignore'
               });
 
+              // 说明：编辑成功后无需重新获取最新 agent（页面不实时展示参数）。
+              // 为保持本地状态一致性，这里仅做轻量的本地合并更新。
               setAgentRaw({
-                ...(agentRaw ?? {}),
+                ...((agentRaw ?? {}) as any),
                 persona_parameters: personaParameters
               });
 

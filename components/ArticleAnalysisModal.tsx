@@ -44,7 +44,7 @@ export default function ArticleAnalysisModal({
   onClose,
   onNotify
 }: ArticleAnalysisModalProps) {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const [activeLeftTab, setActiveLeftTab] = useState<'form' | 'history'>(
     'form'
   );
@@ -85,13 +85,14 @@ export default function ArticleAnalysisModal({
             : typeof x?.success === 'boolean'
             ? x.success
             : true;
+        // 列表不展示详情：只显示文章标题（时间已在上方显示）
         const summary =
-          typeof x?.summary === 'string'
-            ? x.summary
+          typeof x?.article_title === 'string'
+            ? x.article_title
             : typeof x?.title === 'string'
             ? x.title
-            : typeof x?.symbol === 'string'
-            ? `${tt('symbol')}:${x.symbol}`
+            : typeof x?.summary === 'string'
+            ? x.summary
             : tt('title');
         const output =
           typeof x?.output === 'string'
@@ -100,11 +101,42 @@ export default function ArticleAnalysisModal({
             ? x.result
             : undefined;
         const item: RunHistoryItem = { id, ts, ok, summary };
-        if (output) item.output = output;
+
+        // 历史详情优先取 analysis_result（与发起接口返回结构一致）
+        if (x?.analysis_result && typeof x.analysis_result === 'object') {
+          item.outputData = {
+            ...(x.analysis_result as Record<string, unknown>),
+            article_title:
+              typeof x?.article_title === 'string' ? x.article_title : undefined
+          };
+        } else {
+          const rawOutput = x?.output ?? x?.result ?? x?.detail ?? undefined;
+          if (typeof rawOutput === 'string') {
+            item.output = rawOutput;
+          } else if (rawOutput !== undefined) {
+            item.outputData = rawOutput;
+          } else if (output) {
+            item.output = output;
+          } else {
+            item.outputData = x;
+          }
+        }
         if (x?.input !== undefined) item.input = x.input;
         return item;
       })
       .filter((x) => Boolean(x?.id));
+  };
+
+  const applyHistoryOutput = (item: RunHistoryItem) => {
+    if (item.outputData !== undefined) {
+      const formatted = formatResultToMarkdown(item.outputData);
+      setResultText(formatted || '');
+      return;
+    }
+
+    const raw = typeof item.output === 'string' ? item.output : '';
+    if (!raw.trim()) return;
+    setResultText(raw);
   };
 
   const refreshHistory = async () => {
@@ -129,6 +161,14 @@ export default function ArticleAnalysisModal({
   const tt = (key: string) => t(`article_analysis_modal.${key}`);
 
   const tmd = (key: string) => tt(`md_${key}`);
+
+  const colon = language === 'en' ? ':' : '：';
+
+  const tField = (key: string) => {
+    const k = `field_${key}`;
+    const v = tmd(k);
+    return v === `article_analysis_modal.md_${k}` ? key : v;
+  };
 
   const safeText = (v: unknown) => {
     if (v === null || v === undefined) return '';
@@ -175,8 +215,14 @@ export default function ArticleAnalysisModal({
     const contentTypeText = safeText(root.content_type);
     const timestampText = safeText(root.timestamp);
 
+    const articleTitleText = safeText(root.article_title);
+
     const lines: string[] = [];
-    lines.push(`# ${tmd('title')}${symbolText ? `: ${symbolText}` : ''}`);
+    const headSuffix =
+      articleTitleText || symbolText
+        ? `: ${articleTitleText || symbolText}`
+        : '';
+    lines.push(`# ${tmd('title')}${headSuffix}`);
     const metaParts = [
       contentTypeText ? `${tmd('content_type')}: ${contentTypeText}` : '',
       tradingDateText ? `${tmd('trading_date')}: ${tradingDateText}` : '',
@@ -259,11 +305,11 @@ export default function ArticleAnalysisModal({
           if (k === 'reasoning') return;
           if (Array.isArray(v)) {
             if (!v.length) return;
-            lines.push(`- ${k}：`);
+            lines.push(`- ${tField(k)}${colon}`);
             v.forEach((item) => lines.push(`  - ${safeText(item)}`));
             return;
           }
-          lines.push(`- ${k}：${safeText(v)}`);
+          lines.push(`- ${tField(k)}${colon}${safeText(v)}`);
         });
         const reasoning = safeText(obj.reasoning);
         if (reasoning) {
@@ -365,7 +411,6 @@ export default function ArticleAnalysisModal({
     setIsSubmitting(true);
     setResultText('');
 
-    let ok = false;
     let finalOutput = '';
 
     try {
@@ -378,7 +423,6 @@ export default function ArticleAnalysisModal({
       const formatted = formatResultToMarkdown(res);
       finalOutput = formatted || tt('empty_response');
       setResultText(finalOutput);
-      ok = true;
       onNotify?.(tt('ok_title'), tt('ok_message'), 'success');
     } catch (err) {
       const message =
@@ -476,9 +520,11 @@ export default function ArticleAnalysisModal({
                 ) : (
                   <div className='space-y-3'>
                     {history.map((item) => (
-                      <div
+                      <button
                         key={item.id}
-                        className='border border-cp-border bg-black/30 p-3 hover:border-cp-yellow transition-colors'>
+                        type='button'
+                        onClick={() => applyHistoryOutput(item)}
+                        className='w-full text-left cursor-pointer border border-cp-border bg-black/30 p-3 hover:border-cp-yellow transition-colors'>
                         <div className='flex items-center justify-between gap-3'>
                           <div className='text-[11px] text-cp-text-muted font-mono'>
                             {new Date(item.ts).toLocaleString()}
@@ -495,7 +541,7 @@ export default function ArticleAnalysisModal({
                         <div className='mt-2 text-sm text-cp-text'>
                           {item.summary}
                         </div>
-                      </div>
+                      </button>
                     ))}
                   </div>
                 )}

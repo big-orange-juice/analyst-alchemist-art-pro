@@ -70,13 +70,53 @@ export default function StockSelectionPanel({
             ? x.summary
             : typeof x?.theme === 'string'
             ? `${t('stock_selection_panel.theme_label')}:${x.theme}`
+            : typeof x?.selection_criteria?.industry === 'string'
+            ? `${t('stock_selection_panel.industry_label')}:${
+                x.selection_criteria.industry
+              }`
             : t('capability_modal.execute');
         const item: RunHistoryItem = { id, ts, ok, summary };
-        if (typeof x?.output === 'string') item.output = x.output;
+        const rawOutput = x?.output ?? x?.result ?? x?.detail ?? undefined;
+        if (typeof rawOutput === 'string') item.output = rawOutput;
+        else if (rawOutput !== undefined) item.outputData = rawOutput;
+        else item.outputData = x;
         if (x?.input !== undefined) item.input = x.input;
         return item;
       })
       .filter((x) => Boolean(x?.id));
+  };
+
+  const applyHistoryOutput = (item: RunHistoryItem) => {
+    // 历史记录里已带详情（与发起请求返回一致）：直接用 formatter 渲染
+    if (item.outputData !== undefined) {
+      const mdText = formatStockSelectionResponse(
+        item.outputData as StockSelectionResponse,
+        { t, language }
+      );
+      setOutput(mdText || t('stock_selection_panel.unable_format'));
+      return;
+    }
+
+    const raw = typeof item.output === 'string' ? item.output : '';
+    if (!raw.trim()) return;
+
+    const maybeJson = tryParseJsonText(raw);
+    if (maybeJson != null) {
+      const mdText = formatStockSelectionResponse(
+        maybeJson as StockSelectionResponse,
+        { t, language }
+      );
+      setOutput(mdText || t('stock_selection_panel.unable_format'));
+      return;
+    }
+
+    // 看起来是 JSON 但 parse 失败：给出原文，便于排查
+    if (looksLikeJsonText(raw)) {
+      setOutput(raw);
+      return;
+    }
+
+    setOutput(raw);
   };
 
   const refreshHistory = async () => {
@@ -119,7 +159,6 @@ export default function StockSelectionPanel({
   const handleExecute = async () => {
     setIsLoading(true);
 
-    let ok = false;
     let finalOutput = '';
 
     if (!agentId || !currentUser?.id) {
@@ -160,7 +199,6 @@ export default function StockSelectionPanel({
         );
         finalOutput = mdText || t('stock_selection_panel.unable_format');
         setOutput(finalOutput);
-        ok = true;
       } else if (looksLikeJsonText(text)) {
         const message = t('stock_selection_panel.parse_failed_desc');
         onNotify?.(
@@ -174,7 +212,6 @@ export default function StockSelectionPanel({
         // 如果后端返回的是自然语言说明，直接以文本（Markdown）展示即可
         finalOutput = text || t('stock_selection_panel.empty_response');
         setOutput(finalOutput);
-        ok = true;
       }
     } catch (err) {
       const message =
@@ -238,9 +275,11 @@ export default function StockSelectionPanel({
             ) : (
               <div className='space-y-3'>
                 {history.map((item) => (
-                  <div
+                  <button
                     key={item.id}
-                    className='border border-cp-border bg-black/30 p-3 hover:border-cp-yellow transition-colors'>
+                    type='button'
+                    onClick={() => applyHistoryOutput(item)}
+                    className='w-full text-left cursor-pointer border border-cp-border bg-black/30 p-3 hover:border-cp-yellow transition-colors'>
                     <div className='flex items-center justify-between gap-3'>
                       <div className='text-[11px] text-cp-text-muted font-mono'>
                         {new Date(item.ts).toLocaleString()}
@@ -257,7 +296,7 @@ export default function StockSelectionPanel({
                     <div className='mt-2 text-sm text-cp-text'>
                       {item.summary}
                     </div>
-                  </div>
+                  </button>
                 ))}
               </div>
             )}

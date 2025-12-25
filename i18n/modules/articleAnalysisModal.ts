@@ -87,7 +87,30 @@ export const articleAnalysisModal = {
     md_confidence: '置信度',
     md_key_risks: '关键风险',
     md_action_plan: '行动计划',
-    md_explain: '解释'
+    md_explain: '解释',
+
+    md_field_macro_impact: '宏观影响',
+    md_field_impact_score: '影响评分',
+    md_field_key_factors: '关键因素',
+
+    md_field_technical_impact: '技术面影响',
+    md_field_price_trend_expectation: '价格趋势预期',
+    md_field_volume_expectation: '成交量预期',
+
+    md_field_fundamental_impact: '基本面影响',
+    md_field_profitability_change: '盈利能力变化',
+    md_field_growth_potential: '成长潜力',
+    md_field_valuation_assessment: '估值判断',
+
+    md_field_overall_sentiment: '整体情绪',
+    md_field_sentiment_score: '情绪评分',
+    md_field_market_emotion_impact: '市场情绪影响',
+    md_field_investor_confidence_impact: '投资者信心影响',
+
+    md_field_risk_level: '风险等级',
+    md_field_risk_types: '风险类型',
+    md_field_controllability: '可控性',
+    md_field_mitigation_suggestions: '风险应对建议'
   },
   en: {
     title: 'Article Analysis',
@@ -177,6 +200,29 @@ export const articleAnalysisModal = {
     md_confidence: 'Confidence',
     md_key_risks: 'Key Risks',
     md_action_plan: 'Action Plan',
-    md_explain: 'Explanation'
+    md_explain: 'Explanation',
+
+    md_field_macro_impact: 'Macro impact',
+    md_field_impact_score: 'Impact score',
+    md_field_key_factors: 'Key factors',
+
+    md_field_technical_impact: 'Technical impact',
+    md_field_price_trend_expectation: 'Price trend expectation',
+    md_field_volume_expectation: 'Volume expectation',
+
+    md_field_fundamental_impact: 'Fundamental impact',
+    md_field_profitability_change: 'Profitability change',
+    md_field_growth_potential: 'Growth potential',
+    md_field_valuation_assessment: 'Valuation assessment',
+
+    md_field_overall_sentiment: 'Overall sentiment',
+    md_field_sentiment_score: 'Sentiment score',
+    md_field_market_emotion_impact: 'Market emotion impact',
+    md_field_investor_confidence_impact: 'Investor confidence impact',
+
+    md_field_risk_level: 'Risk level',
+    md_field_risk_types: 'Risk types',
+    md_field_controllability: 'Controllability',
+    md_field_mitigation_suggestions: 'Mitigation suggestions'
   }
 } as const;

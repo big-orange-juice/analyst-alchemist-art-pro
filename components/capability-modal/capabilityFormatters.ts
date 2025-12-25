@@ -1,7 +1,9 @@
 export type StockSelectionResponse = {
   trading_date?: unknown;
+  selection_date?: unknown;
   timestamp?: unknown;
   candidates?: unknown;
+  stock_pool?: unknown;
 };
 
 type Language = 'zh' | 'en';
@@ -92,9 +94,18 @@ export const formatStockSelectionResponse = (
   i18n?: FormatterI18n
 ) => {
   const t = i18n?.t;
-  const date = data?.trading_date ? String(data.trading_date) : '';
+  const date = data?.trading_date
+    ? String(data.trading_date)
+    : data?.selection_date
+    ? String(data.selection_date)
+    : data?.timestamp
+    ? String(data.timestamp)
+    : '';
+
   const candidatesRaw = Array.isArray(data?.candidates)
     ? (data.candidates as unknown[])
+    : Array.isArray(data?.stock_pool)
+    ? (data.stock_pool as unknown[])
     : [];
 
   const lines: string[] = [];
@@ -153,10 +164,171 @@ export const formatStockAnalysisResponse = (
 ) => {
   const t = i18n?.t;
   if (!data) return '';
+
+  const translateFieldKey = (key: string) => {
+    const path = `capability_formatters.field.${key}`;
+    const translated = t?.(path);
+    if (!translated || translated === path) return key;
+    return translated;
+  };
+
+  // 新版“个股诊断”结构（你提供的样例）：
+  // { period, summary, key_metrics, highlights, analysis{...}, financial_report{...} }
+  // 以及历史列表：{ stock_name, stock_code, recommendation, analysis_result{...} }
+  const looksLikeNewStockDiagnosis =
+    data?.analysis ||
+    data?.key_metrics ||
+    data?.highlights ||
+    data?.financial_report ||
+    data?.period ||
+    data?.report_period ||
+    data?.analysis_type ||
+    data?.confidence_score;
+
+  const looksLikeOldStockAnalysis =
+    data?.comprehensive_rating ||
+    data?.technical_analysis ||
+    data?.fundamental_analysis ||
+    data?.news_analysis;
+
+  if (looksLikeNewStockDiagnosis && !looksLikeOldStockAnalysis) {
+    const lines: string[] = [];
+
+    const stockName =
+      typeof data?.stock_name === 'string' ? data.stock_name : '';
+    const stockCode =
+      typeof data?.stock_code === 'string'
+        ? data.stock_code
+        : Array.isArray(data?.analysis?.symbols) && data.analysis.symbols.length
+        ? String(data.analysis.symbols[0])
+        : typeof data?.symbol === 'string'
+        ? data.symbol
+        : '';
+
+    const headerTitle = stockName
+      ? stockCode
+        ? `${stockName} (${stockCode})`
+        : stockName
+      : stockCode || (t?.('capability_formatters.symbol_fallback') ?? 'Symbol');
+
+    const period =
+      data?.period ??
+      data?.trading_date ??
+      data?.report_period ??
+      data?.financial_report?.period ??
+      '';
+
+    lines.push(`# ${headerTitle}${period ? ` @ ${String(period)}` : ''}`);
+
+    const recommendation =
+      data?.recommendation ?? data?.analysis?.recommendation ?? '';
+    const confidence =
+      data?.confidence ?? data?.analysis?.confidence ?? data?.confidence_score;
+
+    if (recommendation) {
+      const recLabel =
+        t?.('capability_formatters.recommendation') ?? 'Recommendation';
+      const confLabel = t?.('capability_formatters.confidence_short') ?? 'Conf';
+      const confText =
+        confidence === 0 || confidence ? ` (${confLabel} ${confidence})` : '';
+      lines.push(`- ${recLabel}: ${recommendation}${confText}`);
+    }
+
+    const summaryText =
+      typeof data?.summary === 'string'
+        ? data.summary
+        : typeof data?.analysis?.summary === 'string'
+        ? data.analysis.summary
+        : '';
+    if (summaryText) {
+      lines.push('');
+      lines.push(`## ${t?.('capability_formatters.summary') ?? 'Summary'}`);
+      lines.push(summaryText);
+    }
+
+    const highlights = Array.isArray(data?.highlights) ? data.highlights : [];
+    const keyInsights = Array.isArray(data?.analysis?.key_insights)
+      ? data.analysis.key_insights
+      : [];
+    const mergedInsights: string[] = [...highlights, ...keyInsights]
+      .map((x) => (typeof x === 'string' ? x : String(x ?? '')))
+      .map((x) => x.trim())
+      .filter(Boolean);
+    if (mergedInsights.length) {
+      lines.push('');
+      lines.push(
+        `## ${t?.('capability_formatters.highlights') ?? 'Highlights'}`
+      );
+      mergedInsights.forEach((h) => lines.push(`- ${h}`));
+    }
+
+    const keyMetrics =
+      data?.key_metrics && typeof data.key_metrics === 'object'
+        ? (data.key_metrics as Record<string, unknown>)
+        : null;
+    if (keyMetrics) {
+      const entries = Object.entries(keyMetrics).filter(
+        ([, v]) => v !== null && v !== undefined
+      );
+      if (entries.length) {
+        lines.push('');
+        lines.push(
+          `## ${t?.('capability_formatters.key_metrics') ?? 'Key metrics'}`
+        );
+        entries.forEach(([k, v]) =>
+          lines.push(`- ${translateFieldKey(k)}: ${String(v)}`)
+        );
+      }
+    }
+
+    const reportUrl =
+      typeof data?.report_url === 'string' ? data.report_url : '';
+    if (reportUrl) {
+      const linkLabel = t?.('capability_formatters.link') ?? 'Link';
+      lines.push('');
+      lines.push(`- [${linkLabel}](${reportUrl})`);
+    }
+
+    const fr = data?.financial_report;
+    if (fr && typeof fr === 'object') {
+      lines.push('');
+      lines.push(
+        `## ${t?.('capability_formatters.financial_report') ?? 'Financials'}`
+      );
+
+      const income =
+        fr?.income && typeof fr.income === 'object' ? fr.income : null;
+      const balance =
+        fr?.balance && typeof fr.balance === 'object' ? fr.balance : null;
+
+      if (income) {
+        lines.push(`### ${t?.('capability_formatters.income') ?? 'Income'}`);
+        Object.entries(income as Record<string, unknown>)
+          .filter(([, v]) => v !== null && v !== undefined)
+          .forEach(([k, v]) =>
+            lines.push(`- ${translateFieldKey(k)}: ${String(v)}`)
+          );
+      }
+
+      if (balance) {
+        lines.push(`### ${t?.('capability_formatters.balance') ?? 'Balance'}`);
+        Object.entries(balance as Record<string, unknown>)
+          .filter(([, v]) => v !== null && v !== undefined)
+          .forEach(([k, v]) =>
+            lines.push(`- ${translateFieldKey(k)}: ${String(v)}`)
+          );
+      }
+    }
+
+    return lines.join('\n\n');
+  }
+
   const lines: string[] = [];
   const symbolFallback =
     t?.('capability_formatters.symbol_fallback') ?? 'Symbol';
-  lines.push(`# ${data.symbol || symbolFallback} @ ${data.trading_date || ''}`);
+  const symbol = data.stock_code || data.symbol || symbolFallback;
+  const date = data.trading_date || data.period || data.report_period || '';
+  lines.push(`# ${symbol} @ ${date}`);
 
   if (data.comprehensive_rating) {
     const comp = data.comprehensive_rating;

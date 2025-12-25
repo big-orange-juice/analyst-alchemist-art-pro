@@ -97,6 +97,50 @@ const canRenderAsObjectSubForm = (v: unknown): v is Record<string, unknown> => {
   return true;
 };
 
+const getSceneParametersObject = (
+  scenarioValue: unknown
+): Record<string, unknown> | null => {
+  // 期望新结构：{ reason, agent_role, display_name, parameters: {...} }
+  if (!isPlainObject(scenarioValue)) return null;
+
+  const maybeParams = (scenarioValue as any)?.parameters;
+  if (isPlainObject(maybeParams)) return maybeParams as Record<string, unknown>;
+
+  // 兼容旧结构：scenarios[scene] 直接是参数对象
+  return scenarioValue as Record<string, unknown>;
+};
+
+const buildScenarioWrapperForSave = (
+  existingScenarioValue: unknown,
+  parameters: Record<string, unknown>
+): Record<string, unknown> => {
+  // 如果原来就是 wrapper（含 meta 字段或 parameters），则保留元信息并覆盖 parameters
+  if (isPlainObject(existingScenarioValue)) {
+    const metaKeys = new Set([
+      'reason',
+      'agent_role',
+      'display_name',
+      'agentRole',
+      'displayName',
+      'parameters'
+    ]);
+
+    const hasMetaOrParams = Object.keys(existingScenarioValue).some((k) =>
+      metaKeys.has(k)
+    );
+
+    if (hasMetaOrParams) {
+      return {
+        ...(existingScenarioValue as any),
+        parameters
+      };
+    }
+  }
+
+  // 否则按新结构最低要求输出：{ parameters: {...} }
+  return { parameters };
+};
+
 const translateKeyToZh = (key: string): string => {
   const k = String(key || '').trim();
   if (!k) return '参数';
@@ -459,13 +503,8 @@ export default function EditAgentModal({
       const fromScenarios = isPlainObject(scenarios)
         ? (scenarios as any)[key]
         : null;
-      if (
-        fromScenarios &&
-        typeof fromScenarios === 'object' &&
-        !Array.isArray(fromScenarios)
-      ) {
-        return fromScenarios as any;
-      }
+      const maybeParamsFromScenarios = getSceneParametersObject(fromScenarios);
+      if (maybeParamsFromScenarios) return maybeParamsFromScenarios;
 
       // 兼容旧结构：scene 直接挂在根上
       const v = (initialParams as any)?.[key];
@@ -780,10 +819,23 @@ export default function EditAgentModal({
         ? { ..._legacyScenarios }
         : {};
 
-    (nextScenarios as any).stock_selection = stock;
-    (nextScenarios as any).analysis = analysis;
-    (nextScenarios as any).trading = trading;
-    (nextScenarios as any).review = review;
+    // 对齐获取 agent 的数据结构：scenarios[scene] 是 wrapper，参数放在 parameters 字段
+    (nextScenarios as any).stock_selection = buildScenarioWrapperForSave(
+      (nextScenarios as any).stock_selection,
+      stock
+    );
+    (nextScenarios as any).analysis = buildScenarioWrapperForSave(
+      (nextScenarios as any).analysis,
+      analysis
+    );
+    (nextScenarios as any).trading = buildScenarioWrapperForSave(
+      (nextScenarios as any).trading,
+      trading
+    );
+    (nextScenarios as any).review = buildScenarioWrapperForSave(
+      (nextScenarios as any).review,
+      review
+    );
 
     return {
       ...(rest as any),

@@ -25,7 +25,28 @@ export const capability_formatters = {
 
     sentiment: '情绪',
     source: '来源',
-    link: '链接'
+    link: '链接',
+
+    summary: '摘要',
+    highlights: '要点',
+    key_metrics: '关键指标',
+    income: '利润表',
+    balance: '资产负债表',
+
+    field: {
+      revenue: '营收',
+      revenue_yoy: '营收同比',
+      net_profit: '净利润',
+      net_profit_yoy: '净利润同比',
+      gross_profit_margin: '毛利率',
+      net_profit_margin: '净利率',
+      debt_ratio: '资产负债率',
+      total_assets: '总资产',
+      current_ratio: '流动比率',
+      period: '期间',
+      trading_date: '交易日',
+      report_period: '报告期'
+    }
   },
   en: {
     op_lte: 'no higher than',
@@ -53,6 +74,27 @@ export const capability_formatters = {
 
     sentiment: 'Sentiment',
     source: 'Source',
-    link: 'Link'
+    link: 'Link',
+
+    summary: 'Summary',
+    highlights: 'Highlights',
+    key_metrics: 'Key metrics',
+    income: 'Income statement',
+    balance: 'Balance sheet',
+
+    field: {
+      revenue: 'Revenue',
+      revenue_yoy: 'Revenue YoY',
+      net_profit: 'Net profit',
+      net_profit_yoy: 'Net profit YoY',
+      gross_profit_margin: 'Gross margin',
+      net_profit_margin: 'Net margin',
+      debt_ratio: 'Debt ratio',
+      total_assets: 'Total assets',
+      current_ratio: 'Current ratio',
+      period: 'Period',
+      trading_date: 'Trading date',
+      report_period: 'Report period'
+    }
   }
 } as const;
