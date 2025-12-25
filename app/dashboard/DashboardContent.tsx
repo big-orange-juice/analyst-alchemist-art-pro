@@ -74,6 +74,15 @@ type ActivityIsRunningResponse = {
   [k: string]: unknown;
 };
 
+type MyRankResponse = {
+  activity_id?: number | string;
+  user_id?: number | string;
+  agent_id?: number | string;
+  rank?: number;
+  return_rate?: number | string;
+  [k: string]: unknown;
+};
+
 export default function DashboardContent() {
   const searchParams = useSearchParams();
   const loginParam = searchParams.get('login');
@@ -156,6 +165,9 @@ export default function DashboardContent() {
   const [isArticleAnalysisOpen, setIsArticleAnalysisOpen] = useState(false);
   const [userRank, setUserRank] = useState<number | null>(null);
   const [userProfit, setUserProfit] = useState<string | null>(null);
+  const myRankTimerRef = useRef<number | null>(null);
+  const myRankAbortRef = useRef<AbortController | null>(null);
+  const myRankSeqRef = useRef(0);
   const [hoveredAgent, setHoveredAgent] = useState<string | null>(null);
   const [currentActivity, setCurrentActivity] = useState<StockActivity | null>(
     null
@@ -193,16 +205,7 @@ export default function DashboardContent() {
 
   // Fetch initial data
   useEffect(() => {
-    apiFetch<{ rankings: RankingItem[]; chartData: ChartDataPoint[] }>(
-      '/api/rankings'
-    )
-      .then((data) => {
-        setRankingList(data.rankings);
-        setChartData(data.chartData);
-      })
-      .catch(() => {
-        // keep silent to preserve existing UX
-      });
+    // Rankings/curves now come from stock-activities leaderboard endpoints.
   }, [setChartData, setRankingList]);
 
   // Fetch current activity (no token required)
@@ -282,61 +285,7 @@ export default function DashboardContent() {
     };
   }, [agentId, currentActivity, setIsJoinedCompetition]);
 
-  // Simulation interval
-  useEffect(() => {
-    const shouldSimulate = rankingList.length > 0 && chartData.length > 0;
-    if (!shouldSimulate) return;
-
-    const interval = setInterval(() => {
-      const prevRanking = rankingListRef.current;
-      if (prevRanking.length) {
-        const nextRanking = prevRanking
-          .map((agent) => {
-            const change = (Math.random() - 0.48) * 0.2;
-            const newProfit = agent.rawProfit + change;
-            return {
-              ...agent,
-              rawProfit: parseFloat(newProfit.toFixed(2)),
-              profit: `${newProfit >= 100 ? '+' : ''}${(
-                newProfit - 100
-              ).toFixed(2)}%`
-            };
-          })
-          .sort((a, b) => b.rawProfit - a.rawProfit)
-          .map((a, i) => ({ ...a, rank: i + 1 }));
-
-        setRankingList(nextRanking);
-      }
-
-      const prevChart = chartDataRef.current;
-      if (prevChart.length) {
-        const lastTime = prevChart[prevChart.length - 1]?.time || '09:30';
-        const [h, m] = lastTime.split(':').map(Number);
-        const newMinutes = m + 5 >= 60 ? 0 : m + 5;
-        const newHours = m + 5 >= 60 ? (h + 1) % 24 : h;
-        const newTimeStr = `${String(newHours).padStart(2, '0')}:${String(
-          newMinutes
-        ).padStart(2, '0')}`;
-
-        const newPoint: ChartDataPoint = { time: newTimeStr };
-        const lastPoint = prevChart[prevChart.length - 1];
-        if (lastPoint) {
-          Object.keys(lastPoint)
-            .filter((k) => k !== 'time')
-            .forEach((key) => {
-              const prevVal = lastPoint[key] as number;
-              const change = (Math.random() - 0.48) * 2;
-              newPoint[key] = parseFloat((prevVal + change).toFixed(2));
-            });
-        }
-
-        const nextChart = [...prevChart.slice(-49), newPoint];
-        setChartData(nextChart);
-      }
-    }, 2000);
-
-    return () => clearInterval(interval);
-  }, [chartData.length, rankingList.length, setChartData, setRankingList]);
+  // Simulation removed: live data comes from stock-activities leaderboard endpoints.
 
   // Handle user agent rank/profit
   useEffect(() => {
@@ -409,18 +358,387 @@ export default function DashboardContent() {
     setLastFetchedUserId
   ]);
 
+  // Show user's rank/profit in agent panel (source of truth: /stock-activities/me/rank)
   useEffect(() => {
-    if (agentName && isJoinedCompetition && rankingList.length > 0) {
-      const userAgent = rankingList.find((a) => a.isUser);
-      if (userAgent) {
-        setUserRank(userAgent.rank);
-        setUserProfit(userAgent.profit);
+    const clearTimer = () => {
+      if (myRankTimerRef.current != null) {
+        window.clearTimeout(myRankTimerRef.current);
+        myRankTimerRef.current = null;
       }
-    } else {
+    };
+
+    const abortInflight = () => {
+      if (myRankAbortRef.current) {
+        myRankAbortRef.current.abort();
+        myRankAbortRef.current = null;
+      }
+    };
+
+    const toPct = (raw: unknown) => {
+      const n = typeof raw === 'number' ? raw : Number(raw);
+      if (!Number.isFinite(n)) return null;
+      if (Math.abs(n) <= 1) return n * 100;
+      return n;
+    };
+
+    const fmtProfit = (raw: unknown) => {
+      const pct = toPct(raw);
+      if (pct == null) return null;
+      return `${pct >= 0 ? '+' : ''}${pct.toFixed(2)}%`;
+    };
+
+    // Not joined: keep existing behavior as "--"
+    if (!isJoinedCompetition) {
+      clearTimer();
+      abortInflight();
       setUserRank(null);
       setUserProfit(null);
+      return;
     }
-  }, [agentName, isJoinedCompetition, rankingList]);
+
+    const resolvedActivityId =
+      (currentActivity as any)?.id ?? (currentActivity as any)?.activity_id;
+    if (!resolvedActivityId) return;
+
+    let cancelled = false;
+
+    const fetchOnce = async (opts?: { resetTimer?: boolean }) => {
+      const resetTimer = opts?.resetTimer ?? false;
+
+      if (resetTimer) {
+        clearTimer();
+        myRankTimerRef.current = window.setTimeout(() => {
+          void fetchOnce({ resetTimer: true });
+        }, 60_000);
+      }
+
+      const seq = (myRankSeqRef.current += 1);
+
+      abortInflight();
+      const controller = new AbortController();
+      myRankAbortRef.current = controller;
+
+      try {
+        const data = await apiFetch<MyRankResponse>(
+          `/api/stock-activities/me/rank?activity_id=${encodeURIComponent(
+            String(resolvedActivityId)
+          )}`,
+          {
+            method: 'GET',
+            signal: controller.signal,
+            unauthorizedHandling: 'ignore',
+            errorHandling: 'ignore'
+          }
+        );
+
+        if (cancelled) return;
+        if (seq !== myRankSeqRef.current) return;
+
+        setUserRank(typeof data?.rank === 'number' ? data.rank : null);
+        const profit = fmtProfit((data as any)?.return_rate);
+        setUserProfit(profit);
+      } catch {
+        if (cancelled) return;
+        if (seq !== myRankSeqRef.current) return;
+        // keep previous values on error to avoid flicker
+      } finally {
+        if (myRankAbortRef.current === controller) {
+          myRankAbortRef.current = null;
+        }
+      }
+    };
+
+    void fetchOnce({ resetTimer: true });
+
+    return () => {
+      cancelled = true;
+      clearTimer();
+      abortInflight();
+    };
+  }, [currentActivity, isJoinedCompetition]);
+
+  // Live battle data: return-curve + leaderboard (poll every 5 minutes)
+  useEffect(() => {
+    const resolvedActivityId =
+      (currentActivity as any)?.id ?? (currentActivity as any)?.activity_id;
+    if (!resolvedActivityId) return;
+
+    const intervalMs = 5 * 60_000;
+    const limit = 10;
+
+    let cancelled = false;
+    let curveTimer: number | null = null;
+    let boardTimer: number | null = null;
+    let curveAbort: AbortController | null = null;
+    let boardAbort: AbortController | null = null;
+    let curveSeq = 0;
+    let boardSeq = 0;
+
+    const clearTimers = () => {
+      if (curveTimer != null) {
+        window.clearTimeout(curveTimer);
+        curveTimer = null;
+      }
+      if (boardTimer != null) {
+        window.clearTimeout(boardTimer);
+        boardTimer = null;
+      }
+    };
+
+    const abortAll = () => {
+      if (curveAbort) {
+        curveAbort.abort();
+        curveAbort = null;
+      }
+      if (boardAbort) {
+        boardAbort.abort();
+        boardAbort = null;
+      }
+    };
+
+    const pad2 = (n: number) => String(n).padStart(2, '0');
+
+    const formatToMinute = (d: Date) => {
+      const yyyy = d.getFullYear();
+      const mm = pad2(d.getMonth() + 1);
+      const dd = pad2(d.getDate());
+      const hh = pad2(d.getHours());
+      const mi = pad2(d.getMinutes());
+      return `${yyyy}-${mm}-${dd} ${hh}:${mi}`;
+    };
+
+    const toPctTimes100 = (raw: unknown) => {
+      const n = typeof raw === 'number' ? raw : Number(raw);
+      if (!Number.isFinite(n)) return null;
+      // return_pct is ratio (e.g. 0.12), convert to percentage points.
+      return n * 100;
+    };
+
+    const fmtProfit = (pctPoints: number | null) => {
+      if (pctPoints == null) return '--';
+      return `${pctPoints >= 0 ? '+' : ''}${pctPoints.toFixed(2)}%`;
+    };
+
+    const fetchLeaderboard = async (opts?: { resetTimer?: boolean }) => {
+      const resetTimer = opts?.resetTimer ?? false;
+      if (resetTimer) {
+        if (boardTimer != null) window.clearTimeout(boardTimer);
+        boardTimer = window.setTimeout(() => {
+          void fetchLeaderboard({ resetTimer: true });
+        }, intervalMs);
+      }
+
+      const seq = (boardSeq += 1);
+
+      if (boardAbort) boardAbort.abort();
+      const controller = new AbortController();
+      boardAbort = controller;
+
+      try {
+        const data = await apiFetch<any[]>(
+          `/api/stock-activities/leaderboard?activity_id=${encodeURIComponent(
+            String(resolvedActivityId)
+          )}&limit=${encodeURIComponent(String(limit))}`,
+          {
+            method: 'GET',
+            signal: controller.signal,
+            unauthorizedHandling: 'ignore',
+            errorHandling: 'ignore'
+          }
+        );
+
+        if (cancelled) return;
+        if (seq !== boardSeq) return;
+
+        const list = Array.isArray(data) ? data : [];
+        const mapped: RankingItem[] = list
+          .map((x: any, idx: number) => {
+            const userName =
+              typeof x?.user_name === 'string' && x.user_name
+                ? x.user_name
+                : typeof x?.userName === 'string'
+                ? x.userName
+                : '';
+            const userId =
+              typeof x?.user_id === 'string' || typeof x?.user_id === 'number'
+                ? String(x.user_id)
+                : '';
+            const agentId =
+              typeof x?.agent_id === 'string' || typeof x?.agent_id === 'number'
+                ? String(x.agent_id)
+                : '';
+
+            const pctPoints = toPctTimes100(x?.return_pct);
+            const rawProfit = 100 + (pctPoints ?? 0);
+
+            const isUser = (() => {
+              if (currentUser?.id && userId)
+                return String(currentUser.id) === userId;
+              if (currentUser?.username && userName)
+                return String(currentUser.username) === userName;
+              return false;
+            })();
+
+            return {
+              id: `${userId || 'u'}:${agentId || 'a'}:${idx}`,
+              rank: idx + 1,
+              name: userName || userId || agentId || '—',
+              class: '',
+              profit: fmtProfit(pctPoints),
+              rawProfit,
+              status: '在线',
+              isUser
+            } as RankingItem;
+          })
+          .filter((x) => Boolean(x?.id));
+
+        setRankingList(mapped);
+      } catch {
+        // keep previous values
+      } finally {
+        if (boardAbort === controller) boardAbort = null;
+      }
+    };
+
+    const fetchReturnCurve = async (opts?: { resetTimer?: boolean }) => {
+      const resetTimer = opts?.resetTimer ?? false;
+      if (resetTimer) {
+        if (curveTimer != null) window.clearTimeout(curveTimer);
+        curveTimer = window.setTimeout(() => {
+          void fetchReturnCurve({ resetTimer: true });
+        }, intervalMs);
+      }
+
+      const seq = (curveSeq += 1);
+
+      if (curveAbort) curveAbort.abort();
+      const controller = new AbortController();
+      curveAbort = controller;
+
+      type CurvePoint = {
+        snapshot_date?: string;
+        return_pct?: number;
+        daily_return_pct?: number;
+      };
+
+      type CurveSeries = {
+        user_name?: string;
+        curve?: CurvePoint[];
+      };
+
+      try {
+        const data = await apiFetch<CurveSeries[]>(
+          `/api/stock-activities/leaderboard/return-curve?activity_id=${encodeURIComponent(
+            String(resolvedActivityId)
+          )}`,
+          {
+            method: 'GET',
+            signal: controller.signal,
+            unauthorizedHandling: 'ignore',
+            errorHandling: 'ignore'
+          }
+        );
+
+        if (cancelled) return;
+        if (seq !== curveSeq) return;
+
+        const seriesList = Array.isArray(data) ? data : [];
+
+        // Build a unified minute-based timeline
+        const minuteMap = new Map<number, ChartDataPoint>();
+        const names: string[] = [];
+        const perNameValues = new Map<string, Map<number, number>>();
+
+        seriesList.forEach((s) => {
+          const name =
+            typeof (s as any)?.user_name === 'string' && (s as any).user_name
+              ? String((s as any).user_name)
+              : '—';
+          if (!names.includes(name)) names.push(name);
+
+          const curve = Array.isArray((s as any)?.curve)
+            ? (s as any).curve
+            : [];
+          const valMap = new Map<number, number>();
+
+          curve.forEach((p: any) => {
+            const rawDate = p?.snapshot_date;
+            if (typeof rawDate !== 'string' || !rawDate) return;
+            const dt = new Date(rawDate);
+            const ts = dt.getTime();
+            if (!Number.isFinite(ts)) return;
+            const minuteTs = Math.floor(ts / 60_000) * 60_000;
+
+            const pctPoints = toPctTimes100(p?.return_pct);
+            if (pctPoints == null) return;
+            const chartValue = 100 + Number(pctPoints.toFixed(2));
+            valMap.set(minuteTs, chartValue);
+
+            if (!minuteMap.has(minuteTs)) {
+              minuteMap.set(minuteTs, {
+                time: formatToMinute(new Date(minuteTs))
+              });
+            }
+          });
+
+          perNameValues.set(name, valMap);
+        });
+
+        const minutes = Array.from(minuteMap.keys()).sort((a, b) => a - b);
+        if (!minutes.length) {
+          setChartData([]);
+          return;
+        }
+
+        // Carry-forward values so every series appears in the final point
+        const lastSeen = new Map<string, number>();
+        const points: ChartDataPoint[] = minutes.map((m) => {
+          const base = minuteMap.get(m) ?? {
+            time: formatToMinute(new Date(m))
+          };
+          const next: ChartDataPoint = { time: base.time };
+
+          names.forEach((name) => {
+            const v = perNameValues.get(name)?.get(m);
+            if (typeof v === 'number' && Number.isFinite(v)) {
+              lastSeen.set(name, v);
+              next[name] = v;
+              return;
+            }
+
+            const prev = lastSeen.get(name);
+            if (typeof prev === 'number' && Number.isFinite(prev)) {
+              next[name] = prev;
+            }
+          });
+
+          return next;
+        });
+
+        // Cap to last 500 points for performance
+        setChartData(points.slice(-500));
+      } catch {
+        // keep previous values
+      } finally {
+        if (curveAbort === controller) curveAbort = null;
+      }
+    };
+
+    void fetchLeaderboard({ resetTimer: true });
+    void fetchReturnCurve({ resetTimer: true });
+
+    return () => {
+      cancelled = true;
+      clearTimers();
+      abortAll();
+    };
+  }, [
+    currentActivity,
+    currentUser?.id,
+    currentUser?.username,
+    setChartData,
+    setRankingList
+  ]);
 
   // Actions
   const handleLogin = (incoming: {
@@ -911,15 +1229,33 @@ export default function DashboardContent() {
               </div>
             </div>
             <div className='flex-1 min-h-0 glass-panel rounded-lg overflow-hidden'>
-              <EquityChart
-                data={chartData}
-                highlightedAgent={hoveredAgent ?? highlightedAgent}
-                onChartClick={(name) =>
-                  setHighlightedAgent(highlightedAgent === name ? null : name)
-                }
-                onChartHover={setHoveredAgent}
-                theme={theme}
-              />
+              {chartData.length === 0 ? (
+                <div className='h-full w-full p-6 flex flex-col justify-center gap-4 animate-pulse'>
+                  <div className='h-4 bg-white/10 rounded w-1/4' />
+                  <div className='h-4 bg-white/10 rounded w-2/5' />
+
+                  <div className='flex-1 min-h-0 border border-white/[0.04] bg-white/[0.02] rounded' />
+
+                  <div className='flex items-center justify-between gap-3'>
+                    <div className='h-3 bg-white/10 rounded w-24' />
+                    <div className='h-3 bg-white/10 rounded w-16' />
+                  </div>
+
+                  <div className='text-[11px] text-cp-text-muted tracking-widest'>
+                    {t.common.loading}
+                  </div>
+                </div>
+              ) : (
+                <EquityChart
+                  data={chartData}
+                  highlightedAgent={hoveredAgent ?? highlightedAgent}
+                  onChartClick={(name) =>
+                    setHighlightedAgent(highlightedAgent === name ? null : name)
+                  }
+                  onChartHover={setHoveredAgent}
+                  theme={theme}
+                />
+              )}
             </div>
           </div>
 

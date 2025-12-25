@@ -76,7 +76,7 @@ export default function SeasonInfoPanel({
   activityLoading: activityLoadingProp,
   activityError: activityErrorProp
 }: SeasonInfoPanelProps) {
-  const { t, get, language } = useLanguage();
+  const { t, get } = useLanguage();
   const tt = useCallback((key: string) => t(`season_info_panel.${key}`), [t]);
   const [activityState, setActivityState] = useState<StockActivity | null>(
     null
@@ -100,10 +100,15 @@ export default function SeasonInfoPanel({
   const [logs, setLogs] = useState<
     {
       time: string;
-      action: string;
+      message: string;
       type: 'info' | 'success' | 'warn' | 'error';
     }[]
   >([]);
+
+  const [logsLoading, setLogsLoading] = useState(false);
+  const logsTimerRef = useRef<number | null>(null);
+  const logsAbortRef = useRef<AbortController | null>(null);
+  const logsFetchSeqRef = useRef(0);
 
   const [holdings, setHoldings] = useState<
     { code: string; name: string; volume: number; price: number; pnl: number }[]
@@ -126,6 +131,36 @@ export default function SeasonInfoPanel({
     holdingsNextAtRef.current = null;
     setHoldingsCountdownSec(null);
   }, []);
+
+  const clearLogsTimer = useCallback(() => {
+    if (logsTimerRef.current != null) {
+      window.clearTimeout(logsTimerRef.current);
+      logsTimerRef.current = null;
+    }
+  }, []);
+
+  const pad2 = (n: number) => String(n).padStart(2, '0');
+
+  const formatToMinute = (d: Date) => {
+    const yyyy = d.getFullYear();
+    const mm = pad2(d.getMonth() + 1);
+    const dd = pad2(d.getDate());
+    const hh = pad2(d.getHours());
+    const mi = pad2(d.getMinutes());
+    return `${yyyy}-${mm}-${dd} ${hh}:${mi}`;
+  };
+
+  const inferLogType = (
+    raw: unknown
+  ): 'info' | 'success' | 'warn' | 'error' => {
+    const s = typeof raw === 'string' ? raw.toLowerCase() : '';
+    if (s.includes('error') || s.includes('fail') || s.includes('exception'))
+      return 'error';
+    if (s.includes('warn') || s.includes('risk')) return 'warn';
+    if (s.includes('success') || s.includes('done') || s.includes('complete'))
+      return 'success';
+    return 'info';
+  };
 
   // Real-time countdown updater
   useEffect(() => {
@@ -243,6 +278,90 @@ export default function SeasonInfoPanel({
     };
   }, [activity?.id, clearHoldingsTimer, fetchHoldingsLatest]);
 
+  const fetchLogsList = useCallback(
+    async (opts?: { resetTimer?: boolean }) => {
+      const resetTimer = opts?.resetTimer ?? false;
+
+      if (!isJoined) return;
+      const activityIdRaw = activity?.id;
+      if (activityIdRaw === undefined || activityIdRaw === null) return;
+
+      const activityId = String(activityIdRaw);
+
+      const intervalMs = 5 * 60_000;
+      if (resetTimer) {
+        clearLogsTimer();
+        logsTimerRef.current = window.setTimeout(() => {
+          void fetchLogsList({ resetTimer: true });
+        }, intervalMs);
+      }
+
+      const seq = (logsFetchSeqRef.current += 1);
+      setLogsLoading(true);
+
+      if (logsAbortRef.current) {
+        logsAbortRef.current.abort();
+      }
+      const controller = new AbortController();
+      logsAbortRef.current = controller;
+
+      try {
+        const url = `/api/stock-activities/logs/list?activity_id=${encodeURIComponent(
+          activityId
+        )}`;
+
+        const data = await apiFetch<{ items?: any[] }>(url, {
+          method: 'GET',
+          signal: controller.signal,
+          errorHandling: 'ignore'
+        });
+
+        if (seq !== logsFetchSeqRef.current) return;
+
+        const items = Array.isArray((data as any)?.items)
+          ? (data as any).items
+          : [];
+
+        const mapped = items
+          .map((x: any) => {
+            const rawCreatedAt = x?.created_at;
+            const createdAtStr =
+              typeof rawCreatedAt === 'string' ? rawCreatedAt : '';
+            const dt = createdAtStr ? new Date(createdAtStr) : null;
+            const ts = dt ? dt.getTime() : NaN;
+            const time = dt && Number.isFinite(ts) ? formatToMinute(dt) : '--';
+
+            const message = typeof x?.message === 'string' ? x.message : '-';
+            const type = inferLogType(x?.log_type);
+
+            return {
+              ts,
+              time,
+              message,
+              type
+            };
+          })
+          .filter((x: any) => typeof x?.message === 'string')
+          .sort((a: any, b: any) => (b.ts ?? 0) - (a.ts ?? 0))
+          .slice(0, 200)
+          .map(({ ts: _ts, ...rest }: any) => rest);
+
+        setLogs(mapped);
+      } catch {
+        if (seq !== logsFetchSeqRef.current) return;
+        setLogs([]);
+      } finally {
+        if (logsAbortRef.current === controller) {
+          logsAbortRef.current = null;
+        }
+        if (seq === logsFetchSeqRef.current) {
+          setLogsLoading(false);
+        }
+      }
+    },
+    [activity?.id, clearLogsTimer, isJoined]
+  );
+
   // Fetch current activity from API
   useEffect(() => {
     // If parent provides activity state, do not duplicate fetching.
@@ -301,52 +420,34 @@ export default function SeasonInfoPanel({
     }
   }, [isJoined]);
 
+  // System logs: fetch immediately, then poll every 5 minutes.
   useEffect(() => {
-    if (agentName && isJoined) {
-      const interval = setInterval(() => {
-        const now = new Date();
-        const locale = language === 'zh' ? 'zh-CN' : 'en-US';
-        const timeStr = now.toLocaleTimeString(locale, { hour12: false });
-        const newLogs = [
-          {
-            time: timeStr,
-            action: tt('logs.scanning'),
-            type: 'info' as const
-          },
-          {
-            time: timeStr,
-            action: tt('logs.signal_detected').replace('{symbol}', '600030'),
-            type: 'success' as const
-          },
-          {
-            time: timeStr,
-            action: tt('logs.risk_ok'),
-            type: 'info' as const
-          },
-          {
-            time: timeStr,
-            action: tt('logs.placing_order').replace('{symbol}', '300750'),
-            type: 'warn' as const
-          },
-          {
-            time: timeStr,
-            action: tt('logs.deep_analysis'),
-            type: 'info' as const
-          },
-          {
-            time: timeStr,
-            action: tt('logs.updating_pnl'),
-            type: 'info' as const
-          }
-        ];
-        const randomLog = newLogs[Math.floor(Math.random() * newLogs.length)];
-        setLogs((prev) => [randomLog, ...prev].slice(0, 20));
-      }, 3000);
-      return () => clearInterval(interval);
-    } else {
+    if (
+      !agentName ||
+      !isJoined ||
+      activity?.id === undefined ||
+      activity?.id === null
+    ) {
+      clearLogsTimer();
+      if (logsAbortRef.current) {
+        logsAbortRef.current.abort();
+        logsAbortRef.current = null;
+      }
       setLogs([]);
+      setLogsLoading(false);
+      return;
     }
-  }, [agentName, isJoined, language, tt]);
+
+    void fetchLogsList({ resetTimer: true });
+
+    return () => {
+      clearLogsTimer();
+      if (logsAbortRef.current) {
+        logsAbortRef.current.abort();
+        logsAbortRef.current = null;
+      }
+    };
+  }, [activity?.id, agentName, clearLogsTimer, fetchLogsList, isJoined]);
 
   const capabilityHistory =
     (get('capability_history') as
@@ -560,6 +661,12 @@ export default function SeasonInfoPanel({
                 <span className='type-eyebrow flex items-center gap-2'>
                   <Terminal size={10} /> {tt('system_logs')}
                 </span>
+                <div className='flex-1' />
+                {logsLoading && (
+                  <span className='type-mono text-[10px] text-cp-text-muted'>
+                    {t('common.loading')}
+                  </span>
+                )}
               </div>
               <div className='flex-1 overflow-y-auto custom-scrollbar p-3 type-mono text-[11px] flex flex-col-reverse bg-transparent leading-relaxed'>
                 {logs.map((log, idx) => (
@@ -581,7 +688,7 @@ export default function SeasonInfoPanel({
                       }>
                       {log.type === 'warn' && '! '}
                       {log.type === 'success' && '> '}
-                      {log.action}
+                      {log.message}
                     </span>
                   </div>
                 ))}

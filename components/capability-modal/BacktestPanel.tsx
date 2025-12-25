@@ -370,7 +370,21 @@ export default function BacktestPanel({
           ref={historyListRef}
           onScroll={handleHistoryScroll}
           className='flex-1 min-h-0 overflow-y-auto custom-scrollbar border border-cp-border bg-black/20 p-4'>
-          {!history.length ? (
+          {isHistoryLoading && !history.length ? (
+            <div className='space-y-3 animate-pulse'>
+              {Array.from({ length: 6 }).map((_, idx) => (
+                <div
+                  key={idx}
+                  className='border border-cp-border bg-black/30 p-3'>
+                  <div className='flex items-center justify-between gap-3'>
+                    <div className='h-3 w-28 bg-white/10' />
+                    <div className='h-4 w-14 bg-white/10 border border-white/10' />
+                  </div>
+                  <div className='mt-2 h-4 w-3/4 bg-white/10' />
+                </div>
+              ))}
+            </div>
+          ) : !history.length ? (
             <div className='text-xs text-cp-text-muted'>
               {t('capability_modal.history_empty')}
             </div>
@@ -414,8 +428,18 @@ export default function BacktestPanel({
               ))}
 
               {isHistoryLoading && (
-                <div className='text-xs text-cp-text-muted pt-2'>
-                  {t('capability_modal.loading') || '加载中...'}
+                <div className='pt-2 space-y-3 animate-pulse'>
+                  {Array.from({ length: 2 }).map((_, idx) => (
+                    <div
+                      key={idx}
+                      className='border border-cp-border bg-black/30 p-3'>
+                      <div className='flex items-center justify-between gap-3'>
+                        <div className='h-3 w-28 bg-white/10' />
+                        <div className='h-4 w-14 bg-white/10 border border-white/10' />
+                      </div>
+                      <div className='mt-2 h-4 w-2/3 bg-white/10' />
+                    </div>
+                  ))}
                 </div>
               )}
 

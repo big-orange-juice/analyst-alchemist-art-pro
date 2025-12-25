@@ -174,9 +174,13 @@ export default function RankingList({
           <div className='flex flex-col justify-center min-w-0'>
             <span className={nameClass}>{agent.name}</span>
             <div className='flex items-center justify-between gap-3'>
-              <span className='type-caption'>
-                {agent.class} {t('ranking.model_suffix')}
-              </span>
+              {agent.class ? (
+                <span className='type-caption'>
+                  {agent.class} {t('ranking.model_suffix')}
+                </span>
+              ) : (
+                <span className='type-caption' />
+              )}
               <span
                 className={`type-figure text-xs font-semibold inline-block ${profitClass}`}>
                 {agent.profit}

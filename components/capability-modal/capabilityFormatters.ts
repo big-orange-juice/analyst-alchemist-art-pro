@@ -26,6 +26,33 @@ export const tryParseJsonText = (text: string) => {
   }
 };
 
+const humanizeRecommendation = (value: unknown, i18n?: FormatterI18n) => {
+  const t = i18n?.t;
+  const raw = typeof value === 'string' ? value : String(value ?? '');
+  const normalized = raw
+    .trim()
+    .toLowerCase()
+    .replace(/[\s_-]+/g, '_');
+
+  const mapKey = (k: string) => {
+    const path = `capability_formatters.recommendation_value.${k}`;
+    const translated = t?.(path);
+    if (!translated || translated === path) return '';
+    return translated;
+  };
+
+  // common variants
+  const key = (() => {
+    if (normalized === 'buy' || normalized === 'strong_buy') return 'buy';
+    if (normalized === 'sell' || normalized === 'strong_sell') return 'sell';
+    if (normalized === 'hold' || normalized === 'neutral') return 'hold';
+    return '';
+  })();
+
+  const mapped = key ? mapKey(key) : '';
+  return mapped || raw.trim();
+};
+
 const humanizeMatchReason = (reason: string, i18n?: FormatterI18n) => {
   const trimmed = (reason ?? '').trim();
   if (!trimmed) return '';
@@ -231,7 +258,12 @@ export const formatStockAnalysisResponse = (
       const confLabel = t?.('capability_formatters.confidence_short') ?? 'Conf';
       const confText =
         confidence === 0 || confidence ? ` (${confLabel} ${confidence})` : '';
-      lines.push(`- ${recLabel}: ${recommendation}${confText}`);
+      lines.push(
+        `- ${recLabel}: ${humanizeRecommendation(
+          recommendation,
+          i18n
+        )}${confText}`
+      );
     }
 
     const summaryText =
@@ -350,7 +382,10 @@ export const formatStockAnalysisResponse = (
     const rec = t?.('capability_formatters.recommendation') ?? 'Recommendation';
     const conf = t?.('capability_formatters.confidence_short') ?? 'Conf';
     lines.push(
-      `- ${rec}: ${ta.recommendation || ''} (${conf} ${ta.confidence ?? ''})`
+      `- ${rec}: ${humanizeRecommendation(
+        ta.recommendation || '',
+        i18n
+      )} (${conf} ${ta.confidence ?? ''})`
     );
     if (ta.reasoning) lines.push(ta.reasoning);
   }
@@ -363,7 +398,10 @@ export const formatStockAnalysisResponse = (
     const rec = t?.('capability_formatters.recommendation') ?? 'Recommendation';
     const conf = t?.('capability_formatters.confidence_short') ?? 'Conf';
     lines.push(
-      `- ${rec}: ${f.recommendation || ''} (${conf} ${f.confidence ?? ''})`
+      `- ${rec}: ${humanizeRecommendation(
+        f.recommendation || '',
+        i18n
+      )} (${conf} ${f.confidence ?? ''})`
     );
     if (f.reasoning) lines.push(f.reasoning);
     if (Array.isArray(f.key_factors) && f.key_factors.length) {

@@ -26,7 +26,8 @@ export const capability_modal = {
     loading: '执行中...',
     missing_agent_title: '缺少 Agent',
     missing_agent_desc: '请先创建或选择 Agent 后再执行。',
-    net_profit_margin_min: '净利率下限 (%)'
+    net_profit_margin_min: '净利率下限 (%)',
+    history_end: '已加载全部'
   },
   en: {
     module: 'Module',
@@ -55,6 +56,7 @@ export const capability_modal = {
     loading: 'Running...',
     missing_agent_title: 'Agent required',
     missing_agent_desc: 'Create or select an agent before executing.',
-    net_profit_margin_min: 'Net profit margin min (%)'
+    net_profit_margin_min: 'Net profit margin min (%)',
+    history_end: 'All loaded'
   }
 } as const;

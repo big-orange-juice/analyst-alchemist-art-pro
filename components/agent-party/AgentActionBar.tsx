@@ -44,7 +44,7 @@ export default function AgentActionBar({
       </button>
       <button
         onClick={onDeleteAgent}
-        className='text-[10px] flex items-center gap-1.5 px-3 py-1.5 rounded hover:bg-cp-red/10 text-cp-text-muted hover:text-cp-red transition-all duration-200'>
+        className='text-[10px] flex text-red-500 items-center gap-1.5 px-3 py-1.5 rounded hover:bg-cp-red/10 text-cp-text-muted hover:text-cp-red transition-all duration-200'>
         <Trash2 size={12} /> {t('agent_party.delete_agent')}
       </button>
     </div>

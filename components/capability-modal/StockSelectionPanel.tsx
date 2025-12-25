@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Play, RotateCcw } from 'lucide-react';
 import { useLanguage } from '@/lib/useLanguage';
 import { apiFetch } from '@/lib/http';
@@ -41,6 +41,12 @@ export default function StockSelectionPanel({
   const currentUser = useUserStore((s) => s.currentUser);
   const [activeTab, setActiveTab] = useState<'form' | 'history'>('form');
   const [history, setHistory] = useState<RunHistoryItem[]>(() => []);
+
+  const [historyPage, setHistoryPage] = useState(1);
+  const [historyPageSize] = useState(20);
+  const [historyTotal, setHistoryTotal] = useState<number | null>(null);
+  const [isHistoryLoading, setIsHistoryLoading] = useState(false);
+  const historyListRef = useRef<HTMLDivElement | null>(null);
 
   const mapServerHistory = (raw: unknown): RunHistoryItem[] => {
     const list = Array.isArray(raw) ? raw : [];
@@ -120,16 +126,68 @@ export default function StockSelectionPanel({
   };
 
   const refreshHistory = async () => {
+    setHistoryPage(1);
+    setHistoryTotal(null);
+    await fetchHistoryPage(1);
+  };
+
+  const fetchHistoryPage = async (page: number) => {
+    setIsHistoryLoading(true);
     try {
-      const data = await apiFetch<any>('/api/research/stock-selection/list', {
-        method: 'GET',
-        errorHandling: 'ignore'
+      const res = await apiFetch<any>(
+        `/api/research/stock-selection/list?page=${encodeURIComponent(
+          String(page)
+        )}&page_size=${encodeURIComponent(String(historyPageSize))}`,
+        { method: 'GET', errorHandling: 'ignore' }
+      );
+
+      const items = Array.isArray(res?.items) ? res.items : [];
+      const total =
+        typeof res?.total === 'number'
+          ? res.total
+          : typeof res?.count === 'number'
+          ? res.count
+          : null;
+      setHistoryTotal(total);
+
+      const mapped = mapServerHistory(items);
+      setHistory((prev) => {
+        if (page <= 1) return mapped;
+        const merged = [...prev, ...mapped];
+        const seen = new Set<string>();
+        return merged.filter((x) => {
+          const key = String(x.id || '');
+          if (!key) return false;
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        });
       });
-      const mapped = mapServerHistory(data);
-      setHistory(mapped);
     } catch {
-      setHistory([]);
+      if (page <= 1) setHistory([]);
+    } finally {
+      setIsHistoryLoading(false);
     }
+  };
+
+  const canLoadMore = () => {
+    if (isHistoryLoading) return false;
+    if (historyTotal == null) return true;
+    return history.length < historyTotal;
+  };
+
+  const handleHistoryScroll = () => {
+    const el = historyListRef.current;
+    if (!el) return;
+    if (!canLoadMore()) return;
+
+    const thresholdPx = 120;
+    const remaining = el.scrollHeight - el.scrollTop - el.clientHeight;
+    if (remaining > thresholdPx) return;
+
+    const nextPage = historyPage + 1;
+    setHistoryPage(nextPage);
+    void fetchHistoryPage(nextPage);
   };
   const themeOptions =
     (get('stock_selection_panel.theme_options') as Array<{
@@ -267,8 +325,25 @@ export default function StockSelectionPanel({
         </div>
 
         {activeTab === 'history' ? (
-          <div className='flex-1 min-h-0 overflow-y-auto custom-scrollbar border border-cp-border bg-black/20 p-4'>
-            {!history.length ? (
+          <div
+            ref={historyListRef}
+            onScroll={handleHistoryScroll}
+            className='flex-1 min-h-0 overflow-y-auto custom-scrollbar border border-cp-border bg-black/20 p-4'>
+            {isHistoryLoading && !history.length ? (
+              <div className='space-y-3 animate-pulse'>
+                {Array.from({ length: 6 }).map((_, idx) => (
+                  <div
+                    key={idx}
+                    className='border border-cp-border bg-black/30 p-3'>
+                    <div className='flex items-center justify-between gap-3'>
+                      <div className='h-3 w-28 bg-white/10' />
+                      <div className='h-4 w-12 bg-white/10 border border-white/10' />
+                    </div>
+                    <div className='mt-2 h-4 w-3/4 bg-white/10' />
+                  </div>
+                ))}
+              </div>
+            ) : !history.length ? (
               <div className='text-xs text-cp-text-muted'>
                 {t('capability_modal.history_empty')}
               </div>
@@ -300,6 +375,22 @@ export default function StockSelectionPanel({
                 ))}
               </div>
             )}
+
+            {isHistoryLoading && history.length ? (
+              <div className='mt-3 space-y-3 animate-pulse'>
+                {Array.from({ length: 2 }).map((_, idx) => (
+                  <div
+                    key={idx}
+                    className='border border-cp-border bg-black/30 p-3'>
+                    <div className='flex items-center justify-between gap-3'>
+                      <div className='h-3 w-28 bg-white/10' />
+                      <div className='h-4 w-12 bg-white/10 border border-white/10' />
+                    </div>
+                    <div className='mt-2 h-4 w-2/3 bg-white/10' />
+                  </div>
+                ))}
+              </div>
+            ) : null}
           </div>
         ) : (
           <>
@@ -316,7 +407,7 @@ export default function StockSelectionPanel({
                 </button>
               </div>
 
-              <div className='flex flex-col gap-2'>
+              {/* <div className='flex flex-col gap-2'>
                 <span className='text-xs text-cp-text-muted tracking-widest uppercase'>
                   {t('stock_selection_panel.theme_label')}
                 </span>
@@ -330,7 +421,7 @@ export default function StockSelectionPanel({
                     </option>
                   ))}
                 </select>
-              </div>
+              </div> */}
 
               <div className='flex flex-col gap-2'>
                 <span className='text-xs text-cp-text-muted tracking-widest uppercase'>
@@ -340,7 +431,7 @@ export default function StockSelectionPanel({
                   value={userCustomInput}
                   onChange={(e) => setUserCustomInput(e.target.value)}
                   placeholder={t('stock_selection_panel.user_input_ph')}
-                  className='bg-black/40 border border-cp-border px-3 py-2 text-sm text-white focus:border-cp-yellow outline-none placeholder:text-cp-text-muted resize-none min-h-[196px]'
+                  className='bg-black/40 border border-cp-border px-3 py-2 text-sm text-white focus:border-cp-yellow outline-none placeholder:text-cp-text-muted resize-none min-h-[256px]'
                 />
               </div>
 

@@ -1,12 +1,15 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Play, RotateCcw } from 'lucide-react';
 import { useLanguage } from '@/lib/useLanguage';
 import { apiFetch } from '@/lib/http';
 import type { RunHistoryItem } from '@/lib/runHistory';
 import { useAgentStore, useUserStore } from '@/store';
 import { AppNotification } from '@/types';
+import StockSymbolSelectorModal, {
+  StockSearchItem
+} from '@/components/StockSymbolSelectorModal';
 import {
   formatStockAnalysisResponse,
   looksLikeJsonText,
@@ -30,11 +33,17 @@ export default function StockAnalysisPanel({
   setIsLoading,
   setOutput
 }: Props) {
-  const { t, get, language } = useLanguage();
+  const { t, language } = useLanguage();
   const agentId = useAgentStore((s) => s.agentId);
   const currentUser = useUserStore((s) => s.currentUser);
   const [activeTab, setActiveTab] = useState<'form' | 'history'>('form');
   const [history, setHistory] = useState<RunHistoryItem[]>(() => []);
+
+  const [historyPage, setHistoryPage] = useState(1);
+  const [historyPageSize] = useState(20);
+  const [historyTotal, setHistoryTotal] = useState<number | null>(null);
+  const [isHistoryLoading, setIsHistoryLoading] = useState(false);
+  const historyListRef = useRef<HTMLDivElement | null>(null);
 
   const mapServerHistory = (raw: unknown): RunHistoryItem[] => {
     const list = Array.isArray(raw) ? raw : [];
@@ -132,28 +141,107 @@ export default function StockAnalysisPanel({
   };
 
   const refreshHistory = async () => {
+    setHistoryPage(1);
+    setHistoryTotal(null);
+    await fetchHistoryPage(1);
+  };
+
+  const fetchHistoryPage = async (page: number) => {
+    setIsHistoryLoading(true);
     try {
-      const data = await apiFetch<any>('/api/research/stock-analysis/list', {
-        method: 'GET',
-        errorHandling: 'ignore'
+      const res = await apiFetch<any>(
+        `/api/research/stock-analysis/list?page=${encodeURIComponent(
+          String(page)
+        )}&page_size=${encodeURIComponent(String(historyPageSize))}`,
+        { method: 'GET', errorHandling: 'ignore' }
+      );
+
+      const items = Array.isArray(res?.items) ? res.items : [];
+      const total =
+        typeof res?.total === 'number'
+          ? res.total
+          : typeof res?.count === 'number'
+          ? res.count
+          : null;
+      setHistoryTotal(total);
+
+      const mapped = mapServerHistory(items);
+      setHistory((prev) => {
+        if (page <= 1) return mapped;
+        const merged = [...prev, ...mapped];
+        const seen = new Set<string>();
+        return merged.filter((x) => {
+          const key = String(x.id || '');
+          if (!key) return false;
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        });
       });
-      setHistory(mapServerHistory(data));
     } catch {
-      setHistory([]);
+      if (page <= 1) setHistory([]);
+    } finally {
+      setIsHistoryLoading(false);
     }
   };
 
-  const symbolOptions =
-    (get('stock_analysis_panel.symbol_options') as Array<{
-      value: string;
-      label: string;
-    }>) ?? [];
+  const canLoadMore = () => {
+    if (isHistoryLoading) return false;
+    if (historyTotal == null) return true;
+    return history.length < historyTotal;
+  };
 
-  const [stockSymbol, setStockSymbol] = useState('000859.SZ');
+  const handleHistoryScroll = () => {
+    const el = historyListRef.current;
+    if (!el) return;
+    if (!canLoadMore()) return;
+
+    const thresholdPx = 120;
+    const remaining = el.scrollHeight - el.scrollTop - el.clientHeight;
+    if (remaining > thresholdPx) return;
+
+    const nextPage = historyPage + 1;
+    setHistoryPage(nextPage);
+    void fetchHistoryPage(nextPage);
+  };
+
+  const [stockSymbol, setStockSymbol] = useState('');
+  const [selectedStock, setSelectedStock] = useState<StockSearchItem | null>(
+    null
+  );
+  const [stockPickerOpen, setStockPickerOpen] = useState(false);
   const [tradingDate, setTradingDate] = useState(
     new Date().toISOString().slice(0, 10)
   );
   const [newsSource, setNewsSource] = useState('');
+
+  const pickStockSymbol = (it: StockSearchItem | null) => {
+    if (!it) return '';
+    const v =
+      (typeof it.symbol === 'string' && it.symbol) ||
+      (typeof it.stock_code === 'string' && it.stock_code) ||
+      (typeof it.ts_code === 'string' && it.ts_code) ||
+      (typeof it.code === 'string' && it.code) ||
+      '';
+    return String(v || '').trim();
+  };
+
+  const pickStockName = (it: StockSearchItem | null) => {
+    if (!it) return '';
+    const v =
+      (typeof it.name === 'string' && it.name) ||
+      (typeof it.stock_name === 'string' && it.stock_name) ||
+      (typeof it.full_name === 'string' && it.full_name) ||
+      '';
+    return String(v || '').trim();
+  };
+
+  const stockLabel = (() => {
+    const name = pickStockName(selectedStock);
+    if (name) return name;
+    if (stockSymbol) return stockSymbol;
+    return '';
+  })();
 
   const handleExecute = async () => {
     setIsLoading(true);
@@ -165,6 +253,16 @@ export default function StockAnalysisPanel({
         t('capability_modal.missing_agent_title'),
         t('capability_modal.missing_agent_desc'),
         'error'
+      );
+      setIsLoading(false);
+      return;
+    }
+
+    if (!stockSymbol.trim()) {
+      onNotify?.(
+        t('capability_modal.stock_symbol'),
+        t('common.select') || '请选择',
+        'warning'
       );
       setIsLoading(false);
       return;
@@ -233,134 +331,178 @@ export default function StockAnalysisPanel({
   };
 
   return (
-    <div className='w-full md:w-1/3 border-b md:border-b-0 md:border-r border-cp-border p-6 flex flex-col bg-white/[0.02] hover-card m-2 gap-4 min-h-0'>
-      <div
-        role='tablist'
-        className='flex items-center gap-4 border-b border-cp-border'>
-        <button
-          type='button'
-          onClick={() => setActiveTab('form')}
-          role='tab'
-          aria-selected={activeTab === 'form'}
-          className={`px-3 py-2 text-[11px] font-bold uppercase tracking-widest transition-colors -mb-px border-b-2 ${
-            activeTab === 'form'
-              ? 'border-cp-yellow text-cp-yellow'
-              : 'border-transparent text-cp-text-muted hover:text-white'
-          }`}>
-          {t('capability_modal.tab_stock_analysis')}
-        </button>
-        <button
-          type='button'
-          onClick={() => {
-            void refreshHistory();
-            setActiveTab('history');
-          }}
-          role='tab'
-          aria-selected={activeTab === 'history'}
-          className={`px-3 py-2 text-[11px] font-bold uppercase tracking-widest transition-colors -mb-px border-b-2 ${
-            activeTab === 'history'
-              ? 'border-cp-yellow text-cp-yellow'
-              : 'border-transparent text-cp-text-muted hover:text-white'
-          }`}>
-          {t('capability_modal.tab_stock_analysis_history')}
-        </button>
+    <>
+      <div className='w-full md:w-1/3 border-b md:border-b-0 md:border-r border-cp-border p-6 flex flex-col bg-white/[0.02] hover-card m-2 gap-4 min-h-0'>
+        <div
+          role='tablist'
+          className='flex items-center gap-4 border-b border-cp-border'>
+          <button
+            type='button'
+            onClick={() => setActiveTab('form')}
+            role='tab'
+            aria-selected={activeTab === 'form'}
+            className={`px-3 py-2 text-[11px] font-bold uppercase tracking-widest transition-colors -mb-px border-b-2 ${
+              activeTab === 'form'
+                ? 'border-cp-yellow text-cp-yellow'
+                : 'border-transparent text-cp-text-muted hover:text-white'
+            }`}>
+            {t('capability_modal.tab_stock_analysis')}
+          </button>
+          <button
+            type='button'
+            onClick={() => {
+              void refreshHistory();
+              setActiveTab('history');
+            }}
+            role='tab'
+            aria-selected={activeTab === 'history'}
+            className={`px-3 py-2 text-[11px] font-bold uppercase tracking-widest transition-colors -mb-px border-b-2 ${
+              activeTab === 'history'
+                ? 'border-cp-yellow text-cp-yellow'
+                : 'border-transparent text-cp-text-muted hover:text-white'
+            }`}>
+            {t('capability_modal.tab_stock_analysis_history')}
+          </button>
+        </div>
+
+        {activeTab === 'history' ? (
+          <div
+            ref={historyListRef}
+            onScroll={handleHistoryScroll}
+            className='flex-1 min-h-0 overflow-y-auto custom-scrollbar border border-cp-border bg-black/20 p-4'>
+            {isHistoryLoading && !history.length ? (
+              <div className='space-y-3 animate-pulse'>
+                {Array.from({ length: 6 }).map((_, idx) => (
+                  <div
+                    key={idx}
+                    className='border border-cp-border bg-black/30 p-3'>
+                    <div className='flex items-center justify-between gap-3'>
+                      <div className='h-3 w-28 bg-white/10' />
+                      <div className='h-4 w-12 bg-white/10 border border-white/10' />
+                    </div>
+                    <div className='mt-2 h-4 w-3/4 bg-white/10' />
+                  </div>
+                ))}
+              </div>
+            ) : !history.length ? (
+              <div className='text-xs text-cp-text-muted'>
+                {t('capability_modal.history_empty')}
+              </div>
+            ) : (
+              <div className='space-y-3'>
+                {history.map((item) => (
+                  <button
+                    key={item.id}
+                    type='button'
+                    onClick={() => applyHistoryOutput(item)}
+                    className='w-full text-left cursor-pointer border border-cp-border bg-black/30 p-3 hover:border-cp-yellow transition-colors'>
+                    <div className='flex items-center justify-between gap-3'>
+                      <div className='text-[11px] text-cp-text-muted font-mono'>
+                        {new Date(item.ts).toLocaleString()}
+                      </div>
+                      <div
+                        className={`text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 border ${
+                          item.ok
+                            ? 'border-green-500/40 text-green-400'
+                            : 'border-cp-red/40 text-cp-red'
+                        }`}>
+                        {item.ok ? 'OK' : 'FAIL'}
+                      </div>
+                    </div>
+                    <div className='mt-2 text-sm text-cp-text'>
+                      {item.summary}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {isHistoryLoading && history.length ? (
+              <div className='mt-3 space-y-3 animate-pulse'>
+                {Array.from({ length: 2 }).map((_, idx) => (
+                  <div
+                    key={idx}
+                    className='border border-cp-border bg-black/30 p-3'>
+                    <div className='flex items-center justify-between gap-3'>
+                      <div className='h-3 w-28 bg-white/10' />
+                      <div className='h-4 w-12 bg-white/10 border border-white/10' />
+                    </div>
+                    <div className='mt-2 h-4 w-2/3 bg-white/10' />
+                  </div>
+                ))}
+              </div>
+            ) : null}
+          </div>
+        ) : (
+          <>
+            <div className='flex-1 min-h-0 overflow-y-auto custom-scrollbar space-y-4 pr-1'>
+              <div className='flex flex-col gap-2'>
+                <span className='text-xs text-cp-text-muted tracking-widest uppercase'>
+                  {t('capability_modal.stock_symbol')}
+                </span>
+                <button
+                  type='button'
+                  onClick={() => setStockPickerOpen(true)}
+                  className='bg-black/40 border border-cp-border px-3 py-2 text-sm text-white focus:border-cp-yellow outline-none text-left hover:border-cp-yellow/60 transition-colors'>
+                  {stockLabel || t('common.select')}
+                </button>
+              </div>
+
+              <div className='flex flex-col gap-2'>
+                <span className='text-xs text-cp-text-muted tracking-widest uppercase'>
+                  {t('capability_modal.trading_date')}
+                </span>
+                <input
+                  type='date'
+                  value={tradingDate}
+                  onChange={(e) => setTradingDate(e.target.value)}
+                  className='bg-black/40 border border-cp-border px-3 py-2 text-sm text-white focus:border-cp-yellow outline-none'
+                />
+              </div>
+
+              {/* <div className='flex flex-col gap-2'>
+                <span className='text-xs text-cp-text-muted tracking-widest uppercase'>
+                  {t('capability_modal.news_source')}
+                </span>
+                <input
+                  type='text'
+                  value={newsSource}
+                  onChange={(e) => setNewsSource(e.target.value)}
+                  placeholder={t('stock_analysis_panel.news_source_ph')}
+                  className='bg-black/40 border border-cp-border px-3 py-2 text-sm text-white focus:border-cp-yellow outline-none placeholder:text-cp-text-muted'
+                />
+              </div> */}
+            </div>
+
+            <div className='shrink-0 pt-4'>
+              <button
+                onClick={handleExecute}
+                disabled={isLoading}
+                className='w-full py-4 btn-gold flex items-center justify-center gap-2 disabled:opacity-50'>
+                {isLoading ? (
+                  <RotateCcw className='animate-spin' size={18} />
+                ) : (
+                  <Play size={18} />
+                )}
+                {t('capability_modal.execute')}
+              </button>
+            </div>
+          </>
+        )}
       </div>
 
-      {activeTab === 'history' ? (
-        <div className='flex-1 min-h-0 overflow-y-auto custom-scrollbar border border-cp-border bg-black/20 p-4'>
-          {!history.length ? (
-            <div className='text-xs text-cp-text-muted'>
-              {t('capability_modal.history_empty')}
-            </div>
-          ) : (
-            <div className='space-y-3'>
-              {history.map((item) => (
-                <button
-                  key={item.id}
-                  type='button'
-                  onClick={() => applyHistoryOutput(item)}
-                  className='w-full text-left cursor-pointer border border-cp-border bg-black/30 p-3 hover:border-cp-yellow transition-colors'>
-                  <div className='flex items-center justify-between gap-3'>
-                    <div className='text-[11px] text-cp-text-muted font-mono'>
-                      {new Date(item.ts).toLocaleString()}
-                    </div>
-                    <div
-                      className={`text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 border ${
-                        item.ok
-                          ? 'border-green-500/40 text-green-400'
-                          : 'border-cp-red/40 text-cp-red'
-                      }`}>
-                      {item.ok ? 'OK' : 'FAIL'}
-                    </div>
-                  </div>
-                  <div className='mt-2 text-sm text-cp-text'>
-                    {item.summary}
-                  </div>
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-      ) : (
-        <>
-          <div className='flex-1 min-h-0 overflow-y-auto custom-scrollbar space-y-4 pr-1'>
-            <div className='flex flex-col gap-2'>
-              <span className='text-xs text-cp-text-muted tracking-widest uppercase'>
-                {t('capability_modal.stock_symbol')}
-              </span>
-              <select
-                value={stockSymbol}
-                onChange={(e) => setStockSymbol(e.target.value)}
-                className='bg-black/40 border border-cp-border px-3 py-2 text-sm text-white focus:border-cp-yellow outline-none'>
-                {symbolOptions.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className='flex flex-col gap-2'>
-              <span className='text-xs text-cp-text-muted tracking-widest uppercase'>
-                {t('capability_modal.trading_date')}
-              </span>
-              <input
-                type='date'
-                value={tradingDate}
-                onChange={(e) => setTradingDate(e.target.value)}
-                className='bg-black/40 border border-cp-border px-3 py-2 text-sm text-white focus:border-cp-yellow outline-none'
-              />
-            </div>
-
-            <div className='flex flex-col gap-2'>
-              <span className='text-xs text-cp-text-muted tracking-widest uppercase'>
-                {t('capability_modal.news_source')}
-              </span>
-              <input
-                type='text'
-                value={newsSource}
-                onChange={(e) => setNewsSource(e.target.value)}
-                placeholder={t('stock_analysis_panel.news_source_ph')}
-                className='bg-black/40 border border-cp-border px-3 py-2 text-sm text-white focus:border-cp-yellow outline-none placeholder:text-cp-text-muted'
-              />
-            </div>
-          </div>
-
-          <div className='shrink-0 pt-4'>
-            <button
-              onClick={handleExecute}
-              disabled={isLoading}
-              className='w-full py-4 btn-gold flex items-center justify-center gap-2 disabled:opacity-50'>
-              {isLoading ? (
-                <RotateCcw className='animate-spin' size={18} />
-              ) : (
-                <Play size={18} />
-              )}
-              {t('capability_modal.execute')}
-            </button>
-          </div>
-        </>
-      )}
-    </div>
+      <StockSymbolSelectorModal
+        open={stockPickerOpen}
+        value={selectedStock ? [selectedStock] : []}
+        onClose={() => setStockPickerOpen(false)}
+        onConfirm={(selected) => {
+          const next = selected[0] ?? null;
+          const sym = pickStockSymbol(next);
+          if (sym) setStockSymbol(sym);
+          setSelectedStock(next);
+          setStockPickerOpen(false);
+        }}
+      />
+    </>
   );
 }

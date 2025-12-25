@@ -20,6 +20,11 @@ export const capability_formatters = {
     financial_report: '财报摘要',
 
     recommendation: '建议',
+    recommendation_value: {
+      buy: '买入',
+      sell: '卖出',
+      hold: '持有'
+    },
     confidence_short: '信心',
     key_factors: '关键因素',
 
@@ -69,6 +74,11 @@ export const capability_formatters = {
     financial_report: 'Financial Report',
 
     recommendation: 'Recommendation',
+    recommendation_value: {
+      buy: 'Buy',
+      sell: 'Sell',
+      hold: 'Hold'
+    },
     confidence_short: 'Conf.',
     key_factors: 'Key factors',
 

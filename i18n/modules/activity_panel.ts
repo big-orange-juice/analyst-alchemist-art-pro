@@ -15,7 +15,9 @@ export const activity_panel = {
     date_range: '日期：{start} ~ {end}',
     date_empty: '日期：—',
     initial_capital: '初始资金：¥{amount}',
-    initial_empty: '初始资金：—'
+    initial_empty: '初始资金：—',
+    my_rank: '我的排名',
+    my_return_rate: '盈利率'
   },
   en: {
     tab_overview: 'ACTIVITY',
@@ -33,6 +35,8 @@ export const activity_panel = {
     date_range: 'DATE: {start} ~ {end}',
     date_empty: 'DATE: —',
     initial_capital: 'INITIAL: ¥{amount}',
-    initial_empty: 'INITIAL: —'
+    initial_empty: 'INITIAL: —',
+    my_rank: 'MY RANK',
+    my_return_rate: 'RETURN'
   }
 } as const;
