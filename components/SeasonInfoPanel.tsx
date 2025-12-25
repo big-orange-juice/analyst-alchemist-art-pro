@@ -112,6 +112,7 @@ export default function SeasonInfoPanel({
   const [holdingsLoading, setHoldingsLoading] = useState(false);
   const holdingsTimerRef = useRef<number | null>(null);
   const holdingsFetchSeqRef = useRef(0);
+  const holdingsAbortRef = useRef<AbortController | null>(null);
   const holdingsNextAtRef = useRef<number | null>(null);
   const [holdingsCountdownSec, setHoldingsCountdownSec] = useState<
     number | null
@@ -138,7 +139,7 @@ export default function SeasonInfoPanel({
       const remainingMs = nextAt - Date.now();
       const remainingSec = Math.max(0, Math.ceil(remainingMs / 1000));
       setHoldingsCountdownSec(remainingSec);
-    }, 250);
+    }, 1000);
 
     return () => {
       window.clearInterval(id);
@@ -167,6 +168,13 @@ export default function SeasonInfoPanel({
       const seq = (holdingsFetchSeqRef.current += 1);
       setHoldingsLoading(true);
 
+      // Abort previous in-flight request to avoid piling up fetches.
+      if (holdingsAbortRef.current) {
+        holdingsAbortRef.current.abort();
+      }
+      const controller = new AbortController();
+      holdingsAbortRef.current = controller;
+
       try {
         const url = `/api/stock-activities/holdings/latest?activity_id=${encodeURIComponent(
           activityId
@@ -174,6 +182,7 @@ export default function SeasonInfoPanel({
 
         const data = await apiFetch<HoldingsLatestResponse>(url, {
           method: 'GET',
+          signal: controller.signal,
           errorHandling: 'ignore'
         });
 
@@ -206,6 +215,9 @@ export default function SeasonInfoPanel({
         if (seq !== holdingsFetchSeqRef.current) return;
         setHoldings([]);
       } finally {
+        if (holdingsAbortRef.current === controller) {
+          holdingsAbortRef.current = null;
+        }
         if (seq === holdingsFetchSeqRef.current) {
           setHoldingsLoading(false);
         }
@@ -224,6 +236,10 @@ export default function SeasonInfoPanel({
 
     return () => {
       clearHoldingsTimer();
+      if (holdingsAbortRef.current) {
+        holdingsAbortRef.current.abort();
+        holdingsAbortRef.current = null;
+      }
     };
   }, [activity?.id, clearHoldingsTimer, fetchHoldingsLatest]);
 
@@ -239,11 +255,13 @@ export default function SeasonInfoPanel({
     }
 
     let aborted = false;
+    const controller = new AbortController();
     setActivityLoadingState(true);
     setActivityErrorState(null);
 
     apiFetch<StockActivity[]>('/api/stock-activities', {
-      unauthorizedHandling: 'ignore'
+      unauthorizedHandling: 'ignore',
+      signal: controller.signal
     })
       .then((data) => {
         if (aborted) return;
@@ -257,6 +275,7 @@ export default function SeasonInfoPanel({
       })
       .catch((err) => {
         if (aborted) return;
+        if (err instanceof DOMException && err.name === 'AbortError') return;
         const message =
           err instanceof Error ? err.message : t('activity_panel.fetch_failed');
         setActivityErrorState(message);
@@ -269,6 +288,7 @@ export default function SeasonInfoPanel({
 
     return () => {
       aborted = true;
+      controller.abort();
     };
   }, [activityErrorProp, activityLoadingProp, activityProp, t]);
 

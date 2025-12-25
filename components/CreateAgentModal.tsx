@@ -185,9 +185,11 @@ export default function CreateAgentModal({
     ''
   );
   const [customPrompt, setCustomPrompt] = useState('');
-  const [uploadedFiles, setUploadedFiles] = useState<
-    { name: string; size: string }[]
-  >([]);
+  const [knowledgeFile, setKnowledgeFile] = useState<File | null>(null);
+  const [knowledgeUploadResult, setKnowledgeUploadResult] = useState<
+    string | null
+  >(null);
+  const [isKnowledgeUploading, setIsKnowledgeUploading] = useState(false);
   const [simDurationMode, setSimDurationMode] = useState<SimDuration>('1w');
   const [simStatus, setSimStatus] = useState<'idle' | 'running' | 'finished'>(
     'idle'
@@ -257,17 +259,65 @@ export default function CreateAgentModal({
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0) {
-      const newFiles = Array.from(e.target.files).map((f: File) => ({
-        name: f.name,
-        size: (f.size / 1024).toFixed(1) + ' KB'
-      }));
-      setUploadedFiles((prev) => [...prev, ...newFiles]);
-    }
+    const f = e.target.files?.[0] ?? null;
+    setKnowledgeFile(f);
+    setKnowledgeUploadResult(null);
   };
 
-  const removeFile = (index: number) => {
-    setUploadedFiles((prev) => prev.filter((_, i) => i !== index));
+  const clearKnowledgeFile = () => setKnowledgeFile(null);
+
+  const uploadKnowledgeIfNeeded = async () => {
+    const scenario = String(selectedPresetId || '').trim();
+    if (!scenario) return;
+    if (!knowledgeFile) return;
+
+    const uid = currentUser?.id ? String(currentUser.id) : '';
+    if (!uid) {
+      onNotify?.(
+        t('agent_party.knowledge_title') || '知识库',
+        tt('notify_missing_user_desc') || '请先登录以创建 Agent。',
+        'warning'
+      );
+      throw new Error('Missing user');
+    }
+
+    setIsKnowledgeUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append('file', knowledgeFile);
+      fd.append('scenario', scenario);
+
+      const res = await apiFetch<string>('/api/knowledge-graph/upload', {
+        method: 'POST',
+        body: fd,
+        errorHandling: 'ignore'
+      });
+
+      const resultText = typeof res === 'string' ? res : String(res ?? '');
+      setKnowledgeUploadResult(resultText);
+      onNotify?.(
+        t('agent_party.knowledge_upload_ok_title') || '上传成功',
+        t('agent_party.knowledge_upload_ok_desc') ||
+          '知识库已更新（已覆盖旧版本）',
+        'success'
+      );
+    } catch (err) {
+      const message =
+        err instanceof ApiError
+          ? err.message
+          : err instanceof Error
+          ? err.message
+          : t('agent_party.knowledge_upload_failed_desc') || '上传请求失败';
+
+      onNotify?.(
+        t('agent_party.knowledge_upload_failed_title') || '上传失败',
+        message,
+        'error'
+      );
+      throw err;
+    } finally {
+      setIsKnowledgeUploading(false);
+    }
   };
 
   const formatDateInput = (d: Date) => {
@@ -564,7 +614,17 @@ export default function CreateAgentModal({
     }
   };
 
-  const handleFinishFromKnowledge = async () => {
+  const handleFinishFromKnowledge = async (opts?: { upload?: boolean }) => {
+    const shouldUpload = opts?.upload ?? false;
+    try {
+      if (shouldUpload) {
+        await uploadKnowledgeIfNeeded();
+      }
+    } catch {
+      // upload failed; keep user on this step
+      return;
+    }
+
     const ok = await submitAgentCreation(true);
     if (!ok) return;
     if (!ENABLE_SIMULATION_STEP) {
@@ -880,7 +940,6 @@ export default function CreateAgentModal({
                     ref={fileInputRef}
                     onChange={handleFileUpload}
                     className='hidden'
-                    multiple
                   />
                   <div className='w-16 h-16 bg-cp-black border border-cp-border flex items-center justify-center mb-6 group-hover:scale-110 transition-transform'>
                     <Upload
@@ -894,30 +953,35 @@ export default function CreateAgentModal({
                   <p className='text-sm text-cp-text-muted'>
                     {tt('upload_desc')}
                   </p>
+                  <p className='text-xs text-cp-text-muted mt-3'>
+                    {t('agent_party.knowledge_overwrite_tip')}
+                  </p>
                 </div>
 
-                {uploadedFiles.length > 0 && (
+                {knowledgeFile && (
                   <div className='border border-cp-border bg-cp-black p-4 max-h-[200px] overflow-y-auto custom-scrollbar'>
-                    {uploadedFiles.map((file, idx) => (
-                      <div
-                        key={idx}
-                        className='flex items-center justify-between p-3 border-b border-cp-border/50 last:border-0 hover:bg-cp-dim/30'>
-                        <div className='flex items-center gap-3'>
-                          <FileText size={16} className='text-cp-yellow' />
-                          <span className='text-sm text-cp-text'>
-                            {file.name}
-                          </span>
-                          <span className='text-xs text-cp-text-muted'>
-                            ({file.size})
-                          </span>
-                        </div>
-                        <button
-                          onClick={() => removeFile(idx)}
-                          className='text-cp-text-muted hover:text-cp-red transition-colors'>
-                          <Trash2 size={16} />
-                        </button>
+                    <div className='flex items-center justify-between p-3 hover:bg-cp-dim/30'>
+                      <div className='flex items-center gap-3'>
+                        <FileText size={16} className='text-cp-yellow' />
+                        <span className='text-sm text-cp-text'>
+                          {knowledgeFile.name}
+                        </span>
+                        <span className='text-xs text-cp-text-muted'>
+                          ({(knowledgeFile.size / 1024).toFixed(1)} KB)
+                        </span>
                       </div>
-                    ))}
+                      <button
+                        onClick={clearKnowledgeFile}
+                        className='text-cp-text-muted hover:text-cp-red transition-colors'>
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                    {knowledgeUploadResult && (
+                      <div className='mt-3 text-xs text-cp-text-muted break-all'>
+                        {t('agent_party.knowledge_server_result')}:{' '}
+                        {knowledgeUploadResult}
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -930,16 +994,24 @@ export default function CreateAgentModal({
                 </button>
                 <div className='flex gap-4'>
                   <button
-                    onClick={() => void handleFinishFromKnowledge()}
-                    disabled={isSubmitting}
+                    onClick={() =>
+                      void handleFinishFromKnowledge({ upload: false })
+                    }
+                    disabled={isSubmitting || isKnowledgeUploading}
                     className='px-8 py-3 btn-outline text-cp-text-muted hover:text-white disabled:opacity-50 disabled:cursor-not-allowed'>
-                    {isSubmitting ? tt('creating') : tt('skip')}
+                    {isSubmitting || isKnowledgeUploading
+                      ? tt('creating')
+                      : tt('skip')}
                   </button>
                   <button
-                    onClick={() => void handleFinishFromKnowledge()}
-                    disabled={isSubmitting}
+                    onClick={() =>
+                      void handleFinishFromKnowledge({ upload: true })
+                    }
+                    disabled={isSubmitting || isKnowledgeUploading}
                     className='px-12 py-3 btn-gold flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed'>
-                    {isSubmitting ? tt('creating') : tt('finish_upload')}{' '}
+                    {isSubmitting || isKnowledgeUploading
+                      ? tt('creating')
+                      : tt('finish_upload')}{' '}
                     <ChevronRight size={16} />
                   </button>
                 </div>

@@ -1,17 +1,19 @@
 'use client';
 
 import React from 'react';
-import { Edit2, MessageSquare, Trash2 } from 'lucide-react';
+import { BookOpen, Edit2, MessageSquare, Trash2 } from 'lucide-react';
 import { useLanguage } from '@/lib/useLanguage';
 
 interface AgentActionBarProps {
   onOpenChat: () => void;
+  onOpenKnowledge?: () => void;
   onEditAgent?: () => void;
   onDeleteAgent: () => void;
 }
 
 export default function AgentActionBar({
   onOpenChat,
+  onOpenKnowledge,
   onEditAgent,
   onDeleteAgent
 }: AgentActionBarProps) {
@@ -19,6 +21,14 @@ export default function AgentActionBar({
 
   return (
     <div className='flex flex-wrap justify-end gap-2 mt-5 pt-4 border-t border-white/[0.02]'>
+      <button
+        onClick={onOpenKnowledge}
+        disabled={!onOpenKnowledge}
+        className={`text-[10px] flex items-center gap-1.5 px-3 py-1.5 rounded hover:bg-white/[0.02] text-cp-text-muted hover:text-cp-yellow transition-all duration-200 ${
+          !onOpenKnowledge ? 'opacity-50 cursor-not-allowed' : ''
+        }`}>
+        <BookOpen size={12} /> {t('agent_party.knowledge')}
+      </button>
       <button
         onClick={onOpenChat}
         className='text-[10px] flex items-center gap-1.5 px-3 py-1.5 rounded hover:bg-white/[0.02] text-cp-text-muted hover:text-cp-yellow transition-all duration-200'>

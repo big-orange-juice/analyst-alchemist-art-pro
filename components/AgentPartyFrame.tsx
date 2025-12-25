@@ -19,6 +19,7 @@ interface AgentPartyFrameProps {
   onToggleJoin?: () => void;
   onSelectCapability: (cap: AgentCapability) => void;
   onEditAgent?: () => void;
+  onOpenKnowledge?: () => void;
   onOpenChat: () => void;
   onDeleteAgent: () => void;
 }
@@ -33,6 +34,7 @@ export default function AgentPartyFrame({
   onToggleJoin,
   onSelectCapability,
   onEditAgent,
+  onOpenKnowledge,
   onOpenChat,
   onDeleteAgent
 }: AgentPartyFrameProps) {
@@ -46,6 +48,7 @@ export default function AgentPartyFrame({
 
         <AgentActionBar
           onOpenChat={onOpenChat}
+          onOpenKnowledge={onOpenKnowledge}
           onEditAgent={onEditAgent}
           onDeleteAgent={onDeleteAgent}
         />

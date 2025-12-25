@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import {
@@ -43,6 +43,7 @@ import ChatWidget from '@/components/ChatWidget';
 import LoginScreen from '@/components/LoginScreen';
 import CreateAgentModal from '@/components/CreateAgentModal';
 import EditAgentModal from '@/components/EditAgentModal';
+import KnowledgeBaseModal from '@/components/KnowledgeBaseModal';
 import CompetitionJoinModal from '@/components/CompetitionJoinModal';
 import CapabilityModal from '@/components/CapabilityModal';
 import ExternalAgentModal from '@/components/ExternalAgentModal';
@@ -138,8 +139,20 @@ export default function DashboardContent() {
   const { chartData, rankingList, setChartData, setRankingList } =
     useMarketDataStore();
 
+  const rankingListRef = useRef<RankingItem[]>([]);
+  const chartDataRef = useRef<ChartDataPoint[]>([]);
+
+  useEffect(() => {
+    rankingListRef.current = rankingList;
+  }, [rankingList]);
+
+  useEffect(() => {
+    chartDataRef.current = chartData;
+  }, [chartData]);
+
   // Local state
   const [isEditAgentModalOpen, setIsEditAgentModalOpen] = useState(false);
+  const [isKnowledgeModalOpen, setIsKnowledgeModalOpen] = useState(false);
   const [isArticleAnalysisOpen, setIsArticleAnalysisOpen] = useState(false);
   const [userRank, setUserRank] = useState<number | null>(null);
   const [userProfit, setUserProfit] = useState<string | null>(null);
@@ -271,11 +284,13 @@ export default function DashboardContent() {
 
   // Simulation interval
   useEffect(() => {
-    if (rankingList.length === 0 || chartData.length === 0) return;
+    const shouldSimulate = rankingList.length > 0 && chartData.length > 0;
+    if (!shouldSimulate) return;
 
     const interval = setInterval(() => {
-      setRankingList(
-        rankingList
+      const prevRanking = rankingListRef.current;
+      if (prevRanking.length) {
+        const nextRanking = prevRanking
           .map((agent) => {
             const change = (Math.random() - 0.48) * 0.2;
             const newProfit = agent.rawProfit + change;
@@ -288,34 +303,40 @@ export default function DashboardContent() {
             };
           })
           .sort((a, b) => b.rawProfit - a.rawProfit)
-          .map((a, i) => ({ ...a, rank: i + 1 }))
-      );
+          .map((a, i) => ({ ...a, rank: i + 1 }));
 
-      const lastTime = chartData[chartData.length - 1]?.time || '09:30';
-      const [h, m] = lastTime.split(':').map(Number);
-      const newMinutes = m + 5 >= 60 ? 0 : m + 5;
-      const newHours = m + 5 >= 60 ? (h + 1) % 24 : h;
-      const newTimeStr = `${String(newHours).padStart(2, '0')}:${String(
-        newMinutes
-      ).padStart(2, '0')}`;
-
-      const newPoint: ChartDataPoint = { time: newTimeStr };
-      const lastPoint = chartData[chartData.length - 1];
-      if (lastPoint) {
-        Object.keys(lastPoint)
-          .filter((k) => k !== 'time')
-          .forEach((key) => {
-            const prevVal = lastPoint[key] as number;
-            const change = (Math.random() - 0.48) * 2;
-            newPoint[key] = parseFloat((prevVal + change).toFixed(2));
-          });
+        setRankingList(nextRanking);
       }
 
-      setChartData([...chartData.slice(-49), newPoint]);
+      const prevChart = chartDataRef.current;
+      if (prevChart.length) {
+        const lastTime = prevChart[prevChart.length - 1]?.time || '09:30';
+        const [h, m] = lastTime.split(':').map(Number);
+        const newMinutes = m + 5 >= 60 ? 0 : m + 5;
+        const newHours = m + 5 >= 60 ? (h + 1) % 24 : h;
+        const newTimeStr = `${String(newHours).padStart(2, '0')}:${String(
+          newMinutes
+        ).padStart(2, '0')}`;
+
+        const newPoint: ChartDataPoint = { time: newTimeStr };
+        const lastPoint = prevChart[prevChart.length - 1];
+        if (lastPoint) {
+          Object.keys(lastPoint)
+            .filter((k) => k !== 'time')
+            .forEach((key) => {
+              const prevVal = lastPoint[key] as number;
+              const change = (Math.random() - 0.48) * 2;
+              newPoint[key] = parseFloat((prevVal + change).toFixed(2));
+            });
+        }
+
+        const nextChart = [...prevChart.slice(-49), newPoint];
+        setChartData(nextChart);
+      }
     }, 2000);
 
     return () => clearInterval(interval);
-  }, [chartData, rankingList, setChartData, setRankingList]);
+  }, [chartData.length, rankingList.length, setChartData, setRankingList]);
 
   // Handle user agent rank/profit
   useEffect(() => {
@@ -818,6 +839,7 @@ export default function DashboardContent() {
                     isJoined={isJoinedCompetition}
                     rank={userRank ?? undefined}
                     profit={userProfit ?? undefined}
+                    onOpenKnowledge={() => setIsKnowledgeModalOpen(true)}
                     onToggleJoin={() => {
                       if (isJoinedCompetition) {
                         setConfirmModal({
@@ -983,6 +1005,15 @@ export default function DashboardContent() {
             }
           }}
           onClose={() => setIsEditAgentModalOpen(false)}
+        />
+      )}
+
+      {isKnowledgeModalOpen && agentName && (
+        <KnowledgeBaseModal
+          scenario={String((agentRaw as any)?.workflow_id ?? '')}
+          userId={currentUser?.id ? String(currentUser.id) : lastFetchedUserId}
+          onClose={() => setIsKnowledgeModalOpen(false)}
+          onNotify={notify}
         />
       )}
 
