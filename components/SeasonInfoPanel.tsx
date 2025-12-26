@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { useLanguage } from '@/lib/useLanguage';
 import { apiFetch } from '@/lib/http';
+import { useUserStore } from '@/store/userStore';
 import { AgentCapability, CapabilityHistoryEntry } from '@/types';
 
 interface SeasonInfoPanelProps {
@@ -78,6 +79,8 @@ export default function SeasonInfoPanel({
 }: SeasonInfoPanelProps) {
   const { t, get } = useLanguage();
   const tt = useCallback((key: string) => t(`season_info_panel.${key}`), [t]);
+  const currentUser = useUserStore((s) => s.currentUser);
+  const isLoggedIn = Boolean(currentUser);
   const [activityState, setActivityState] = useState<StockActivity | null>(
     null
   );
@@ -185,6 +188,8 @@ export default function SeasonInfoPanel({
     async (opts?: { resetTimer?: boolean }) => {
       const resetTimer = opts?.resetTimer ?? false;
 
+      if (!isLoggedIn) return;
+
       const activityIdRaw = activity?.id;
       if (activityIdRaw === undefined || activityIdRaw === null) return;
 
@@ -258,7 +263,7 @@ export default function SeasonInfoPanel({
         }
       }
     },
-    [activity?.id, clearHoldingsTimer]
+    [activity?.id, clearHoldingsTimer, isLoggedIn]
   );
 
   // Live holdings: fetch immediately, then refresh every 1 minute.
@@ -266,6 +271,17 @@ export default function SeasonInfoPanel({
   useEffect(() => {
     // Only start after activity is known.
     if (activity?.id === undefined || activity?.id === null) return;
+
+    if (!isLoggedIn) {
+      clearHoldingsTimer();
+      if (holdingsAbortRef.current) {
+        holdingsAbortRef.current.abort();
+        holdingsAbortRef.current = null;
+      }
+      setHoldings([]);
+      setHoldingsLoading(false);
+      return;
+    }
 
     void fetchHoldingsLatest({ resetTimer: true });
 
@@ -276,12 +292,13 @@ export default function SeasonInfoPanel({
         holdingsAbortRef.current = null;
       }
     };
-  }, [activity?.id, clearHoldingsTimer, fetchHoldingsLatest]);
+  }, [activity?.id, clearHoldingsTimer, fetchHoldingsLatest, isLoggedIn]);
 
   const fetchLogsList = useCallback(
     async (opts?: { resetTimer?: boolean }) => {
       const resetTimer = opts?.resetTimer ?? false;
 
+      if (!isLoggedIn) return;
       if (!isJoined) return;
       const activityIdRaw = activity?.id;
       if (activityIdRaw === undefined || activityIdRaw === null) return;
@@ -359,7 +376,7 @@ export default function SeasonInfoPanel({
         }
       }
     },
-    [activity?.id, clearLogsTimer, isJoined]
+    [activity?.id, clearLogsTimer, isJoined, isLoggedIn]
   );
 
   // Fetch current activity from API
@@ -423,6 +440,7 @@ export default function SeasonInfoPanel({
   // System logs: fetch immediately, then poll every 5 minutes.
   useEffect(() => {
     if (
+      !isLoggedIn ||
       !agentName ||
       !isJoined ||
       activity?.id === undefined ||
@@ -447,7 +465,14 @@ export default function SeasonInfoPanel({
         logsAbortRef.current = null;
       }
     };
-  }, [activity?.id, agentName, clearLogsTimer, fetchLogsList, isJoined]);
+  }, [
+    activity?.id,
+    agentName,
+    clearLogsTimer,
+    fetchLogsList,
+    isJoined,
+    isLoggedIn
+  ]);
 
   const capabilityHistory =
     (get('capability_history') as

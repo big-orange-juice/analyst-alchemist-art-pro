@@ -387,6 +387,14 @@ export default function DashboardContent() {
       return `${pct >= 0 ? '+' : ''}${pct.toFixed(2)}%`;
     };
 
+    if (!currentUser) {
+      clearTimer();
+      abortInflight();
+      setUserRank(null);
+      setUserProfit(null);
+      return;
+    }
+
     // Not joined: keep existing behavior as "--"
     if (!isJoinedCompetition) {
       clearTimer();
@@ -455,7 +463,7 @@ export default function DashboardContent() {
       clearTimer();
       abortInflight();
     };
-  }, [currentActivity, isJoinedCompetition]);
+  }, [currentActivity, currentUser, isJoinedCompetition]);
 
   // Live battle data: return-curve + leaderboard (poll every 5 minutes)
   useEffect(() => {
@@ -789,7 +797,18 @@ export default function DashboardContent() {
     }
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      await apiFetch('/api/auth/logout', {
+        method: 'POST',
+        parseAs: 'text',
+        unauthorizedHandling: 'ignore',
+        errorHandling: 'ignore'
+      });
+    } catch {
+      // ignore
+    }
+
     clearUser();
     clearAgent();
     notify(
@@ -811,7 +830,7 @@ export default function DashboardContent() {
           message: '',
           action: () => {}
         });
-        handleLogout();
+        void handleLogout();
       }
     });
   };
